@@ -1,18 +1,18 @@
 ---
 name: create-pr-summary
-description: Write a PR title and description for the current branch to pr_summary.md, ready to copy into GitHub. Use when the user asks for a PR summary, PR description, to describe this branch, to write up the changes for a pull request, or says "create pr summary".
+description: Write a PR title and description for the current branch to local/pr_summary.md, ready to copy into GitHub. Use when the user asks for a PR summary, PR description, to describe this branch, to write up the changes for a pull request, or says "create pr summary".
 ---
 
 # Create a PR summary
 
 Reads the current branch's committed changes and commit messages, then writes
-`pr_summary.md` at the repo root: a one-line title plus a PR description the user
+`local/pr_summary.md` at the repo root: a one-line title plus a PR description the user
 copies into GitHub's two fields by hand.
 
 This skill **only writes the file**. It never commits, pushes, or touches a PR on
 GitHub — the user does that themselves.
 
-`pr_summary.md` is already in `.gitignore`, so it stays a local scratch file.
+`local/pr_summary.md` is already in `.gitignore`, so it stays a local scratch file.
 
 ## Step 1 — Establish scope
 
@@ -57,7 +57,7 @@ rename is complete. A summary that misdescribes a change is worse than a short o
 If the diff is large, work file group by file group and keep notes, rather than
 skimming the whole thing at once.
 
-## Step 3 — Write `pr_summary.md`
+## Step 3 — Write `local/pr_summary.md`
 
 Overwrite the file completely. Never merge with, append to, or preserve anything from a
 previous run — a stale section from an earlier branch is a real hazard here.
@@ -129,8 +129,8 @@ section that says nothing ran.
 
 ## Rules
 
-- Overwrite `pr_summary.md` entirely; never append.
+- Overwrite `local/pr_summary.md` entirely; never append.
 - Never run `gh pr create`, `gh pr edit`, `git commit`, or `git push` from this skill.
-- Never commit `pr_summary.md`. It is gitignored — keep it that way.
+- Never commit `local/pr_summary.md`. It is gitignored — keep it that way.
 - Do not describe uncommitted changes as part of the PR.
 - Do not claim tests passed unless a run is actually in evidence.
