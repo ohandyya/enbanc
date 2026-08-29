@@ -42,7 +42,7 @@ line-length = 100
 target-version = "py311"
 
 [tool.ruff.format]
-# ruff 0.16 formats Python code blocks inside Markdown by default. README.md and glossary.md
+# ruff 0.16 formats Python code blocks inside Markdown by default. README.md and docs/glossary.md
 # describe an API that does not exist yet and align their inline comments on purpose — they are
 # read as prose, not compiled — and the formatter collapses that alignment. Excluding Markdown
 # holds this gate at exactly the scope that matters: every `.py` file is still formatted and checked.

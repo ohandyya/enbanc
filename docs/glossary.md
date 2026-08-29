@@ -1,3 +1,8 @@
+---
+status: current
+updated: 2026-08-29
+---
+
 # Glossary
 
 `enbanc` uses courtroom vocabulary. It's precise once you know it, and this
