@@ -34,3 +34,41 @@ dev = [
     "pytest-asyncio>=1.4.0",
     "ruff>=0.16.5",
 ]
+
+[tool.ruff]
+line-length = 100
+# The support floor from `requires-python`, not the 3.13 in .python-version. Pinning it here is
+# what stops pyupgrade (UP) from rewriting code into 3.12+ syntax that a 3.11 user could not run.
+target-version = "py311"
+
+[tool.ruff.format]
+# ruff 0.16 formats Python code blocks inside Markdown by default. README.md and glossary.md
+# describe an API that does not exist yet and align their inline comments on purpose — they are
+# read as prose, not compiled — and the formatter collapses that alignment. Excluding Markdown
+# holds this gate at exactly the scope that matters: every `.py` file is still formatted and checked.
+exclude = ["*.md"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "SIM", # flake8-simplify
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["enbanc"]
+
+[tool.pyright]
+include = ["src"]
+# Add "tests" here (and to the Makefile's check-all) once there is a tests/ directory.
+venvPath = "."
+venv = ".venv"
+# Same reason as ruff's target-version: type-check against the oldest interpreter the package
+# claims to support, so a 3.12+ stdlib API cannot slip into a release that advertises 3.11.
+pythonVersion = "3.11"
+typeCheckingMode = "standard"
