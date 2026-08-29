@@ -11,7 +11,7 @@ wheels/
 env/
 venv/
 
-# Secrets / environment config (Marketplace API key, etc. — see plan.md)
+# Secrets / environment config
 .env
 .env.*
 !.env.example
