@@ -12,5 +12,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
+
+      - name: Check tag matches version
+        run: |
+          test "v$(uv version --short)" = "${{ github.ref_name }}"
+
       - run: uv build
       - run: uv publish --trusted-publishing always
