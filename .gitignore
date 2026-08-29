@@ -8,3 +8,27 @@ wheels/
 
 # Virtual environments
 .venv
+env/
+venv/
+
+# Secrets / environment config (Marketplace API key, etc. — see plan.md)
+.env
+.env.*
+!.env.example
+
+# Test / type-check / lint caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# OS
+.DS_Store
+
+# Local files that are not meant to be included
+.claude/settings.local.json
+local/
