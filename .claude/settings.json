@@ -2,7 +2,9 @@
   "permissions": {
     "deny": [
       "Read(./notes/**)",
-      "Read(./local/**)"
+      "Read(./local/**)",
+      "Read(./.env)",
+      "Read(**/.env)"
     ]
   }
 }
