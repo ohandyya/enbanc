@@ -13,6 +13,8 @@ The split that matters is **current truth vs. dated record**:
 
 - `design/` and `decisions/` describe the system as it is meant to work now.
 - `journal/` records what happened on a given day and is never updated after.
+- `progress.md` straddles the two on purpose: its `Current state` block is
+  rewritten every session, its `Log` is never edited.
 
 If the two disagree, `design/` wins. See [`../CLAUDE.md`](../CLAUDE.md) for the
 full ruleset.
@@ -21,6 +23,7 @@ full ruleset.
 
 | Doc | What it covers |
 |---|---|
+| [`progress.md`](./progress.md) | Where the work stands right now, and a dated trail of how it got here. Start here |
 | [`glossary.md`](./glossary.md) | Courtroom vocabulary — tribunal, statute, advocate, ruling |
 
 ### Design — how the system should work

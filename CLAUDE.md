@@ -10,6 +10,7 @@ one carries a different guarantee about whether its contents are true.
 
 | Path | Guarantee | When to read |
 |---|---|---|
+| `docs/progress.md` | **Where the work stands.** Status is current; the log is dated. | First, at the start of a session |
 | `docs/design/` | **Current truth.** How the system is meant to work. | Always, before implementing |
 | `docs/decisions/` | Immutable ADRs. Why a path was chosen. | When a decision seems arbitrary |
 | `docs/glossary.md` | The domain vocabulary. | Always |
@@ -33,6 +34,10 @@ one carries a different guarantee about whether its contents are true.
    the diff, and the PR description already cover *what* changed. A journal entry
    earns its place by recording *why this way* — the alternatives weighed, the
    constraint that forced the shape. Otherwise skip it.
+6. **`docs/progress.md` is the session checkpoint, not a spec.** The `wrap-up`
+   skill maintains it: `Current state` is rewritten in place, `Log` entries are
+   prepended and never edited. Reasoning belongs in `docs/journal/`, linked from
+   the log entry — not inlined.
 
 ## Conventions
 
