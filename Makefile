@@ -32,7 +32,4 @@ typecheck-watch: ## Re-run pyright on file changes
 test: ## Run the test suite (verbose: per-test names/results)
 	uv run pytest -v
 
-# `test` is deliberately not a prerequisite yet: there is no tests/ directory, and pytest exits
-# non-zero when it collects nothing, which would make the repo's own gate fail on a clean clone.
-# Add it back here the moment the first test lands.
-check-all: lint format-check typecheck ## Run every gate: ruff lint, ruff format, pyright
+check-all: lint format-check typecheck test ## Run every gate: ruff lint, ruff format, pyright, pytest
