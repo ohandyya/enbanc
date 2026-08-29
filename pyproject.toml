@@ -14,7 +14,9 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Typing :: Typed",
 ]
-dependencies = []
+dependencies = [
+    "pydantic-ai>=2.36.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/ohandyya/enbanc"
