@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Two jobs rather than one `make check-all`, so a red X says *which* kind of gate broke without
+# opening the log, and so the static gates are not re-run once per Python version. Together they
+# are exactly `make check-all`: check = lint + format-check + typecheck, test = pytest. Anything
+# added to check-all must be added to one of these.
+jobs:
+  check:
+    name: lint, format, types
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+
+      # The venv pyproject.toml points pyright at (venvPath="." / venv=".venv").
+      - name: Install dependencies
+        run: uv sync --all-groups
+
+      - name: Lint and format
+        run: make check
+
+      # Pinned to pythonVersion = "3.11" in pyproject.toml regardless of the interpreter here,
+      # so this deliberately does not need the matrix below.
+      - name: Typecheck
+        run: make typecheck
+
+  test:
+    name: pytest (${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      # Don't cancel 3.13 just because 3.11 failed — when only one leg breaks, that difference
+      # is the whole diagnosis.
+      fail-fast: false
+      matrix:
+        # The floor from `requires-python` and the version in .python-version. The floor leg is
+        # the only thing in this repo that actually verifies the ">=3.11" claim; without it,
+        # ruff's target-version and pyright's pythonVersion are an unchecked assertion.
+        python-version: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+
+      # --python overrides .python-version; uv fetches the interpreter if the runner lacks it.
+      - name: Install dependencies
+        run: uv sync --all-groups --python ${{ matrix.python-version }}
+
+      - name: Run tests
+        run: make test

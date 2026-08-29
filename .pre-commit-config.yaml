@@ -1,0 +1,36 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+
+  # `language: system` with `uv run`, rather than pre-commit's own mirrors of ruff and pyright:
+  # that way the hooks use the exact versions pinned in uv.lock, so a commit is gated by the same
+  # binaries `make check-all` and CI use. A mirror rev would be a second place to bump.
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check (autofix)
+        entry: uv run ruff check --fix
+        language: system
+        types: [python]
+
+      - id: ruff-format
+        name: ruff format
+        entry: uv run ruff format
+        language: system
+        types: [python]
+
+      # pass_filenames: false because type errors are non-local — editing one file can break
+      # another that was not staged. pyright reads its own include list from pyproject.toml.
+      - id: pyright
+        name: pyright
+        entry: uv run pyright
+        language: system
+        types: [python]
+        pass_filenames: false

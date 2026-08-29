@@ -9,8 +9,7 @@ Built on [PydanticAI](https://ai.pydantic.dev).
 > **Work in progress — not usable yet.**
 > Nothing described below is implemented. The published packages are
 > placeholders; installing `enbanc` today gets you nothing that runs.
-> **The first usable version will be `0.1.0`.** Until then, treat this README
-> as a design sketch, not documentation.
+> **The first usable version will be `0.1.0`.**
 
 ## Why
 
@@ -33,27 +32,15 @@ Once it ships:
 uv add enbanc
 ```
 
-## Usage (planned)
+## A taste
 
-*None of this works today — it's the API being designed toward `0.1.0`, and it
-will change.*
+*Planned API. None of this works today.*
 
 ```python
-from enbanc import Tribunal, Advocate, Statute, Case, Verdict
-
-class LoanDecision(Verdict):
-    APPROVE = "approve"
-    DENY = "deny"
-
-statute = Statute.draft(
-    "Approve $500k loans only where DTI < 0.43 and ...",
-    model="anthropic:claude-sonnet-4-6",
-)
-
 tribunal = Tribunal(
     question="Shall the bank loan this applicant $500k?",
-    verdicts=LoanDecision,
-    statute=statute,
+    verdicts=LoanDecision,          # your enum: APPROVE / DENY
+    statute=statute,                # the rule being judged against
     advocates={
         LoanDecision.APPROVE: Advocate(tools=[psql, tavily]),
         LoanDecision.DENY: Advocate(tools=[psql]),
@@ -68,25 +55,23 @@ ruling.reasoning
 ruling.transcript   # every argument, exhibit, and interrogatory, in order
 ```
 
-## How it will work (planned)
-
-*Intended design, not current behavior.*
-
-**Round 1** — each advocate argues freely for its assigned verdict, or concedes
-that no reasonable case exists. The judge hears all arguments and evidence.
-
-**Round 2+** — if the judge cannot rule, it issues *interrogatories*: targeted
-questions to a chosen subset of advocates. Those advocates answer. Repeat.
-
-Ends when the judge rules, or `max_rounds` is exceeded.
-
 The judge has **no tools** — it reasons only over what advocates put into the
 record. All advocate tools are **strictly read-only**.
 
-## Vocabulary
+## Design
 
-`enbanc` borrows courtroom terms because they're precise. See
-[`glossary.md`](./glossary.md) — six rows, one minute.
+The full design lives in [`docs/design/`](./docs/design/):
+
+- [**The tribunal**](./docs/design/tribunal.md) — how a decision is reached: the
+  round structure, the judge/advocate contract, and the constraints that hold it
+  together.
+- [**Public API**](./docs/design/api.md) — the surface being designed toward
+  `0.1.0`, and what each piece carries.
+- [**Glossary**](./docs/glossary.md) — the courtroom vocabulary. Six rows, one
+  minute.
+
+Both design documents carry open questions that aren't settled yet. If you have
+opinions, that's the place to aim them.
 
 ## Status
 
