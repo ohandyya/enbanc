@@ -1,6 +1,6 @@
 [project]
 name = "enbanc"
-version = "0.0.3"
+version = "0.0.4"
 description = "Adversarial multi-agent adjudication for structured decisions"
 readme = "README.md"
 requires-python = ">=3.11"
