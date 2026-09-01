@@ -22,6 +22,10 @@
 
     - What is the Input/Output schema (requrie pydantic schema)
 
+    - History tracking
+
+        - What to explose in the API?
+
     - [Leave for future] How does `create_rule` work? Shall we leave this to future?
 
 2. Accuracy Evaluation

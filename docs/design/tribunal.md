@@ -1,6 +1,6 @@
 ---
 status: draft
-updated: 2026-08-29
+updated: 2026-09-01
 ---
 
 # The tribunal
@@ -41,8 +41,13 @@ Repeat.
 `max_rounds` is exceeded.
 
 Everything said by every participant, in order, accumulates in the
-**transcript** — append-only, and passed to each agent as history. That
-transcript is the audit artifact.
+**transcript** — append-only. That transcript is the audit artifact.
+
+Each agent carries its own conversation across rounds rather than being rebuilt
+from scratch each time: the judge deliberates repeatedly, and an advocate that
+filed in round 1 answers interrogatories in round 3 with its own argument still
+in view. The transcript remains the authority on what those conversations may
+contain — see the invariant below.
 
 ## Constraints that define the design
 
@@ -51,6 +56,14 @@ These are load-bearing. Relaxing any of them changes what the system is.
 **The judge has no tools.** It reasons only over what advocates put into the
 record. This is what makes the transcript complete: if the judge could go
 gather its own evidence, the record would no longer explain the ruling.
+
+**Nothing enters an agent's context that is not also in the transcript.** Agents
+accumulate message history across rounds, and that history is a
+representation of the transcript — shaped for the provider and cheap to
+cache — never a second channel. A framing turn, a reminder, or a summary
+injected into an agent's history and nowhere else would silently break the
+guarantee above: the transcript would no longer be a complete account of what
+the ruling was based on. If an agent should see it, it goes in the record.
 
 **Advocate tools are strictly read-only.** An adjudication must never mutate
 the world it is reasoning about. This is enforced at the tool boundary, not by
@@ -80,7 +93,8 @@ it is settled.
 - **Advocate isolation.** In round 1, does an advocate see its peers' arguments,
   or only the case and statute? Isolation produces independent arguments;
   visibility produces genuine rebuttal. This changes the character of the output.
-- **Model assignment.** Whether advocates and the judge can run different
-  models, and whether that is per-advocate.
-- **Cost control.** Rounds multiply tokens by the advocate count. Whether the
-  round limit is the only governor, or there is a budget concept as well.
+- **Cost control.** Rounds multiply tokens by the advocate count. Visibility is
+  settled — `ruling.usage` reports what a proceeding spent — but the governor is
+  not: whether `max_rounds` is the only one, or a budget can halt a proceeding
+  mid-round. PydanticAI already ships `UsageLimits` and `UsageLimitExceeded`, so
+  the likely answer is a pass-through rather than something to invent.
