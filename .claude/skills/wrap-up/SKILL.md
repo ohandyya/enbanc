@@ -14,7 +14,7 @@ Three files, three different jobs — do not blur them:
 | File | Job | How it's written |
 |---|---|---|
 | [`docs/progress.md`](../../../docs/progress.md) | Where the work stands, and a terse trail of how it got here | `## Current state` rewritten in place; `## Log` prepended, never edited |
-| [`docs/journal/`](../../../docs/journal/) | The *why* behind one session's decisions | New dated file, only when earned |
+| [`docs/journal/`](../../../docs/journal/) | How one session's work went, where the diff can't show it | New dated file, only when earned |
 | [`README.md`](../../../README.md) | The project's public claim about itself | Rewritten in place |
 
 Never commit. Write the files, report them, and stop — the user stages their
@@ -94,12 +94,16 @@ than none. Update the `updated:` frontmatter date to match.
 both say the same thing: **an entry earns its place only when the diff cannot
 explain itself.** Write one when the session produced at least one of:
 
-- an alternative weighed and rejected, with the reason it lost
-- a constraint that forced an unobvious shape
+- a constraint discovered only by building — a library behaving unlike its docs
+- a shape the implementation was forced into, and what forced it
 - a dead end worth not repeating
 
 If the session was "implemented the thing the design doc already described,"
 write no entry. Forty unread journal entries cost tokens and return nothing.
+
+If the session *settled* something that binds future work, that belongs in
+[`docs/decisions/`](../../../docs/decisions/) as an ADR — not here. A session
+can earn both; they are two files.
 
 When it is earned, create `docs/journal/YYYY-MM-DD-short-slug.md`:
 
