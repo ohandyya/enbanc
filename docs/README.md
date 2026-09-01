@@ -38,6 +38,8 @@ full ruleset.
 | Doc | What it covers |
 |---|---|
 | [`decisions/0001-statute-carries-no-model.md`](./decisions/0001-statute-carries-no-model.md) | Why a `Statute` is inert rule text with no model attached, why `Statute.draft()` is cut from `0.1.0`, and why it stays a type rather than a `str` |
+| [`decisions/0002-the-judge-is-a-role.md`](./decisions/0002-the-judge-is-a-role.md) | Why `Judge` is a concrete `enbanc`-owned class rather than a protocol, why per-proceeding state lives in a sitting instead of on the injected agent, and the invariant that keeps message history inside the transcript |
+| [`decisions/0003-models-and-guidance-are-injected.md`](./decisions/0003-models-and-guidance-are-injected.md) | Why the caller constructs and injects a PydanticAI `Model`, how `Tribunal`'s default and per-agent overrides interact, and why the per-agent steer is `guidance` that augments rather than `instructions` that replaces |
 
 ### Guides — user-facing how-to
 

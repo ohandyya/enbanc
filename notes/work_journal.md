@@ -16,11 +16,15 @@
 
 1. What is the desired usage of the API?
 
-    - What shall the package do?
+    - [Done] What shall the package do?
 
-    - How to use it?
+    - [Done] How to use it?
 
     - What is the Input/Output schema (requrie pydantic schema)
+
+    - [Done] History tracking
+
+        - What to explose in the API?
 
     - [Leave for future] How does `create_rule` work? Shall we leave this to future?
 
