@@ -90,6 +90,19 @@ applies it.
 
 ## Open questions
 
+- We are missing a `judge` AI agent role?
+    - We have `Advocate`, which are AI agents that is tasked to aruge the case.
+    - There should be a `judge` to is responsible for making the final decision.
+- How do we passin the following required information for all the advocates and judge?
+    - The instructions
+        - `instructions` sometimes is called as system prompt. It governs the beahvior of the agent.
+        - For now, we expect the instructions to be written by human. But in the future, we want want to enhance it to be tuable by AI.
+    - the PydanticAI model
+        ```python
+        from pydantic_ai.models import Model
+        ```
+        For each AI agent (advocates, judge), I want provider-agnostic, and I don't want to re-invent the wheel.
+        So, I will allow user to creats its own PydanticAI Model instance, and pass in (using dependency injection).
 - Whether a `Statute` is prose the judge reads, or a set of named criteria it
   must rule on one at a time. Structure would let the transcript show *which*
   criterion decided the case, and would give a drafting step something to

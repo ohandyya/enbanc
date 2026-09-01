@@ -4,6 +4,8 @@
 
 1. How do we leverage AI to interactively create `Statue`?
 
+2. How do we leverage AI to update/fine-tune the instructions of AI agents?
+
 ## To Dos
 
 ## Daily Log
