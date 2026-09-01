@@ -16,7 +16,7 @@
 
 1. What is the desired usage of the API?
 
-    - What shall the package do?
+    - [Done] What shall the package do?
 
     - How to use it?
 
