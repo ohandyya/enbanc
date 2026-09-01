@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-08-29
+updated: 2026-09-01
 ---
 
 # Glossary
@@ -11,7 +11,7 @@ table is the whole tax.
 | Term | What it is |
 |---|---|
 | **Tribunal** | The orchestrator. Holds the question, the statute, the advocates, and the round limit. |
-| **Statute** | The rule judged against — underwriting guidelines, selection criteria. Authored by you, or drafted with `Statute.draft()`. |
+| **Statute** | The rule judged against — underwriting guidelines, selection criteria. Authored by you. Inert data: it carries no model. |
 | **Verdict** | The enum of allowed answers. You subclass it. One advocate is created per value. |
 | **Case** | The facts of a single decision: applicant details, business info, whatever context you supply. |
 | **Advocate** | An agent assigned one verdict value, with its own read-only tools. Its job is to convince the judge the answer is *X* — or to concede. |

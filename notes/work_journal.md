@@ -1,5 +1,9 @@
 # Work Journal
 
+## Future Enhancement
+
+1. How do we leverage AI to interactively create `Statue`?
+
 ## To Dos
 
 ## Daily Log
@@ -16,7 +20,7 @@
 
     - What is the Input/Output schema (requrie pydantic schema)
 
-    - How does `create_rule` work? Shall we leave this to future?
+    - [Leave for future] How does `create_rule` work? Shall we leave this to future?
 
 2. Accuracy Evaluation
 
