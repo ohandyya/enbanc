@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-08-29
+updated: 2026-09-01
 ---
 
 # Progress
@@ -22,18 +22,22 @@ spec: [`design/`](./design/) is.
 
 ## Current state
 
-**Phase:** Scaffolding, complete. Tooling, CI, release pipeline, and the
-documentation structure are in place and working. **No `enbanc` code exists
+**Phase:** Scaffolding complete; design underway. **No `enbanc` code exists
 yet** — `src/enbanc/__init__.py` is a placeholder and `tests/` holds one
-placeholder test. The published `0.0.3` on PyPI reserves the name and nothing
-more.
+placeholder test. The published `0.0.4` on PyPI reserves the name and nothing
+more. One piece of the `0.1.0` surface is now settled and binding
+([`0001`](./decisions/0001-statute-carries-no-model.md)); the rest is not.
 
-**Next up:** Settle the open questions in
-[`design/api.md`](./design/api.md#open-questions) — whether `Advocate` carries
-its own model or inherits one from `Tribunal`, and what `hear()` returns when
-the round limit is exhausted. Both block the first real implementation, because
-they change the shape of the public surface that `0.1.0` promises. Settled ones
-become ADRs in [`decisions/`](./decisions/).
+**Next up:** Give the judge a home in the public API. ADR 0001 relocated all
+model configuration to `Tribunal`, so the unresolved parts of
+[`design/api.md`](./design/api.md#open-questions) now pile onto one spot: there
+is no `Judge` in the public surface at all, though the judge is central to
+[`design/tribunal.md`](./design/tribunal.md) and the glossary, and nothing says
+how `instructions` or a PydanticAI `Model` reach each agent. `api.md` sketches
+an answer — the caller builds its own `pydantic_ai.models.Model` and injects it
+— but it is raw notes, not design. Writing it up also closes **Model
+assignment** in [`design/tribunal.md`](./design/tribunal.md#open-questions),
+which ADR 0001 made harder to defer.
 
 **Open questions:**
 
@@ -43,6 +47,29 @@ become ADRs in [`decisions/`](./decisions/).
 - Nothing else outstanding at the project level.
 
 ## Log
+
+### 2026-09-01 — the statute is inert; first ADR
+
+**Did:** Settled the first binding piece of the `0.1.0` surface — a `Statute`
+carries no model and `Statute.draft()` is cut — and propagated it through
+`design/api.md`, the glossary, and the `docs/README.md` index. Sharpened the
+journal-vs-ADR split in `CLAUDE.md`, `docs/journal/README.md`, and the `wrap-up`
+skill: the journal records how a session went, `decisions/` records what the
+project is committed to. Documented in `pyproject.toml` that `uv_build` ships an
+allowlist, not everything git tracks — `notes/` and `docs/` stay out of the
+sdist only because that section stays bare. Released the `0.0.4` placeholder.
+
+**Stopped at:** Two open questions were dropped into
+[`design/api.md`](./design/api.md#open-questions) as raw first-person notes
+rather than design prose — the missing `Judge` role, and how `instructions` and
+a PydanticAI `Model` are injected into each agent. They need writing up before
+they can be settled.
+
+**Why this way:**
+[`docs/decisions/0001-statute-carries-no-model.md`](./decisions/0001-statute-carries-no-model.md)
+
+**Commits:** `183fe8a`, `be2b72b`, `045af5a`, `131c94a`, `333b338`, `9b0e08d`,
+`e2fa55b`
 
 ### 2026-08-29 — documentation structure and the wrap-up skill
 
