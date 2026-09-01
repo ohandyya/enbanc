@@ -18,11 +18,11 @@
 
     - [Done] What shall the package do?
 
-    - How to use it?
+    - [Done] How to use it?
 
     - What is the Input/Output schema (requrie pydantic schema)
 
-    - History tracking
+    - [Done] History tracking
 
         - What to explose in the API?
 
