@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-08-29
+updated: 2026-09-01
 ---
 
 # Documentation
@@ -35,7 +35,9 @@ full ruleset.
 
 ### Decisions — ADRs
 
-*(none yet)*
+| Doc | What it covers |
+|---|---|
+| [`decisions/0001-statute-carries-no-model.md`](./decisions/0001-statute-carries-no-model.md) | Why a `Statute` is inert rule text with no model attached, why `Statute.draft()` is cut from `0.1.0`, and why it stays a type rather than a `str` |
 
 ### Guides — user-facing how-to
 
