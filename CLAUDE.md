@@ -32,8 +32,10 @@ one carries a different guarantee about whether its contents are true.
    deleted, and get a `status: superseded` line saying what replaced them.
 5. **Write a journal entry only when the diff cannot explain itself.** Git log,
    the diff, and the PR description already cover *what* changed. A journal entry
-   earns its place by recording *why this way* — the alternatives weighed, the
-   constraint that forced the shape. Otherwise skip it.
+   earns its place by recording how an episode of work went — a constraint found
+   only by building, a shape the implementation was forced into, a dead end worth
+   not repeating. Otherwise skip it. A choice that *binds* future work is an ADR
+   in `docs/decisions/`, not a journal entry.
 6. **`docs/progress.md` is the session checkpoint, not a spec.** The `wrap-up`
    skill maintains it: `Current state` is rewritten in place, `Log` entries are
    prepended and never edited. Reasoning belongs in `docs/journal/`, linked from

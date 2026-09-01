@@ -23,6 +23,12 @@ Homepage = "https://github.com/ohandyya/enbanc"
 Repository = "https://github.com/ohandyya/enbanc"
 
 [build-system]
+# uv_build is allowlist-based, not gitignore-based. It ships `src/enbanc/` plus README.md,
+# LICENSE, and pyproject.toml; nothing else is eligible. docs/, notes/, local/, and tests/ stay
+# out because they were never included — not because .gitignore filtered them. Widening that is
+# opt-in via `[tool.uv.build-backend]`, so keeping human-only material unshippable depends on
+# this section staying bare. Check what an edit actually did with:
+#     uv build && tar tzf dist/*.tar.gz
 requires = ["uv_build>=0.11.6,<0.12.0"]
 build-backend = "uv_build"
 

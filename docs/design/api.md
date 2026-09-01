@@ -1,6 +1,6 @@
 ---
 status: draft
-updated: 2026-08-29
+updated: 2026-09-01
 ---
 
 # Public API
@@ -21,10 +21,7 @@ class LoanDecision(Verdict):
     APPROVE = "approve"
     DENY = "deny"
 
-statute = Statute.draft(
-    "Approve $500k loans only where DTI < 0.43 and ...",
-    model="anthropic:claude-sonnet-4-6",
-)
+statute = Statute("Approve $500k loans only where DTI < 0.43 and ...")
 
 tribunal = Tribunal(
     question="Shall the bank loan this applicant $500k?",
@@ -51,13 +48,15 @@ values determines how many advocates exist; there is exactly one advocate per
 value, and no way to end up with an advocate arguing for an answer outside the
 enum.
 
-**`Statute`** — the rule being judged against. Authored directly, or drafted
-from prose with `Statute.draft()`. Drafting takes a model because turning loose
-policy language into a testable rule is itself a model call, and one worth doing
-once up front rather than implicitly on every hearing.
+**`Statute`** — the rule being judged against, and nothing else. You author it;
+it carries no model and does nothing on its own. It is a type rather than a bare
+string for two reasons: it is the artifact every ruling is audited against, so
+it deserves a name in the record, and it is the piece most likely to grow
+structure later. See [`0001`](../decisions/0001-statute-carries-no-model.md).
 
 **`Case`** — the facts of a single decision. Deliberately open: applicant
-details, business info, whatever the statute needs to be applied.
+details, business info, whatever the statute needs to be applied. Like
+`Statute`, it is a noun in the record — supplied by you, never an agent.
 
 **`Advocate`** — assigned one verdict value, given its own read-only tools. Tools
 are per-advocate on purpose: the advocate for approval may need different
@@ -82,8 +81,32 @@ produced it can be inspected — that is the product.
 **Verdicts are an enum, not free text.** The judge picks from a closed set, and
 the type system knows the set.
 
+**A statute is data, not an agent.** Model assignment has exactly one home, and
+it is `Tribunal`. Holding a rule fixed while swapping the models that reason
+about it is a workflow this library must not obstruct — a statute that owned a
+model would make every such comparison move two variables at once. Keeping it
+inert also keeps it readable, diffable, and committable alongside the code that
+applies it.
+
 ## Open questions
 
+- We are missing a `judge` AI agent role?
+    - We have `Advocate`, which are AI agents that is tasked to aruge the case.
+    - There should be a `judge` to is responsible for making the final decision.
+- How do we passin the following required information for all the advocates and judge?
+    - The instructions
+        - `instructions` sometimes is called as system prompt. It governs the beahvior of the agent.
+        - For now, we expect the instructions to be written by human. But in the future, we want want to enhance it to be tuable by AI.
+    - the PydanticAI model
+        ```python
+        from pydantic_ai.models import Model
+        ```
+        For each AI agent (advocates, judge), I want provider-agnostic, and I don't want to re-invent the wheel.
+        So, I will allow user to creats its own PydanticAI Model instance, and pass in (using dependency injection).
+- Whether a `Statute` is prose the judge reads, or a set of named criteria it
+  must rule on one at a time. Structure would let the transcript show *which*
+  criterion decided the case, and would give a drafting step something to
+  compile into — see [`0001`](../decisions/0001-statute-carries-no-model.md).
 - Whether `Advocate` needs a model parameter, or inherits one from `Tribunal`.
 - Whether `hear()` has a streaming counterpart for observing rounds live.
 - The return type of `hear()` when the round limit is exhausted — see

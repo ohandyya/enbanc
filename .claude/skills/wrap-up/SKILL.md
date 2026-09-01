@@ -14,7 +14,7 @@ Three files, three different jobs — do not blur them:
 | File | Job | How it's written |
 |---|---|---|
 | [`docs/progress.md`](../../../docs/progress.md) | Where the work stands, and a terse trail of how it got here | `## Current state` rewritten in place; `## Log` prepended, never edited |
-| [`docs/journal/`](../../../docs/journal/) | The *why* behind one session's decisions | New dated file, only when earned |
+| [`docs/journal/`](../../../docs/journal/) | How one session's work went, where the diff can't show it | New dated file, only when earned |
 | [`README.md`](../../../README.md) | The project's public claim about itself | Rewritten in place |
 
 Never commit. Write the files, report them, and stop — the user stages their
@@ -56,8 +56,9 @@ that makes this file untrustworthy.
 failing test, a decision that must be made before the next step. Omit if the
 session ended clean.
 
-**Why this way:** [`docs/journal/YYYY-MM-DD-slug.md`](./journal/YYYY-MM-DD-slug.md).
-Omit unless a journal entry was written.
+**Why this way:** [`docs/journal/YYYY-MM-DD-slug.md`](./journal/YYYY-MM-DD-slug.md)
+or [`docs/decisions/NNNN-slug.md`](./decisions/NNNN-slug.md) — whichever the
+session produced, or both. Omit unless one was written.
 
 **Commits:** short hashes. Omit if nothing was committed.
 ```
@@ -94,12 +95,23 @@ than none. Update the `updated:` frontmatter date to match.
 both say the same thing: **an entry earns its place only when the diff cannot
 explain itself.** Write one when the session produced at least one of:
 
-- an alternative weighed and rejected, with the reason it lost
-- a constraint that forced an unobvious shape
+- a constraint discovered only by building — a library behaving unlike its docs
+- a shape the implementation was forced into, and what forced it
 - a dead end worth not repeating
 
 If the session was "implemented the thing the design doc already described,"
 write no entry. Forty unread journal entries cost tokens and return nothing.
+
+If the session *settled* something that binds future work, that belongs in
+[`docs/decisions/`](../../../docs/decisions/) as an ADR — not here. A session
+can earn both; they are two files.
+
+If the session *did* produce an ADR, wrap-up does two things with it and no
+more: check that it is indexed in the Decisions section of
+[`docs/README.md`](../../../docs/README.md) — an unindexed doc is one nobody
+finds — and link it from the log entry's `**Why this way:**` line. **Never edit
+an existing ADR.** They are immutable once merged; a reversal is a new ADR that
+supersedes the old one and a forward pointer added to it.
 
 When it is earned, create `docs/journal/YYYY-MM-DD-short-slug.md`:
 
@@ -174,6 +186,11 @@ Check and **report, then ask**:
 - **`docs/design/`** — did anything built this session contradict the spec? If
   so the design doc is wrong (rule 1), and fixing it is part of the change, not
   a follow-up. Name the file and the contradiction; ask whether to fix it now.
+- **`docs/decisions/`** — did the session settle something that binds future
+  work: an open question closed, a shape fixed for `0.1.0`, an alternative
+  ruled out? Name it and ask whether to write the ADR now. Wrap-up never writes
+  one unprompted — a binding decision belongs in the commit that makes it, and
+  a decision made in conversation leaves no diff to catch it later.
 - **`docs/glossary.md`** — did the session introduce courtroom or domain
   vocabulary the glossary doesn't carry? Ask before adding.
 - **`CLAUDE.md`** — did the session establish a new convention it should own?
