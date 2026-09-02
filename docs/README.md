@@ -43,6 +43,7 @@ full ruleset.
 | [`decisions/0004-verdicts-are-a-strenum.md`](./decisions/0004-verdicts-are-a-strenum.md) | Why the verdict enum is a `StrEnum` subclassed from an `enbanc` base, why it parameterizes every other type in the library, and why the `advocates` mapping must cover every value |
 | [`decisions/0005-hear-returns-a-hearing.md`](./decisions/0005-hear-returns-a-hearing.md) | Why `hear()` hands back a `Hearing` that wraps the judge's `Ruling` rather than widening it, and why round-limit exhaustion is what forced the choice |
 | [`decisions/0006-the-transcript-schema.md`](./decisions/0006-the-transcript-schema.md) | What a transcript holds — five filings, an entry envelope, a self-contained record — and why raw advocate tool traffic stays out of it, narrowing the invariant `0002` states absolutely |
+| [`decisions/0007-a-statute-is-opaque-text.md`](./decisions/0007-a-statute-is-opaque-text.md) | Why a `Statute` is `text` plus an optional `name` and nothing more, why `enbanc` holds no assumption about the text's format or content, why named criteria were rejected, and why that makes `Statute.draft()` moot rather than deferred |
 
 ### Guides — user-facing how-to
 

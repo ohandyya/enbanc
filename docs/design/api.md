@@ -70,11 +70,13 @@ enum. It is also the type parameter every other generic here is keyed on:
 `LoanDecision` rather than a `str`.
 
 **`Statute`** — the rule being judged against, and nothing else. You author it;
-it carries no model and does nothing on its own. Frozen, because it is shared
-across tribunals and across concurrent proceedings, and because a rule that
-could be edited mid-hearing would make the transcript's account of what was
-applied unfalsifiable. See
-[`0001`](../decisions/0001-statute-carries-no-model.md).
+it carries no model and does nothing on its own. Its `text` is yours: whatever
+format and content you write, `enbanc` holds no assumption about it and passes
+it through whole. Frozen, because it is shared across tribunals and across
+concurrent proceedings, and because a rule that could be edited mid-hearing
+would make the transcript's account of what was applied unfalsifiable. See
+[`0001`](../decisions/0001-statute-carries-no-model.md) and
+[`0007`](../decisions/0007-a-statute-is-opaque-text.md).
 
 **`Case`** — the facts of a single decision. Deliberately open: applicant
 details, business info, whatever the statute needs to be applied. Like
@@ -152,19 +154,29 @@ class Statute(BaseModel):
     name: str | None = None
 ```
 
-`text` is the rule. `name` is what a transcript cites when a reviewer asks which
-version of the policy produced a decision — the field only earns its place
-because the transcript is self-contained, and it is the reason a statute is a
-type rather than a bare `str`.
+That is the whole of it. `text` is the rule, and it is **opaque to `enbanc`** —
+you write it in whatever form suits the rule, and the library does not parse it,
+validate its shape, split it into parts, or require any structure. A paragraph,
+numbered clauses, Markdown, a pasted policy document: all are a statute, and all
+reach the judge and the advocates whole and appear in the transcript verbatim.
+The only constraint is the one the annotation states.
+
+`name` is what a transcript cites when a reviewer asks which version of the
+policy produced a decision — the field only earns its place because the
+transcript is self-contained, and it is the reason a statute is a type rather
+than a bare `str`. It labels the text; it claims nothing about it.
 
 Construction is by keyword: `Statute(text=...)`. A `BaseModel` takes no
 positional argument, and the alternative that would have preserved one
-(`RootModel[str]`) has exactly one field forever, which would foreclose the
-structure `0001` deliberately left room for.
+(`RootModel[str]`) holds exactly one field — `name` is a second one the
+transcript needs.
 
 Turning a statute into prompt text is `enbanc`'s job, not the statute's.
 Putting rendering on the object would hand back the behavior
-[`0001`](../decisions/0001-statute-carries-no-model.md) removed.
+[`0001`](../decisions/0001-statute-carries-no-model.md) removed. There is no
+`Statute.draft()` and there will not be: drafting needs a target representation
+to compile prose into, and a statute has none by design. See
+[`0007`](../decisions/0007-a-statute-is-opaque-text.md).
 
 ### What participants file
 
@@ -420,10 +432,11 @@ is what makes the previous commitment true at the call site rather than merely
 true in the prompt: `hearing.ruling.verdict` is a `LoanDecision`, and comparing
 it against a value from some other enum is a type error.
 
-**A statute is data, not an agent.** A statute carries no model. Holding a rule
-fixed while swapping the models that reason about it is a workflow this library
-must not obstruct — a statute that owned a model would make every such
-comparison move two variables at once. Keeping it inert also keeps it readable,
+**A statute is data, not an agent.** A statute carries no model, and its text is
+the author's rather than the library's. Holding a rule fixed while swapping the
+models that reason about it is a workflow this library must not obstruct — a
+statute that owned a model would make every such comparison move two variables
+at once. Keeping it inert also keeps it readable,
 diffable, and committable alongside the code that applies it. Where models *do*
 live is the next commitment.
 
@@ -468,14 +481,6 @@ list. A question that is only *sharpened* — its options narrowed, nothing
 decided — stays, rewritten in place. See rule 7 in
 [`../../CLAUDE.md`](../../CLAUDE.md).
 
-- Whether a `Statute` is prose the judge reads, or a set of named criteria it
-  must rule on one at a time. `0.1.0` ships prose — `text` is a string and the
-  judge reads it whole — but that is a deferral, not an answer. Structure would
-  let the transcript show *which* criterion decided the case, and would give a
-  drafting step something to compile into. A `criteria` field alongside `text`
-  is additive rather than breaking, which is why the shape above does not
-  foreclose it. See [`0001`](../decisions/0001-statute-carries-no-model.md),
-  which defers `Statute.draft()` on precisely this question.
 - Whether `guidance` is ever machine-tuned. It is human-written in `0.1.0`.
   Keeping it per-agent, optional, and separate from the library's procedural
   prompt is what leaves the door open; nothing is built for it yet.

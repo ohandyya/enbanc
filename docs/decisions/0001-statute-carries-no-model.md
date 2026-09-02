@@ -1,9 +1,14 @@
 ---
 status: accepted
-updated: 2026-09-01
+updated: 2026-09-02
 ---
 
 # 0001. A statute carries no model
+
+> Followed by [`0007`](./0007-a-statute-is-opaque-text.md), which settles what a
+> statute *is* — opaque text, with no structure now or planned. That closes the
+> open question this ADR made drafting conditional on: `Statute.draft()` is cut
+> for good, not deferred. The reasoning below stands as written.
 
 ## Context
 
