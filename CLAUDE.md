@@ -40,6 +40,16 @@ one carries a different guarantee about whether its contents are true.
    skill maintains it: `Current state` is rewritten in place, `Log` entries are
    prepended and never edited. Reasoning belongs in `docs/journal/`, linked from
    the log entry — not inlined.
+7. **Resolving an open question is three moves in one commit.** The answer goes
+   into the design doc's prose, where it becomes spec; an ADR in
+   `docs/decisions/` records why and what was rejected, indexed in
+   `docs/README.md`; only then is the bullet deleted from `## Open questions`.
+   Deleting without the first two drops the question without answering it, and
+   leaving a struck-through bullet behind is the "update:" section rule 1
+   forbids — the ADR is the record, and the index is how it is found. Two cases
+   are not resolutions: a question that is merely *sharpened* stays, rewritten
+   in place with no ADR, and one that goes *moot* is deleted by whichever ADR
+   made it moot, which says so.
 
 ## Conventions
 

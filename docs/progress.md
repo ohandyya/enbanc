@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-09-01
+updated: 2026-09-02
 ---
 
 # Progress
@@ -22,31 +22,61 @@ spec: [`design/`](./design/) is.
 
 ## Current state
 
-**Phase:** Scaffolding complete; design underway. **No `enbanc` code exists
-yet** — `src/enbanc/__init__.py` is a placeholder and `tests/` holds one
-placeholder test. The published `0.0.4` on PyPI reserves the name and nothing
-more. One piece of the `0.1.0` surface is now settled and binding
-([`0001`](./decisions/0001-statute-carries-no-model.md)); the rest is not.
+**Phase:** Scaffolding complete; the `0.1.0` surface is mostly designed but
+**no `enbanc` code exists yet** — `src/enbanc/__init__.py` is a placeholder and
+`tests/` holds one placeholder test. The published `0.0.4` on PyPI reserves the
+name and nothing more. What is now settled and binding is the *shape* of the
+public types: verdicts, statute, the five filings, the transcript envelope, the
+judge's discriminated union, and what `hear()` returns
+([`0001`](./decisions/0001-statute-carries-no-model.md) through
+[`0009`](./decisions/0009-model-settings-live-on-the-model.md)). What is not
+settled is the *behaviour* of the proceeding.
 
-**Next up:** Give the judge a home in the public API. ADR 0001 relocated all
-model configuration to `Tribunal`, so the unresolved parts of
-[`design/api.md`](./design/api.md#open-questions) now pile onto one spot: there
-is no `Judge` in the public surface at all, though the judge is central to
-[`design/tribunal.md`](./design/tribunal.md) and the glossary, and nothing says
-how `instructions` or a PydanticAI `Model` reach each agent. `api.md` sketches
-an answer — the caller builds its own `pydantic_ai.models.Model` and injects it
-— but it is raw notes, not design. Writing it up also closes **Model
-assignment** in [`design/tribunal.md`](./design/tribunal.md#open-questions),
-which ADR 0001 made harder to defer.
+**Next up:** Settle **round-limit exhaustion** in
+[`design/tribunal.md`](./design/tribunal.md#open-questions) — what `hear()` does
+when `max_rounds` is hit with no ruling. It is the next one to take because it
+is the only open question with a committed downstream consequence: `api.md`
+types `Hearing.ruling` as `Ruling | None` *solely* because this is unresolved,
+so resolving it toward an exception deletes the optionality, the `if` in the
+README sample, and a bullet from
+[`design/api.md`](./design/api.md#open-questions). The choice is between leaving
+`ruling` `None` (every caller writes a check for a case most never hit) and
+raising an exception carrying the `Hearing` (exhaustion impossible to ignore);
+a forced verdict is the third option and the weakest. Per rule 7, that is three
+moves in one commit: prose into `tribunal.md`, an ADR, then the bullet goes.
 
 **Open questions:**
 
 - The design docs carry their own, and own them:
-  [`tribunal.md`](./design/tribunal.md#open-questions) and
-  [`api.md`](./design/api.md#open-questions). Do not copy them here.
+  [`tribunal.md`](./design/tribunal.md#open-questions) (round-limit exhaustion,
+  advocate isolation, cost control) and
+  [`api.md`](./design/api.md#open-questions) (bench, streaming, `Case` as base
+  vs. generic, per-agent usage, interrogatory id assignment).
 - Nothing else outstanding at the project level.
 
 ## Log
+
+### 2026-09-02 — the schemas, and six ADRs
+
+**Did:** Took `design/api.md` from a sketch to a full schema spec — verdicts as
+a `StrEnum` base, the five filings and their `Entry` envelope, a self-contained
+`Transcript`, and `hear()` returning a `Hearing` that wraps the judge's
+`Ruling` — and settled six binding pieces as ADRs
+[`0004`](./decisions/0004-verdicts-are-a-strenum.md)–[`0009`](./decisions/0009-model-settings-live-on-the-model.md).
+Propagated the vocabulary through `design/tribunal.md` and the glossary
+(*round*, *filing*, *response*, *entry*, *hearing*), narrowed the
+"nothing enters an agent's context" invariant to *nothing from outside itself*
+so an advocate's unfiled tool results are legal, and added rule 7 to
+`CLAUDE.md` fixing what it takes to resolve an open question.
+
+**Why this way:**
+[`decisions/0004`](./decisions/0004-verdicts-are-a-strenum.md)–[`0009`](./decisions/0009-model-settings-live-on-the-model.md);
+no journal entry — the only build-time constraint found (Pydantic collapsing a
+generic alias parameterized by a bare `TypeVar`) is recorded as spec in
+[`design/api.md`](./design/api.md#a-note-on-generic-aliases).
+
+**Commits:** `b8eb899`, `87f6595`, `c363992`, `d4aa820`, `420abc3`, `6934205`,
+`96f9615`, `9625fc4`
 
 ### 2026-09-01 — the statute is inert; first ADR
 

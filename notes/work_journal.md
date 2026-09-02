@@ -6,6 +6,12 @@
 
 2. How do we leverage AI to update/fine-tune the instructions of AI agents?
 
+3. How to support re-hear with new informaiton?
+
+    - Is this a legit use case at all?
+
+    - Persisted evidence store
+
 ## To Dos
 
 ## Daily Log
@@ -20,7 +26,7 @@
 
     - [Done] How to use it?
 
-    - What is the Input/Output schema (requrie pydantic schema)
+    - [Done] What is the Input/Output schema (requrie pydantic schema)
 
     - [Done] History tracking
 

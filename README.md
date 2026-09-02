@@ -41,6 +41,8 @@ tribunal = Tribunal(
     question="Shall the bank loan this applicant $500k?",
     verdicts=LoanDecision,          # your enum: APPROVE / DENY
     statute=statute,                # the rule being judged against
+    model=AnthropicModel("claude-sonnet-5"),
+    judge=Judge(guidance="Where the record is ambiguous, deny."),
     advocates={
         LoanDecision.APPROVE: Advocate(tools=[psql, tavily]),
         LoanDecision.DENY: Advocate(tools=[psql]),
@@ -48,11 +50,14 @@ tribunal = Tribunal(
     max_rounds=5,
 )
 
-ruling = await tribunal.hear(Case(applicant=..., income=...))
+hearing = await tribunal.hear(Case(applicant=..., income=...))
 
-ruling.verdict      # LoanDecision.DENY
-ruling.reasoning
-ruling.transcript   # every argument, exhibit, and interrogatory, in order
+if hearing.ruling is not None:      # None only when the round limit was hit
+    hearing.ruling.verdict          # LoanDecision.DENY
+    hearing.ruling.reasoning
+
+hearing.transcript                  # every filing, in order
+hearing.usage                       # tokens and cost, judge plus advocates
 ```
 
 The judge has **no tools** — it reasons only over what advocates put into the
@@ -67,7 +72,7 @@ The full design lives in [`docs/design/`](./docs/design/):
   together.
 - [**Public API**](./docs/design/api.md) — the surface being designed toward
   `0.1.0`, and what each piece carries.
-- [**Glossary**](./docs/glossary.md) — the courtroom vocabulary. Six rows, one
+- [**Glossary**](./docs/glossary.md) — the courtroom vocabulary. One table, one
   minute.
 
 Both design documents carry open questions that aren't settled yet. If you have
