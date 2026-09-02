@@ -86,7 +86,8 @@ details, business info, whatever the statute needs to be applied. Like
 are per-advocate on purpose: the advocate for approval may need different
 evidence sources than the advocate for denial, and giving both the same toolbox
 would flatten a real asymmetry. Takes an optional `model`, overriding the
-tribunal's, and optional `guidance`.
+tribunal's, and optional `guidance` — prose you write, which `enbanc` appends to
+the procedural prompt it owns and does not otherwise touch.
 
 **`Judge`** — exactly one, and it has no tools. It reasons only over what
 advocates put into the record, which is what keeps the transcript a complete
@@ -459,6 +460,15 @@ present as a library bug. Guidance is per-agent and never inherited: the judge's
 steer and an advocate's steer contradict each other by construction, and
 anything genuinely common is already carried by `question` and `statute`.
 
+Guidance is **yours**, in the same sense a statute's text is. You write it;
+`enbanc` holds no assumption about its form or content and never generates,
+rewrites, or tunes it. There is no optimizer, no guidance store, and no notion
+inside the library of one steer being better than another — an external tuning
+loop is free to produce a string and pass it in, but the string is the caller's,
+and so is the account of where it came from. See
+[`0003`](../decisions/0003-models-and-guidance-are-injected.md) and
+[`0008`](../decisions/0008-guidance-is-human-written.md).
+
 **Agents are reusable; a proceeding's state is not.** `Judge` and `Advocate` are
 descriptions — model, tools, guidance — that you construct once and may share
 across tribunals. The message history each accumulates over rounds is created
@@ -481,9 +491,6 @@ list. A question that is only *sharpened* — its options narrowed, nothing
 decided — stays, rewritten in place. See rule 7 in
 [`../../CLAUDE.md`](../../CLAUDE.md).
 
-- Whether `guidance` is ever machine-tuned. It is human-written in `0.1.0`.
-  Keeping it per-agent, optional, and separate from the library's procedural
-  prompt is what leaves the door open; nothing is built for it yet.
 - Whether `ModelSettings` — temperature, `max_tokens`, retries — is exposed per
   agent, or stays something you bake into the `Model` you construct.
 - Whether a bench ever sits. If it does, it joins `judge=` as a union member
