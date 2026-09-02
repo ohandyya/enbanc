@@ -6,6 +6,12 @@
 
 2. How do we leverage AI to update/fine-tune the instructions of AI agents?
 
+3. How to support re-hear with new informaiton?
+
+    - Is this a legit use case at all?
+
+    - Persisted evidence store
+
 ## To Dos
 
 ## Daily Log
