@@ -46,6 +46,7 @@ full ruleset.
 | [`decisions/0007-a-statute-is-opaque-text.md`](./decisions/0007-a-statute-is-opaque-text.md) | Why a `Statute` is `text` plus an optional `name` and nothing more, why `enbanc` holds no assumption about the text's format or content, why named criteria were rejected, and why that makes `Statute.draft()` moot rather than deferred |
 | [`decisions/0008-guidance-is-human-written.md`](./decisions/0008-guidance-is-human-written.md) | Why `guidance` is prose a human writes and `enbanc` never generates, rewrites, or tunes, why a guidance optimizer and a labeled corpus stay out of the library, and which of `0003`'s rationales this withdraws |
 | [`decisions/0009-model-settings-live-on-the-model.md`](./decisions/0009-model-settings-live-on-the-model.md) | Why there is no `settings=` on `Tribunal`, `Judge`, or `Advocate`, why `enbanc` passes no per-request model settings of its own, and where each half of "retries" actually lives |
+| [`decisions/0010-streaming-yields-the-record.md`](./decisions/0010-streaming-yields-the-record.md) | Why `hear_stream()` yields transcript entries and nothing else, why it is a context manager over a live `Proceeding` rather than a bare generator, and why `hear()` is that stream consumed |
 
 ### Guides — user-facing how-to
 

@@ -37,10 +37,21 @@ uv add enbanc
 *Planned API. None of this works today.*
 
 ```python
+from pydantic_ai.models.anthropic import AnthropicModel
+
+from enbanc import Advocate, Case, Judge, Statute, Tribunal, Verdict
+
+class LoanDecision(Verdict):        # the allowed answers, one advocate each
+    APPROVE = "approve"
+    DENY = "deny"
+
 tribunal = Tribunal(
     question="Shall the bank loan this applicant $500k?",
-    verdicts=LoanDecision,          # your enum: APPROVE / DENY
-    statute=statute,                # the rule being judged against
+    verdicts=LoanDecision,
+    statute=Statute(                # the rule being judged against
+        text="Approve $500k loans only where DTI < 0.43 and ...",
+        name="underwriting-v3",
+    ),
     model=AnthropicModel("claude-sonnet-5"),
     judge=Judge(guidance="Where the record is ambiguous, deny."),
     advocates={
@@ -62,6 +73,20 @@ hearing.usage                       # tokens and cost, judge plus advocates
 
 The judge has **no tools** — it reasons only over what advocates put into the
 record. All advocate tools are **strictly read-only**.
+
+A proceeding takes minutes, so you can watch the record being written instead of
+waiting for it:
+
+```python
+async with tribunal.hear_stream(case) as proceeding:
+    async for entry in proceeding:  # each filing, at the moment it is filed
+        print(f"round {entry.round}: {entry.filing.kind}")
+
+hearing = proceeding.hearing        # the Hearing hear() would have returned
+```
+
+What you watch is the transcript itself — the same entries, in the same order —
+and `hear()` is this stream consumed to the end.
 
 ## Design
 

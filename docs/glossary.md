@@ -29,6 +29,7 @@ table is the whole tax.
 | **Entry** | One filing plus the tribunal's record of it: which round it belongs to and when it was filed. |
 | **Transcript** | Append-only record of every filing, in order, together with the question, statute, and case it was decided under. This is your audit artifact. |
 | **Hearing** | What `hear()` returns: the ruling, the transcript, the aggregate usage, and the round count. |
+| **Proceeding** | A hearing while it is still going: the live handle `hear_stream()` hands back. Iterate it to receive each entry as it is filed; when it ends it carries the same `Hearing` `hear()` would have returned. |
 
 ## Judge output shape
 

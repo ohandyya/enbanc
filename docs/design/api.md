@@ -113,6 +113,14 @@ aggregate usage, and how many rounds ran.
 
 **`hear(case)`** — runs the proceeding and returns the `Hearing`.
 
+**`hear_stream(case)`** — the same proceeding, watched as it happens: an async
+context manager over a `Proceeding`, which yields each entry at the moment it is
+filed. `hear()` is that stream consumed to the end.
+
+**`Proceeding`** — the live handle. Async-iterable over `Entry`, carrying the
+transcript as it grows and the `Hearing` once the proceeding ends. The one type
+here that is not a record.
+
 ## Schemas
 
 ### Verdicts
@@ -368,6 +376,66 @@ Note that `type(entry.filing) is Ruling` is **False** — Pydantic makes
 `Ruling[LoanDecision]` a genuine subclass — so identity checks against the
 origin class do not work. `isinstance` and `match` both do.
 
+## Watching it live
+
+`hear()` returns when the proceeding is over. `hear_stream()` is the same
+proceeding with the record readable as it is written:
+
+```python
+async with tribunal.hear_stream(case) as proceeding:
+    async for entry in proceeding:
+        print(f"round {entry.round}: {entry.filing.kind}")
+        # round 1: argument, argument, concession, continuance
+        # round 2: response, response, ruling
+
+hearing = proceeding.hearing        # the Hearing hear() would have returned
+```
+
+```python
+class Proceeding(Generic[VerdictT]):
+    transcript: Transcript[VerdictT]   # live: the entry just yielded is its last
+    hearing: Hearing[VerdictT]         # raises ProceedingUnfinished until the end
+
+    def __aiter__(self) -> AsyncIterator[Entry[VerdictT]]: ...
+
+# on Tribunal
+def hear_stream(
+    self, case: Case
+) -> AbstractAsyncContextManager[Proceeding[VerdictT]]: ...
+```
+
+**What it yields is the record.** Each value is the `Entry` appended to the
+transcript at that moment — the same object, in filing order, and nothing else.
+There are no lifecycle events, no partial filings, and no token deltas: a viewer
+that saw something the transcript does not contain would be watching a second
+channel, and the transcript would no longer be a complete account of what
+happened. Round boundaries need no event either — `entry.round` names the round,
+and a `Continuance` or a `Ruling` is what closes one.
+
+**`hear()` is this, consumed.** It is defined as `hear_stream()` driven to
+exhaustion, so there is one implementation of a proceeding and the two entry
+points cannot come apart.
+
+**`Proceeding` is a handle, not a record**, which is why it is not a `BaseModel`.
+It holds no fact of its own — `transcript` and `hearing` are views of things that
+exist anyway — it is never serialized, and it never appears on a result.
+
+**Abandoning is allowed.** Break out of the loop and the block exits: the
+in-flight advocate and judge runs are cancelled, `proceeding.transcript` holds
+everything filed up to that point, and `proceeding.hearing` raises
+`ProceedingUnfinished` — there was no hearing. A provider failure mid-round
+behaves the same way: the exception propagates out of the `async with`, and the
+partial transcript survives it. Like `hear()`, `hear_stream()` parks no state on
+the tribunal and is safe to run concurrently over several cases.
+
+`ProceedingUnfinished` is the first exception `enbanc` names. Whether it sits
+under a shared base waits on round-limit exhaustion in
+[`tribunal.md`](./tribunal.md#open-questions), the other candidate for one. That
+question does not otherwise touch this surface: if exhaustion becomes an
+exception, `async for` raises it where the proceeding ends; if it stays `None`,
+`proceeding.hearing.ruling` is `None` exactly as `hear()`'s would be. See
+[`0010`](../decisions/0010-streaming-yields-the-record.md).
+
 ## Usage
 
 `hearing.usage` is `pydantic_ai.usage.RunUsage`, summed across the judge and
@@ -422,6 +490,12 @@ serialize that or lie about it.
 **The transcript rides on the result.** It is not an optional debug flag or a
 callback you have to install. If the result can be returned, the record that
 produced it can be inspected — that is the product.
+
+**Streaming is a view of the record, not a second channel.** `hear_stream()`
+yields the entries the transcript is receiving, as it receives them. Everything
+a caller can watch is in the artifact afterwards, and everything in the artifact
+was watchable — which is what makes the live view and the audit trail the same
+account of the proceeding rather than two.
 
 **Verdicts are an enum, not free text.** The judge picks from a closed set, and
 the type system knows the set.
@@ -504,7 +578,6 @@ list. A question that is only *sharpened* — its options narrowed, nothing
 decided — stays, rewritten in place. See rule 7 in
 [`../../CLAUDE.md`](../../CLAUDE.md).
 
-- Whether `hear()` has a streaming counterpart for observing rounds live.
 - Whether `Hearing.ruling` is optional at all. It is `Ruling | None` above only
   because round-limit exhaustion is unsettled. That question belongs to
   [`tribunal.md`](./tribunal.md#open-questions); what this document owns is its

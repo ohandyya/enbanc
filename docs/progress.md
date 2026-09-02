@@ -50,8 +50,8 @@ moves in one commit: prose into `tribunal.md`, an ADR, then the bullet goes.
 - The design docs carry their own, and own them:
   [`tribunal.md`](./design/tribunal.md#open-questions) (round-limit exhaustion,
   advocate isolation, cost control) and
-  [`api.md`](./design/api.md#open-questions) (bench, streaming, `Case` as base
-  vs. generic, per-agent usage, interrogatory id assignment).
+  [`api.md`](./design/api.md#open-questions) (`Hearing.ruling`'s optionality,
+  `Case` as base vs. generic, per-agent usage, interrogatory id assignment).
 - Nothing else outstanding at the project level.
 
 ## Log
