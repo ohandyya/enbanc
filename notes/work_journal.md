@@ -26,7 +26,7 @@
 
     - [Done] How to use it?
 
-    - What is the Input/Output schema (requrie pydantic schema)
+    - [Done] What is the Input/Output schema (requrie pydantic schema)
 
     - [Done] History tracking
 
