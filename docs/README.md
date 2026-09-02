@@ -49,6 +49,7 @@ full ruleset.
 | [`decisions/0009-model-settings-live-on-the-model.md`](./decisions/0009-model-settings-live-on-the-model.md) | Why there is no `settings=` on `Tribunal`, `Judge`, or `Advocate`, why `enbanc` passes no per-request model settings of its own, and where each half of "retries" actually lives |
 | [`decisions/0010-streaming-yields-the-record.md`](./decisions/0010-streaming-yields-the-record.md) | Why `hear_stream()` yields transcript entries and nothing else, why it is a context manager over a live `Proceeding` rather than a bare generator, and why `hear()` is that stream consumed |
 | [`decisions/0011-exhaustion-is-an-outcome-failure-is-an-error.md`](./decisions/0011-exhaustion-is-an-outcome-failure-is-an-error.md) | Why a spent round limit is a recorded `Undecided` outcome while a provider or tool failure raises `ProceedingFailed`, why one advocate's failure ends the whole proceeding, and why the exception names drop the courtroom metaphor |
+| [`decisions/0012-a-failure-cancels-the-round.md`](./decisions/0012-a-failure-cancels-the-round.md) | Why the first failure cancels the advocates still in flight rather than draining them, why a failed transcript is what was filed rather than what the round contained, and why `participant` stays singular |
 
 ### Guides — user-facing how-to
 

@@ -532,6 +532,16 @@ from a ruling on a full bench. `enbanc` would rather return no ruling than a
 quietly one-sided one; concession is how an advocate declines to argue, and an
 outage is not a concession.
 
+**The first failure cancels the round.** Advocates fan out concurrently, so a
+failure in round *N* catches siblings mid-run; those runs are cancelled, and the
+transcript on the exception is what had been filed at that moment — not what the
+round would have contained. A filing enters the record when its run completes,
+so a cancelled advocate leaves no trace, and two runs of the same outage can
+leave different numbers of entries behind. This is the rule abandoning a stream
+already follows, and it is why `participant` is singular: the first failure ends
+the fan-out, so there is never a set of simultaneous ones. See
+[`0012`](../decisions/0012-a-failure-cancels-the-round.md).
+
 **`enbanc` retries nothing of its own.** HTTP retry and backoff live on the
 httpx client inside the `Model` you inject
 ([`0009`](../decisions/0009-model-settings-live-on-the-model.md)), so an error
@@ -706,12 +716,6 @@ list. A question that is only *sharpened* — its options narrowed, nothing
 decided — stays, rewritten in place. See rule 7 in
 [`../../CLAUDE.md`](../../CLAUDE.md).
 
-- What happens to advocates still in flight when one of their peers fails.
-  Advocates fan out concurrently, so a `ProceedingFailed` in round *N* catches
-  siblings mid-run: cancelling them outright is the simpler rule and matches
-  what abandoning a stream does, while awaiting them first would put one more
-  round of filings into the record the exception carries. The proceeding ends
-  either way — this is only about how much of round *N* the transcript keeps.
 - Whether `Case` is a base class users subclass, or a generic container. This is
   now load-bearing rather than cosmetic: `Transcript.case` is typed against it,
   so if `Case` becomes generic, `Transcript` and `Hearing` each gain a second

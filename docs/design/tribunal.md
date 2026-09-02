@@ -102,9 +102,11 @@ failure mode the adversarial structure exists to prevent.
 
 **A tribunal that loses a participant does not rule.** One advocate's model
 failing ends the proceeding, even when the judge and the remaining advocates are
-healthy. Deliberating on what is left would produce a decision reached because
-the opposing advocate was knocked offline rather than answered — and nothing in
-that ruling would distinguish it from one reached on a full bench. This is the
+healthy, and the peers still in flight are cancelled where they stand rather
+than drained ([`0012`](../decisions/0012-a-failure-cancels-the-round.md)).
+Deliberating on what is left would produce a decision reached because the
+opposing advocate was knocked offline rather than answered — and nothing in that
+ruling would distinguish it from one reached on a full bench. This is the
 counterpart to concession being first-class: an advocate that declines to argue
 has done its job, and an advocate that could not argue has not been heard at
 all. The two must never be recorded as the same thing.

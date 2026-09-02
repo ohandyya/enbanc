@@ -28,7 +28,7 @@ spec: [`design/`](./design/) is.
 name and nothing more. Settled and binding: the shape of every public type, and
 now every way a proceeding can *end*
 ([`0001`](./decisions/0001-statute-carries-no-model.md) through
-[`0011`](./decisions/0011-exhaustion-is-an-outcome-failure-is-an-error.md)).
+[`0012`](./decisions/0012-a-failure-cancels-the-round.md)).
 What remains unsettled is the *behaviour* of the proceeding itself — what
 advocates see, and what a budget may halt.
 
@@ -42,19 +42,13 @@ differently under each. Nothing in the settled schemas forces the answer, which
 is why it has outlasted the others. Per rule 7, three moves in one commit:
 prose into `tribunal.md`, an ADR, then the bullet goes.
 
-A cheaper adjacent one if a short session is wanted: what happens to advocates
-still in flight when a peer fails
-([`api.md`](./design/api.md#open-questions)) — raised while writing
-`design/outcomes.md`, narrow, and it only decides how much of the failing round
-the transcript keeps.
-
 **Open questions:**
 
 - The design docs carry their own, and own them:
   [`tribunal.md`](./design/tribunal.md#open-questions) (advocate isolation, cost
   control — now sharpened, with `0011` naming where its answer lands) and
-  [`api.md`](./design/api.md#open-questions) (in-flight advocates on failure,
-  `Case` as base vs. generic, per-agent usage, interrogatory id assignment).
+  [`api.md`](./design/api.md#open-questions) (`Case` as base vs. generic,
+  per-agent usage, interrogatory id assignment).
 - Nothing else outstanding at the project level.
 
 ## Log

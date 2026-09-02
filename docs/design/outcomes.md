@@ -374,11 +374,12 @@ enbanc.ProceedingFailed: advocate 'deny' could not be heard in round 1
 `Hearing` to mistake for one. `APPROVE`'s argument survives on
 `e.transcript` because it had already filed.
 
-**`REFER` is absent from the record**, because it had not filed yet. Whether an
-advocate still in flight when a sibling fails is cancelled outright, or allowed
-to land its filing first, is [an open question](./api.md#open-questions). The
-transcript above shows the cancelling answer; under the other it would carry one
-more entry.
+**`REFER` is absent from the record**, because it had not filed yet. The first
+failure cancels the round: `REFER`'s run is stopped where it stood, and nothing
+waits for it to land a filing that no judge will read. So this transcript is
+what *had been* filed, not what round 1 would have held — had `REFER` been a
+second quicker, the same outage would leave two entries behind instead of one.
+See [`0012`](../decisions/0012-a-failure-cancels-the-round.md).
 
 ### The judge's provider is down
 
