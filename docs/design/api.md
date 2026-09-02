@@ -7,7 +7,9 @@ updated: 2026-09-02
 
 The surface being designed toward `0.1.0`. Mechanics behind it are in
 [`tribunal.md`](./tribunal.md); terms are defined in
-[`../glossary.md`](../glossary.md).
+[`../glossary.md`](../glossary.md). This document specifies the types —
+[`outcomes.md`](./outcomes.md) shows every way a proceeding can end, with
+values in them.
 
 > `status: draft` — none of this exists yet, and it will change. This is the
 > target, not a reference.
@@ -17,7 +19,9 @@ The surface being designed toward `0.1.0`. Mechanics behind it are in
 ```python
 from pydantic_ai.models.anthropic import AnthropicModel
 
-from enbanc import Tribunal, Judge, Advocate, Statute, Case, Verdict
+from enbanc import (
+    Tribunal, Judge, Advocate, Statute, Case, Verdict, Ruling, Undecided,
+)
 
 class LoanDecision(Verdict):
     APPROVE = "approve"
@@ -46,19 +50,26 @@ tribunal = Tribunal(
 
 hearing = await tribunal.hear(Case(applicant=..., income=...))
 
-if hearing.ruling is not None:      # None only when the round limit was hit
-    hearing.ruling.verdict          # LoanDecision.DENY
-    hearing.ruling.reasoning
+match hearing.outcome:
+    case Ruling(verdict=verdict, reasoning=reasoning):
+        verdict                     # LoanDecision.DENY
+    case Undecided():               # max_rounds spent, the judge never ruled
+        ...
 
 hearing.transcript                  # every filing, in order
 hearing.usage                       # tokens and cost, judge plus advocates
 ```
 
-That `if` is not decoration. `hearing.ruling` is optional because
-round-limit exhaustion is still unsettled — see
-[`tribunal.md`](./tribunal.md#open-questions) — and writing the sample out
-honestly is the clearest argument that exhaustion should resolve toward an
-exception instead, which would let the check go.
+That `match` is not decoration. A proceeding either produces a ruling or spends
+`max_rounds` deliberations without reaching one, and `Outcome` is a
+discriminated union rather than an optional so the second arm cannot be read
+past — a type checker will not let you touch `.verdict` until you have narrowed.
+
+What is *not* in that union is **failure**. If a provider is unreachable, an
+advocate's tool raises, or a model's output cannot be validated, `hear()` raises
+and there is no `Hearing` at all. See
+[When something goes wrong](#when-something-goes-wrong) and
+[`0011`](../decisions/0011-exhaustion-is-an-outcome-failure-is-an-error.md).
 
 ## What each piece carries
 
@@ -66,8 +77,8 @@ exception instead, which would let the check go.
 values determines how many advocates exist; there is exactly one advocate per
 value, and no way to end up with an advocate arguing for an answer outside the
 enum. It is also the type parameter every other generic here is keyed on:
-`verdicts=LoanDecision` is what makes `hearing.ruling.verdict` a
-`LoanDecision` rather than a `str`.
+`verdicts=LoanDecision` is what makes a ruling's `verdict` a `LoanDecision`
+rather than a `str`.
 
 **`Statute`** — the rule being judged against, and nothing else. You author it;
 it carries no model and does nothing on its own. Its `text` is yours: whatever
@@ -99,17 +110,24 @@ there is nothing to configure there. Like an advocate, it takes an optional
 **`Tribunal`** — holds the question, statute, judge, advocates, default model,
 and round limit. Async, because every round fans out across advocates. The
 `advocates` mapping must cover every value of the verdict enum: a missing key
-and an unknown key are both errors at construction, so adding an enum member
-fails loudly instead of quietly seating a tool-less advocate nobody meant to
-create.
+and an unknown key each raise `ConfigurationError` at construction, so adding an
+enum member fails loudly instead of quietly seating a tool-less advocate nobody
+meant to create.
 
 **`Transcript`** — the append-only record of every filing, and the audit
 artifact. Self-contained: it carries the question, the statute, and the case
 alongside the entries, so a transcript dumped to JSON is a complete account on
 its own rather than a fragment that needs the `Hearing` to be legible.
 
-**`Hearing`** — what `hear()` returns: the judge's ruling, the transcript, the
-aggregate usage, and how many rounds ran.
+**`Hearing`** — what `hear()` returns: the outcome, the transcript, the
+aggregate usage, and how many rounds ran. A `Hearing` exists only when the
+tribunal ran to the end of its own process; when it could not, `hear()` raises
+instead.
+
+**`Outcome`** — how the proceeding ended, as a discriminated union: a `Ruling`,
+or `Undecided` when the round limit was spent without one. Both are records, and
+both serialize, because a proceeding that could not decide is a finding about
+the case and belongs in the audit artifact.
 
 **`hear(case)`** — runs the proceeding and returns the `Hearing`.
 
@@ -312,8 +330,17 @@ opinions.
 ### The result
 
 ```python
+class Undecided(BaseModel):
+    kind: Literal["undecided"] = "undecided"
+
+Outcome = TypeAliasType(
+    "Outcome",
+    Annotated[Ruling[VerdictT] | Undecided, Field(discriminator="kind")],
+    type_params=(VerdictT,),
+)
+
 class Hearing(BaseModel, Generic[VerdictT]):
-    ruling: Ruling[VerdictT] | None
+    outcome: Outcome[VerdictT]
     transcript: Transcript[VerdictT]
     usage: RunUsage
     rounds: int
@@ -321,13 +348,33 @@ class Hearing(BaseModel, Generic[VerdictT]):
 
 `hear()` returns a `Hearing`, not a widened `Ruling`. The judge's output may
 only carry what the judge knows; the transcript and the usage are the
-tribunal's. And exhaustion has to land somewhere — a widened `Ruling` could
-express it only as `verdict: V | None`, which re-admits exactly the invalid
-state the `Ruling | Continuance` union exists to rule out.
+tribunal's. And the two ways a proceeding can end have to land somewhere — a
+widened `Ruling` could express the second only as `verdict: V | None`, which
+re-admits exactly the invalid state the `Ruling | Continuance` union exists to
+rule out.
 
-`hearing.ruling` **is** the final entry's filing, not a copy of it. The
-transcript is complete on its own; the field is a pointer to the terminal
-ruling so callers do not have to walk backwards to find it.
+**`outcome` is a union, not an optional.** `Ruling | None` would let a caller
+reach a verdict without acknowledging that there might not be one; a
+discriminated union makes the type checker insist on the narrowing first. It is
+the same move `Ruling | Continuance` makes on the judge's output, applied to the
+result — and `Outcome` needs `TypeAliasType` for the same Pydantic reason those
+do, described in [the note below](#a-note-on-generic-aliases).
+
+**`Undecided` carries nothing.** Not the round count, which is `Hearing.rounds`;
+not the questions the judge still wanted answered, which are the interrogatories
+on the last `Continuance` in the transcript. Either would be the same
+store-it-twice mistake that kept `position` off `Argument`. It is not generic
+either, because there is no verdict in it to key on.
+
+**The outcome is the final entry's filing only when it is a `Ruling`.** There
+the field is a pointer, not a copy, so callers do not walk the record backwards
+to find the terminal ruling. An `Undecided` is not an entry at all: nobody filed
+it, the transcript ends on the judge's last `Continuance`, and the outcome is
+the tribunal's own statement that no round followed it.
+
+See [`0005`](../decisions/0005-hear-returns-a-hearing.md) for the wrapper and
+[`0011`](../decisions/0011-exhaustion-is-an-outcome-failure-is-an-error.md) for
+what fills it. [`outcomes.md`](./outcomes.md) writes both arms out as values.
 
 ## What a transcript holds
 
@@ -394,7 +441,7 @@ hearing = proceeding.hearing        # the Hearing hear() would have returned
 ```python
 class Proceeding(Generic[VerdictT]):
     transcript: Transcript[VerdictT]   # live: the entry just yielded is its last
-    hearing: Hearing[VerdictT]         # raises ProceedingUnfinished until the end
+    hearing: Hearing[VerdictT]         # raises until the proceeding ends well
 
     def __aiter__(self) -> AsyncIterator[Entry[VerdictT]]: ...
 
@@ -423,18 +470,91 @@ exist anyway — it is never serialized, and it never appears on a result.
 **Abandoning is allowed.** Break out of the loop and the block exits: the
 in-flight advocate and judge runs are cancelled, `proceeding.transcript` holds
 everything filed up to that point, and `proceeding.hearing` raises
-`ProceedingUnfinished` — there was no hearing. A provider failure mid-round
-behaves the same way: the exception propagates out of the `async with`, and the
-partial transcript survives it. Like `hear()`, `hear_stream()` parks no state on
-the tribunal and is safe to run concurrently over several cases.
+`ProceedingUnfinished` — there was no hearing. Like `hear()`, `hear_stream()`
+parks no state on the tribunal and is safe to run concurrently over several
+cases. See [`0010`](../decisions/0010-streaming-yields-the-record.md).
 
-`ProceedingUnfinished` is the first exception `enbanc` names. Whether it sits
-under a shared base waits on round-limit exhaustion in
-[`tribunal.md`](./tribunal.md#open-questions), the other candidate for one. That
-question does not otherwise touch this surface: if exhaustion becomes an
-exception, `async for` raises it where the proceeding ends; if it stays `None`,
-`proceeding.hearing.ruling` is `None` exactly as `hear()`'s would be. See
-[`0010`](../decisions/0010-streaming-yields-the-record.md).
+**Ending is the same here as it is for `hear()`.** Exhaustion does not raise
+from the stream: the `async for` simply ends after the judge's last
+`Continuance`, and `proceeding.hearing.outcome` is `Undecided`. A failure does
+raise — `ProceedingFailed` propagates out of the `async with`, and
+`proceeding.transcript` survives it, holding everything filed before the
+participant went silent. `proceeding.hearing` then re-raises that same
+`ProceedingFailed` rather than reporting the blander `ProceedingUnfinished`,
+which is reserved for a proceeding still running or one the caller walked away
+from.
+
+## When something goes wrong
+
+A proceeding has two endings and one interruption. It rules, it spends its
+rounds without ruling, or a participant cannot be heard and it stops. The first
+two are outcomes and come back on a `Hearing`; the third raises.
+[`outcomes.md`](./outcomes.md) works each one through end to end — including a
+downed provider, a raising tool, and a misconfigured tribunal.
+
+```python
+EnbancError                 # base for everything enbanc raises
+├── ConfigurationError      # the tribunal could not be built
+├── ProceedingFailed        # a participant could not be heard
+└── ProceedingUnfinished    # proceeding.hearing before there is one
+```
+
+```python
+class ProceedingFailed(EnbancError, Generic[VerdictT]):
+    participant: VerdictT | Literal["judge"]
+    round: int
+    transcript: Transcript[VerdictT]
+    usage: RunUsage
+```
+
+**No provider exception reaches you bare.** An unreachable model, an advocate
+tool that raises, and output validation that runs out of retries all surface as
+`ProceedingFailed`, with the original error as `__cause__`. `enbanc` does not
+classify them further: PydanticAI and httpx already raise specific types, and a
+second taxonomy over them would be one more thing to keep true.
+
+**`round` says where it stopped, and there is no `rounds`.** A `Hearing` reports
+how many rounds ran because a finished proceeding is asked what it spent; a
+failure is asked where it died. The two would be the same fact written twice — a
+round completes when its deliberation is filed, so failing in round *N* always
+leaves *N-1* behind it.
+
+**The record survives.** `ProceedingFailed` carries the transcript as it stood,
+plus who failed and in which round. It cannot carry a `Hearing` — `outcome` is
+required and a failed proceeding has none — which is the point: an outage is not
+an adjudication and must not be storable as one.
+
+**A failure is terminal for the whole proceeding**, even when only one advocate
+is affected and the judge and its peers are healthy. Letting the judge rule on
+what is left produces a decision reached because the opposing advocate was
+knocked offline rather than answered, and nothing in its type distinguishes it
+from a ruling on a full bench. `enbanc` would rather return no ruling than a
+quietly one-sided one; concession is how an advocate declines to argue, and an
+outage is not a concession.
+
+**`enbanc` retries nothing of its own.** HTTP retry and backoff live on the
+httpx client inside the `Model` you inject
+([`0009`](../decisions/0009-model-settings-live-on-the-model.md)), so an error
+that reaches `enbanc` is one your policy already gave up on; a retry loop here
+would sit silently above the one you configured. The library's own budget —
+`Agent(retries=...)`, guarding the `Ruling | Continuance` contract — is spent
+before `ProceedingFailed` is raised.
+
+**`usage` on a failure is best-effort.** It sums the runs that completed. A run
+that died mid-flight may not report what it spent, so a failure's usage is a
+floor rather than a total.
+
+**`ConfigurationError` is not a proceeding failure** and carries no transcript,
+because nothing ran. It is what `Tribunal(...)` raises when the `advocates`
+mapping misses a verdict or names one that does not exist.
+
+**`participant` is not the `author` field this document rejects.** That
+rejection — [above](#what-participants-file) — is about the *record*: a filing
+carrying `VerdictT | Literal["judge"]` would make a ruling issued by an advocate
+expressible, and the record is where that must stay impossible. An exception is
+not a filing and enters no transcript. Here the shape is only the answer to
+"who went silent?", and there is no invariant for it to weaken. See
+[`0011`](../decisions/0011-exhaustion-is-an-outcome-failure-is-an-error.md).
 
 ## Usage
 
@@ -467,8 +587,8 @@ the rest of it.
 
 ## A note on generic aliases
 
-`Filing` and `Deliberation` are declared with `TypeAliasType` rather than as
-plain aliases. This is forced, not cosmetic.
+`Filing`, `Deliberation`, and `Outcome` are declared with `TypeAliasType`
+rather than as plain aliases. This is forced, not cosmetic.
 
 Pydantic's `__class_getitem__` returns the origin class when a generic model is
 parameterized with a bare `TypeVar` — `Argument[VerdictT] is Argument` is
@@ -491,6 +611,13 @@ serialize that or lie about it.
 callback you have to install. If the result can be returned, the record that
 produced it can be inspected — that is the product.
 
+**A `Hearing` means the tribunal finished; an exception means it did not.**
+Running the full process and finding no verdict is a result — it serializes, it
+carries the record that shows why, and a reviewer can read it back. Losing a
+provider mid-round is not a result, and there is no `Hearing` for it. The
+division is not about how bad the ending was; it is about whether the tribunal
+got to the end of its own process.
+
 **Streaming is a view of the record, not a second channel.** `hear_stream()`
 yields the entries the transcript is receiving, as it receives them. Everything
 a caller can watch is in the artifact afterwards, and everything in the artifact
@@ -502,10 +629,11 @@ the type system knows the set.
 
 **The verdict enum parameterizes everything.** `Tribunal(verdicts=LoanDecision)`
 infers `Tribunal[LoanDecision]`, and the type flows through `Ruling`,
-`Continuance`, `Interrogatory`, every filing, `Transcript`, and `Hearing`. This
-is what makes the previous commitment true at the call site rather than merely
-true in the prompt: `hearing.ruling.verdict` is a `LoanDecision`, and comparing
-it against a value from some other enum is a type error.
+`Continuance`, `Interrogatory`, every filing, `Transcript`, `Outcome`, and
+`Hearing`. This is what makes the previous commitment true at the call site
+rather than merely true in the prompt: the `verdict` a `Ruling` arm binds is a
+`LoanDecision`, and comparing it against a value from some other enum is a type
+error.
 
 **A statute is data, not an agent.** A statute carries no model, and its text is
 the author's rather than the library's. Holding a rule fixed while swapping the
@@ -578,11 +706,12 @@ list. A question that is only *sharpened* — its options narrowed, nothing
 decided — stays, rewritten in place. See rule 7 in
 [`../../CLAUDE.md`](../../CLAUDE.md).
 
-- Whether `Hearing.ruling` is optional at all. It is `Ruling | None` above only
-  because round-limit exhaustion is unsettled. That question belongs to
-  [`tribunal.md`](./tribunal.md#open-questions); what this document owns is its
-  consequence for the public surface — if exhaustion resolves toward an
-  exception, `ruling` stops being optional and the `if` in the sample goes away.
+- What happens to advocates still in flight when one of their peers fails.
+  Advocates fan out concurrently, so a `ProceedingFailed` in round *N* catches
+  siblings mid-run: cancelling them outright is the simpler rule and matches
+  what abandoning a stream does, while awaiting them first would put one more
+  round of filings into the record the exception carries. The proceeding ends
+  either way — this is only about how much of round *N* the transcript keeps.
 - Whether `Case` is a base class users subclass, or a generic container. This is
   now load-bearing rather than cosmetic: `Transcript.case` is typed against it,
   so if `Case` becomes generic, `Transcript` and `Hearing` each gain a second

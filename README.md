@@ -39,7 +39,9 @@ uv add enbanc
 ```python
 from pydantic_ai.models.anthropic import AnthropicModel
 
-from enbanc import Advocate, Case, Judge, Statute, Tribunal, Verdict
+from enbanc import (
+    Advocate, Case, Judge, Ruling, Statute, Tribunal, Undecided, Verdict,
+)
 
 class LoanDecision(Verdict):        # the allowed answers, one advocate each
     APPROVE = "approve"
@@ -63,9 +65,11 @@ tribunal = Tribunal(
 
 hearing = await tribunal.hear(Case(applicant=..., income=...))
 
-if hearing.ruling is not None:      # None only when the round limit was hit
-    hearing.ruling.verdict          # LoanDecision.DENY
-    hearing.ruling.reasoning
+match hearing.outcome:              # a ruling, or no verdict at all
+    case Ruling(verdict=verdict, reasoning=reasoning):
+        verdict                     # LoanDecision.DENY
+    case Undecided():               # max_rounds spent, the judge never ruled
+        ...
 
 hearing.transcript                  # every filing, in order
 hearing.usage                       # tokens and cost, judge plus advocates
@@ -73,6 +77,12 @@ hearing.usage                       # tokens and cost, judge plus advocates
 
 The judge has **no tools** — it reasons only over what advocates put into the
 record. All advocate tools are **strictly read-only**.
+
+A tribunal that spends its rounds without reaching a verdict returns
+`Undecided`; that is a finding, and it comes back on the hearing with the full
+transcript. A tribunal that loses a participant — the provider is down, a tool
+raises — is a different thing, and raises `ProceedingFailed` with the record so
+far attached. No ruling is ever issued on a bench that lost an advocate.
 
 A proceeding takes minutes, so you can watch the record being written instead of
 waiting for it:

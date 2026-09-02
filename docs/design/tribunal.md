@@ -44,8 +44,15 @@ A round is the advocates' filings **plus the deliberation that closes it**. So
 round 1 is the arguments and the continuance that follows them, and
 `max_rounds` counts judge deliberations — the thing that actually drives cost.
 
-**Termination.** The proceeding ends when the judge issues a ruling, or when
-`max_rounds` is exceeded.
+**Termination.** A proceeding ends in one of three ways. The judge issues a
+**ruling**. Or `max_rounds` deliberations pass without one, and the hearing's
+outcome is **undecided** — a real finding about the case, recorded and
+serializable, not an error. Or a participant **cannot be heard** — its model is
+unreachable, its tool raises, its output will not validate — and the proceeding
+stops without an outcome at all. Only the third raises; see
+[`api.md`](./api.md#when-something-goes-wrong),
+[`outcomes.md`](./outcomes.md) for each written out, and
+[`0011`](../decisions/0011-exhaustion-is-an-outcome-failure-is-an-error.md).
 
 Everything filed by every participant, in order, accumulates in the
 **transcript** — append-only. That transcript is the audit artifact. Its schema
@@ -93,6 +100,15 @@ concedes has done its job well. Treating concession as an error would pressure
 advocates into manufacturing arguments for indefensible positions — exactly the
 failure mode the adversarial structure exists to prevent.
 
+**A tribunal that loses a participant does not rule.** One advocate's model
+failing ends the proceeding, even when the judge and the remaining advocates are
+healthy. Deliberating on what is left would produce a decision reached because
+the opposing advocate was knocked offline rather than answered — and nothing in
+that ruling would distinguish it from one reached on a full bench. This is the
+counterpart to concession being first-class: an advocate that declines to argue
+has done its job, and an advocate that could not argue has not been heard at
+all. The two must never be recorded as the same thing.
+
 **Ruling and continuance are a discriminated union, not a flag.** The judge
 returns either a `Ruling` (verdict + reasoning, terminal) or a `Continuance`
 (interrogatories for the next round), both parameterized by the verdict enum
@@ -112,13 +128,6 @@ list. A question that is only *sharpened* — its options narrowed, nothing
 decided — stays, rewritten in place. See rule 7 in
 [`../../CLAUDE.md`](../../CLAUDE.md).
 
-- **Round-limit exhaustion.** What does `hear()` do when `max_rounds` is hit
-  without a ruling? The transcript is complete either way, and `Hearing` now
-  gives the answer somewhere to live — either `Hearing.ruling` is left `None`,
-  or `hear()` raises an exception carrying the `Hearing`. The caller's contract
-  differs sharply: the first makes every caller write a `None` check for a case
-  most never hit, the second makes exhaustion impossible to ignore. A forced
-  verdict remains the third option and the least defensible one.
 - **Advocate isolation.** In round 1, does an advocate see its peers' arguments,
   or only the case and statute? Isolation produces independent arguments;
   visibility produces genuine rebuttal. This changes the character of the output.
@@ -127,4 +136,9 @@ decided — stays, rewritten in place. See rule 7 in
   is not: whether `max_rounds` is the only one, or a budget can halt a
   proceeding mid-round. PydanticAI already ships `UsageLimits` and
   `UsageLimitExceeded`, so the likely answer is a pass-through rather than
-  something to invent.
+  something to invent. What
+  [`0011`](../decisions/0011-exhaustion-is-an-outcome-failure-is-an-error.md)
+  adds is where the answer lands: a budget stop is either a finding about the
+  case, in which case it joins `Undecided` as an outcome, or a fact about the
+  caller's wallet, in which case it is a `ProceedingFailed`. That is the same
+  line `0011` draws, applied to a governor that does not exist yet.

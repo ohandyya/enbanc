@@ -32,6 +32,7 @@ full ruleset.
 |---|---|
 | [`design/tribunal.md`](./design/tribunal.md) | The proceeding: rounds, interrogatories, concession, and the constraints that make the transcript complete |
 | [`design/api.md`](./design/api.md) | The public surface being designed toward `0.1.0` |
+| [`design/outcomes.md`](./design/outcomes.md) | Every way a proceeding can end, worked through with concrete values: a ruling, a spent round limit, a downed provider, a misconfigured tribunal |
 
 ### Decisions — ADRs
 
@@ -47,6 +48,7 @@ full ruleset.
 | [`decisions/0008-guidance-is-human-written.md`](./decisions/0008-guidance-is-human-written.md) | Why `guidance` is prose a human writes and `enbanc` never generates, rewrites, or tunes, why a guidance optimizer and a labeled corpus stay out of the library, and which of `0003`'s rationales this withdraws |
 | [`decisions/0009-model-settings-live-on-the-model.md`](./decisions/0009-model-settings-live-on-the-model.md) | Why there is no `settings=` on `Tribunal`, `Judge`, or `Advocate`, why `enbanc` passes no per-request model settings of its own, and where each half of "retries" actually lives |
 | [`decisions/0010-streaming-yields-the-record.md`](./decisions/0010-streaming-yields-the-record.md) | Why `hear_stream()` yields transcript entries and nothing else, why it is a context manager over a live `Proceeding` rather than a bare generator, and why `hear()` is that stream consumed |
+| [`decisions/0011-exhaustion-is-an-outcome-failure-is-an-error.md`](./decisions/0011-exhaustion-is-an-outcome-failure-is-an-error.md) | Why a spent round limit is a recorded `Undecided` outcome while a provider or tool failure raises `ProceedingFailed`, why one advocate's failure ends the whole proceeding, and why the exception names drop the courtroom metaphor |
 
 ### Guides — user-facing how-to
 

@@ -28,7 +28,9 @@ table is the whole tax.
 | **Continuance** | The judge's "not yet" — carries the interrogatories for the next round. |
 | **Entry** | One filing plus the tribunal's record of it: which round it belongs to and when it was filed. |
 | **Transcript** | Append-only record of every filing, in order, together with the question, statute, and case it was decided under. This is your audit artifact. |
-| **Hearing** | What `hear()` returns: the ruling, the transcript, the aggregate usage, and the round count. |
+| **Hearing** | What `hear()` returns: the outcome, the transcript, the aggregate usage, and the round count. It exists only when the tribunal ran to the end of its own process. |
+| **Outcome** | How a proceeding ended: a `Ruling`, or `Undecided`. A discriminated union, so a caller cannot read a verdict without first acknowledging there might not be one. |
+| **Undecided** | `max_rounds` deliberations spent and no verdict reached. A finding about the case, recorded and serializable — not a failure. |
 | **Proceeding** | A hearing while it is still going: the live handle `hear_stream()` hands back. Iterate it to receive each entry as it is filed; when it ends it carries the same `Hearing` `hear()` would have returned. |
 
 ## Judge output shape
@@ -83,3 +85,11 @@ immediately.
 The metaphor governs `enbanc`'s vocabulary, not its surface area. Anything
 `enbanc` does not expose — temperature, retries, per-request settings — you
 configure on the `Model` you build, in ordinary PydanticAI terms.
+
+It also stops at the exceptions, deliberately. `EnbancError`,
+`ConfigurationError`, `ProceedingFailed`, and `ProceedingUnfinished` say what
+went wrong in plain terms rather than courtroom ones, because they are read in
+stack traces by people who have not opened this table. `Mistrial` is the right
+legal word for a proceeding terminated without a verdict, and it is not the
+right word to meet at 3am. See
+[`0011`](./decisions/0011-exhaustion-is-an-outcome-failure-is-an-error.md).
