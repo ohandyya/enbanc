@@ -490,7 +490,9 @@ on the injected object would let one case's record leak into the next.
 **The set of judge implementations is closed.** `Judge` is a concrete class, not
 a protocol you implement. The guarantees that make a transcript auditable — the
 judge has no tools, and nothing reaches it that is not already in the record —
-are enforceable only while `enbanc` owns every judge. See
+are enforceable only while `enbanc` owns every judge. If a bench ever sits it
+joins `judge=` as a union member (`Judge | Bench`) rather than arriving as a
+second parameter; it would still be `enbanc`'s own. See
 [`0002`](../decisions/0002-the-judge-is-a-role.md).
 
 ## Open questions
@@ -502,10 +504,6 @@ list. A question that is only *sharpened* — its options narrowed, nothing
 decided — stays, rewritten in place. See rule 7 in
 [`../../CLAUDE.md`](../../CLAUDE.md).
 
-- Whether a bench ever sits. If it does, it joins `judge=` as a union member
-  (`Judge | Bench`) rather than arriving as a second parameter. This is not an
-  extension point: any bench would be `enbanc`'s own, for the reason in
-  [`0002`](../decisions/0002-the-judge-is-a-role.md).
 - Whether `hear()` has a streaming counterpart for observing rounds live.
 - Whether `Hearing.ruling` is optional at all. It is `Ruling | None` above only
   because round-limit exhaustion is unsettled. That question belongs to
