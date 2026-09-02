@@ -450,6 +450,17 @@ model comparison on a fixed statute — a one-line change. A single `Model`
 instance is safe to share across every agent, and sharing one is the good path.
 See [`0003`](../decisions/0003-models-and-guidance-are-injected.md).
 
+**Model settings ride on the model.** There is no `settings=` on `Tribunal`,
+`Judge`, or `Advocate`. Temperature, `max_tokens`, `timeout`, thinking
+configuration, and provider-specific settings go where PydanticAI already keeps
+them — `Model(..., settings=ModelSettings(...))` — and `enbanc` passes none of
+its own at request time, so what you configured is what the agent runs with.
+Varying settings per agent is varying the model per agent: build a second
+`Model` over the same provider and hand it to the `Judge`. HTTP retry and
+backoff belong to the client inside that model too; tool and output-validation
+retries are the library's, because they guard the `Ruling | Continuance`
+contract. See [`0009`](../decisions/0009-model-settings-live-on-the-model.md).
+
 **Guidance augments; the library owns the procedural prompt.** Each agent's
 system prompt is assembled by `enbanc`: the `Ruling | Continuance` contract, the
 rule that interrogatories are targeted rather than broadcast, the judge's
@@ -491,8 +502,6 @@ list. A question that is only *sharpened* — its options narrowed, nothing
 decided — stays, rewritten in place. See rule 7 in
 [`../../CLAUDE.md`](../../CLAUDE.md).
 
-- Whether `ModelSettings` — temperature, `max_tokens`, retries — is exposed per
-  agent, or stays something you bake into the `Model` you construct.
 - Whether a bench ever sits. If it does, it joins `judge=` as a union member
   (`Judge | Bench`) rather than arriving as a second parameter. This is not an
   extension point: any bench would be `enbanc`'s own, for the reason in
