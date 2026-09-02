@@ -1,6 +1,6 @@
 ---
 status: draft
-updated: 2026-09-01
+updated: 2026-09-02
 ---
 
 # The tribunal
@@ -28,20 +28,28 @@ reasoning and the evidence that produced it, in a form a reviewer can audit.
 ## The proceeding
 
 **Round 1 — argument.** One advocate is instantiated per verdict value. Each
-argues freely for its assigned verdict, filing a position, a claim, and
-supporting exhibits gathered through its own tools. An advocate that finds no
-reasonable case for its verdict **concedes**.
+argues freely for its assigned verdict, filing an *argument*: a claim and the
+exhibits supporting it, gathered through its own tools. An advocate that finds
+no reasonable case for its verdict **concedes**.
 
-**Round 2+ — interrogation.** If the judge cannot rule on the record so far, it
-issues *interrogatories*: targeted questions to a chosen subset of advocates,
-not a broadcast. Those advocates answer, entering new exhibits as needed.
-Repeat.
+**Deliberation.** The judge reads the record and either rules or issues a
+*continuance* carrying **interrogatories**: targeted questions to a chosen
+subset of advocates, not a broadcast.
+
+**Round 2+ — interrogation.** Each addressed advocate files a *response*
+answering one interrogatory by id, entering new exhibits as needed. Then the
+judge deliberates again. Repeat.
+
+A round is the advocates' filings **plus the deliberation that closes it**. So
+round 1 is the arguments and the continuance that follows them, and
+`max_rounds` counts judge deliberations — the thing that actually drives cost.
 
 **Termination.** The proceeding ends when the judge issues a ruling, or when
 `max_rounds` is exceeded.
 
-Everything said by every participant, in order, accumulates in the
-**transcript** — append-only. That transcript is the audit artifact.
+Everything filed by every participant, in order, accumulates in the
+**transcript** — append-only. That transcript is the audit artifact. Its schema
+is in [`api.md`](./api.md#the-record).
 
 Each agent carries its own conversation across rounds rather than being rebuilt
 from scratch each time: the judge deliberates repeatedly, and an advocate that
@@ -57,13 +65,24 @@ These are load-bearing. Relaxing any of them changes what the system is.
 record. This is what makes the transcript complete: if the judge could go
 gather its own evidence, the record would no longer explain the ruling.
 
-**Nothing enters an agent's context that is not also in the transcript.** Agents
-accumulate message history across rounds, and that history is a
-representation of the transcript — shaped for the provider and cheap to
+**Nothing reaches an agent from outside itself that is not also in the
+transcript.** Agents accumulate message history across rounds, and that history
+is a representation of the transcript — shaped for the provider and cheap to
 cache — never a second channel. A framing turn, a reminder, or a summary
 injected into an agent's history and nowhere else would silently break the
 guarantee above: the transcript would no longer be a complete account of what
-the ruling was based on. If an agent should see it, it goes in the record.
+the ruling was based on. If one participant should see what another said, it
+goes in the record.
+
+The qualifier *from outside itself* is doing real work, and it is narrower than
+this invariant was originally stated. An advocate's own tool results reach its
+context and stop there unless it files them as exhibits. That is deliberate:
+the judge only ever sees filings, so filings remain a complete account of what
+the ruling rests on. **The record is complete as to the ruling, not as to the
+search** — an advocate that pulled damaging evidence and quietly declined to
+file it leaves no trace. See
+[`0006`](../decisions/0006-the-transcript-schema.md), which refines the form of
+the invariant stated in [`0002`](../decisions/0002-the-judge-is-a-role.md).
 
 **Advocate tools are strictly read-only.** An adjudication must never mutate
 the world it is reasoning about. This is enforced at the tool boundary, not by
@@ -76,10 +95,12 @@ failure mode the adversarial structure exists to prevent.
 
 **Ruling and continuance are a discriminated union, not a flag.** The judge
 returns either a `Ruling` (verdict + reasoning, terminal) or a `Continuance`
-(interrogatories for the next round). This makes invalid states
+(interrogatories for the next round), both parameterized by the verdict enum
+and both tagged with a defaulted `kind` literal. This makes invalid states
 unrepresentable: there is no decision that also carries pending questions, and
-no non-decision with nothing to ask. Pydantic discriminates the union natively,
-so the schema validates itself and documents itself to the model. Shape is in
+no non-decision with nothing to ask. Pydantic discriminates on the tag, so the
+schema validates itself, documents itself to the model, and survives being
+persisted and read back. Shape is in
 [`../glossary.md`](../glossary.md#judge-output-shape).
 
 ## Open questions
@@ -87,14 +108,19 @@ so the schema validates itself and documents itself to the model. Shape is in
 Unresolved. Each should become an ADR in [`../decisions/`](../decisions/) when
 it is settled.
 
-- **Round-limit exhaustion.** What does `hear()` return when `max_rounds` is hit
-  without a ruling — a forced verdict, a null result, or an exception? The
-  transcript is complete either way, but the caller's contract differs sharply.
+- **Round-limit exhaustion.** What does `hear()` do when `max_rounds` is hit
+  without a ruling? The transcript is complete either way, and `Hearing` now
+  gives the answer somewhere to live — either `Hearing.ruling` is left `None`,
+  or `hear()` raises an exception carrying the `Hearing`. The caller's contract
+  differs sharply: the first makes every caller write a `None` check for a case
+  most never hit, the second makes exhaustion impossible to ignore. A forced
+  verdict remains the third option and the least defensible one.
 - **Advocate isolation.** In round 1, does an advocate see its peers' arguments,
   or only the case and statute? Isolation produces independent arguments;
   visibility produces genuine rebuttal. This changes the character of the output.
 - **Cost control.** Rounds multiply tokens by the advocate count. Visibility is
-  settled — `ruling.usage` reports what a proceeding spent — but the governor is
-  not: whether `max_rounds` is the only one, or a budget can halt a proceeding
-  mid-round. PydanticAI already ships `UsageLimits` and `UsageLimitExceeded`, so
-  the likely answer is a pass-through rather than something to invent.
+  settled — `hearing.usage` reports what a proceeding spent — but the governor
+  is not: whether `max_rounds` is the only one, or a budget can halt a
+  proceeding mid-round. PydanticAI already ships `UsageLimits` and
+  `UsageLimitExceeded`, so the likely answer is a pass-through rather than
+  something to invent.

@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-09-01
+updated: 2026-09-02
 ---
 
 # Documentation
@@ -40,6 +40,9 @@ full ruleset.
 | [`decisions/0001-statute-carries-no-model.md`](./decisions/0001-statute-carries-no-model.md) | Why a `Statute` is inert rule text with no model attached, why `Statute.draft()` is cut from `0.1.0`, and why it stays a type rather than a `str` |
 | [`decisions/0002-the-judge-is-a-role.md`](./decisions/0002-the-judge-is-a-role.md) | Why `Judge` is a concrete `enbanc`-owned class rather than a protocol, why per-proceeding state lives in a sitting instead of on the injected agent, and the invariant that keeps message history inside the transcript |
 | [`decisions/0003-models-and-guidance-are-injected.md`](./decisions/0003-models-and-guidance-are-injected.md) | Why the caller constructs and injects a PydanticAI `Model`, how `Tribunal`'s default and per-agent overrides interact, and why the per-agent steer is `guidance` that augments rather than `instructions` that replaces |
+| [`decisions/0004-verdicts-are-a-strenum.md`](./decisions/0004-verdicts-are-a-strenum.md) | Why the verdict enum is a `StrEnum` subclassed from an `enbanc` base, why it parameterizes every other type in the library, and why the `advocates` mapping must cover every value |
+| [`decisions/0005-hear-returns-a-hearing.md`](./decisions/0005-hear-returns-a-hearing.md) | Why `hear()` hands back a `Hearing` that wraps the judge's `Ruling` rather than widening it, and why round-limit exhaustion is what forced the choice |
+| [`decisions/0006-the-transcript-schema.md`](./decisions/0006-the-transcript-schema.md) | What a transcript holds — five filings, an entry envelope, a self-contained record — and why raw advocate tool traffic stays out of it, narrowing the invariant `0002` states absolutely |
 
 ### Guides — user-facing how-to
 
