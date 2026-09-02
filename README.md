@@ -107,11 +107,14 @@ The full design lives in [`docs/design/`](./docs/design/):
   together.
 - [**Public API**](./docs/design/api.md) — the surface being designed toward
   `0.1.0`, and what each piece carries.
+- [**Outcomes**](./docs/design/outcomes.md) — every way a proceeding can end,
+  worked through with concrete values: a ruling, a spent round limit, a downed
+  provider, a misconfigured tribunal.
 - [**Glossary**](./docs/glossary.md) — the courtroom vocabulary. One table, one
   minute.
 
-Both design documents carry open questions that aren't settled yet. If you have
-opinions, that's the place to aim them.
+The tribunal and API documents carry open questions that aren't settled yet. If
+you have opinions, that's the place to aim them.
 
 ## Status
 

@@ -22,39 +22,64 @@ spec: [`design/`](./design/) is.
 
 ## Current state
 
-**Phase:** Scaffolding complete; the `0.1.0` surface is mostly designed but
-**no `enbanc` code exists yet** — `src/enbanc/__init__.py` is a placeholder and
+**Phase:** Scaffolding complete; the `0.1.0` surface is designed but **no
+`enbanc` code exists yet** — `src/enbanc/__init__.py` is a placeholder and
 `tests/` holds one placeholder test. The published `0.0.4` on PyPI reserves the
-name and nothing more. What is now settled and binding is the *shape* of the
-public types: verdicts, statute, the five filings, the transcript envelope, the
-judge's discriminated union, and what `hear()` returns
+name and nothing more. Settled and binding: the shape of every public type, and
+now every way a proceeding can *end*
 ([`0001`](./decisions/0001-statute-carries-no-model.md) through
-[`0009`](./decisions/0009-model-settings-live-on-the-model.md)). What is not
-settled is the *behaviour* of the proceeding.
+[`0011`](./decisions/0011-exhaustion-is-an-outcome-failure-is-an-error.md)).
+What remains unsettled is the *behaviour* of the proceeding itself — what
+advocates see, and what a budget may halt.
 
-**Next up:** Settle **round-limit exhaustion** in
-[`design/tribunal.md`](./design/tribunal.md#open-questions) — what `hear()` does
-when `max_rounds` is hit with no ruling. It is the next one to take because it
-is the only open question with a committed downstream consequence: `api.md`
-types `Hearing.ruling` as `Ruling | None` *solely* because this is unresolved,
-so resolving it toward an exception deletes the optionality, the `if` in the
-README sample, and a bullet from
-[`design/api.md`](./design/api.md#open-questions). The choice is between leaving
-`ruling` `None` (every caller writes a check for a case most never hit) and
-raising an exception carrying the `Hearing` (exhaustion impossible to ignore);
-a forced verdict is the third option and the weakest. Per rule 7, that is three
-moves in one commit: prose into `tribunal.md`, an ADR, then the bullet goes.
+**Next up:** Settle **advocate isolation** in
+[`design/tribunal.md`](./design/tribunal.md#open-questions) — in round 1, does
+an advocate see its peers' arguments, or only the case and statute? It is the
+next one to take because it is the last open question that changes what the
+system *produces* rather than the shape of a type: isolation yields independent
+arguments, visibility yields genuine rebuttal, and a transcript reads
+differently under each. Nothing in the settled schemas forces the answer, which
+is why it has outlasted the others. Per rule 7, three moves in one commit:
+prose into `tribunal.md`, an ADR, then the bullet goes.
+
+A cheaper adjacent one if a short session is wanted: what happens to advocates
+still in flight when a peer fails
+([`api.md`](./design/api.md#open-questions)) — raised while writing
+`design/outcomes.md`, narrow, and it only decides how much of the failing round
+the transcript keeps.
 
 **Open questions:**
 
 - The design docs carry their own, and own them:
-  [`tribunal.md`](./design/tribunal.md#open-questions) (round-limit exhaustion,
-  advocate isolation, cost control) and
-  [`api.md`](./design/api.md#open-questions) (`Hearing.ruling`'s optionality,
+  [`tribunal.md`](./design/tribunal.md#open-questions) (advocate isolation, cost
+  control — now sharpened, with `0011` naming where its answer lands) and
+  [`api.md`](./design/api.md#open-questions) (in-flight advocates on failure,
   `Case` as base vs. generic, per-agent usage, interrogatory id assignment).
 - Nothing else outstanding at the project level.
 
 ## Log
+
+### 2026-09-02 — streaming, and what happens when there is no verdict
+
+**Did:** Added `hear_stream()` as a live view of the transcript
+([`0010`](./decisions/0010-streaming-yields-the-record.md)), then settled how a
+proceeding reports *not* ruling. Exhaustion is now a recorded `Undecided`
+outcome on `Hearing.outcome`; provider, tool, and validation failures raise
+`ProceedingFailed` carrying the partial transcript. `Hearing.ruling` is gone,
+and with it the last open question that was blocking a type. Added
+[`design/outcomes.md`](./design/outcomes.md) — every ending written out as
+concrete values — which is what caught two defects in the schemas above it.
+
+**Stopped at:** Clean. `docs/design/` and the README match the new surface.
+
+**Why this way:**
+[`decisions/0010`](./decisions/0010-streaming-yields-the-record.md),
+[`decisions/0011`](./decisions/0011-exhaustion-is-an-outcome-failure-is-an-error.md),
+and
+[`journal/2026-09-02-values-before-schemas.md`](./journal/2026-09-02-values-before-schemas.md)
+for why the examples doc found what schema review did not.
+
+**Commits:** `231358c`, `eee4dca`, `3ccdad7`
 
 ### 2026-09-02 — the schemas, and six ADRs
 

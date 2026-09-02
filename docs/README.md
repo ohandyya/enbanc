@@ -56,7 +56,9 @@ full ruleset.
 
 ### Journal — implementation records
 
-*(none yet)*
+| Doc | What it covers |
+|---|---|
+| [`journal/2026-09-02-values-before-schemas.md`](./journal/2026-09-02-values-before-schemas.md) | Why writing `design/outcomes.md` as concrete values caught a redundant field and an unanswerable gap that reviewing the schemas — and writing an ADR about them — did not |
 
 ## Adding a doc
 
