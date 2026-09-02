@@ -138,6 +138,10 @@ are enforceable only while `enbanc` owns every judge. See
 
 ## Open questions
 
+- The schema for
+  1. Verdict: StrEnum
+  2. Statute: Pydantic model
+  3. ruling: Pydantic model
 - Whether a `Statute` is prose the judge reads, or a set of named criteria it
   must rule on one at a time. Structure would let the transcript show *which*
   criterion decided the case, and would give a drafting step something to
