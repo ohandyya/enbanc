@@ -461,10 +461,21 @@ are enforceable only while `enbanc` owns every judge. See
 
 ## Open questions
 
+Unresolved, and owned by this document. Settling one is three moves in a single
+commit: the answer goes into the prose above, an ADR in
+[`../decisions/`](../decisions/) records why, and then the bullet leaves this
+list. A question that is only *sharpened* — its options narrowed, nothing
+decided — stays, rewritten in place. See rule 7 in
+[`../../CLAUDE.md`](../../CLAUDE.md).
+
 - Whether a `Statute` is prose the judge reads, or a set of named criteria it
-  must rule on one at a time. Structure would let the transcript show *which*
-  criterion decided the case, and would give a drafting step something to
-  compile into — see [`0001`](../decisions/0001-statute-carries-no-model.md).
+  must rule on one at a time. `0.1.0` ships prose — `text` is a string and the
+  judge reads it whole — but that is a deferral, not an answer. Structure would
+  let the transcript show *which* criterion decided the case, and would give a
+  drafting step something to compile into. A `criteria` field alongside `text`
+  is additive rather than breaking, which is why the shape above does not
+  foreclose it. See [`0001`](../decisions/0001-statute-carries-no-model.md),
+  which defers `Statute.draft()` on precisely this question.
 - Whether `guidance` is ever machine-tuned. It is human-written in `0.1.0`.
   Keeping it per-agent, optional, and separate from the library's procedural
   prompt is what leaves the door open; nothing is built for it yet.
@@ -475,10 +486,11 @@ are enforceable only while `enbanc` owns every judge. See
   extension point: any bench would be `enbanc`'s own, for the reason in
   [`0002`](../decisions/0002-the-judge-is-a-role.md).
 - Whether `hear()` has a streaming counterpart for observing rounds live.
-- The return type of `hear()` when the round limit is exhausted — see
-  [`tribunal.md`](./tribunal.md#open-questions). `Hearing` accommodates either
-  answer, and the `if hearing.ruling is not None` in the sample above is the
-  cost of not having decided.
+- Whether `Hearing.ruling` is optional at all. It is `Ruling | None` above only
+  because round-limit exhaustion is unsettled. That question belongs to
+  [`tribunal.md`](./tribunal.md#open-questions); what this document owns is its
+  consequence for the public surface — if exhaustion resolves toward an
+  exception, `ruling` stops being optional and the `if` in the sample goes away.
 - Whether `Case` is a base class users subclass, or a generic container. This is
   now load-bearing rather than cosmetic: `Transcript.case` is typed against it,
   so if `Case` becomes generic, `Transcript` and `Hearing` each gain a second

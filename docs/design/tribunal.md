@@ -105,8 +105,12 @@ persisted and read back. Shape is in
 
 ## Open questions
 
-Unresolved. Each should become an ADR in [`../decisions/`](../decisions/) when
-it is settled.
+Unresolved, and owned by this document. Settling one is three moves in a single
+commit: the answer goes into the prose above, an ADR in
+[`../decisions/`](../decisions/) records why, and then the bullet leaves this
+list. A question that is only *sharpened* — its options narrowed, nothing
+decided — stays, rewritten in place. See rule 7 in
+[`../../CLAUDE.md`](../../CLAUDE.md).
 
 - **Round-limit exhaustion.** What does `hear()` do when `max_rounds` is hit
   without a ruling? The transcript is complete either way, and `Hearing` now
