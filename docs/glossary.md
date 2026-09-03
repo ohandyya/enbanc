@@ -16,6 +16,7 @@ table is the whole tax.
 | **Case** | The facts of a single decision: applicant details, business info, whatever context you supply. A base class you subclass to give those facts a schema, open enough to construct as it is, and frozen once made. |
 | **Advocate** | An agent assigned one verdict value, with its own read-only tools. Its job is to convince the judge the answer is *X* — or to concede. |
 | **Judge** | The single agent that rules. It has no tools and reasons only over the record the advocates build. Concrete and `enbanc`-owned, not an interface you implement. |
+| **Participant** | Any agent that runs in a proceeding: each advocate, plus the judge. It is the unit filings are made by and spend is attributed to, keyed by the advocate's verdict value or the literal `"judge"` — which is reserved, so a verdict may not use it. |
 | **Guidance** | Optional per-agent steer — "ambiguity favors denial" — added to the procedural prompt `enbanc` writes for that role. Human-authored, and never a replacement for it. |
 | **Round** | One exchange: the advocates' filings, plus the judge's deliberation that closes it. `max_rounds` counts deliberations. |
 | **Filing** | Anything a participant enters into the record: an argument, a concession, a response, a continuance, or a ruling. |
@@ -28,7 +29,7 @@ table is the whole tax.
 | **Continuance** | The judge's "not yet" — carries the interrogatories for the next round. |
 | **Entry** | One filing plus the tribunal's record of it: which round it belongs to and when it was filed. |
 | **Transcript** | Append-only record of every filing, in order, together with the question, statute, and case it was decided under. This is your audit artifact. |
-| **Hearing** | What `hear()` returns: the outcome, the transcript, the aggregate usage, and the round count. It exists only when the tribunal ran to the end of its own process. |
+| **Hearing** | What `hear()` returns: the outcome, the transcript, the round count, and what the proceeding spent — broken down per participant, with the aggregate as that breakdown's sum. It exists only when the tribunal ran to the end of its own process. |
 | **Outcome** | How a proceeding ended: a `Ruling`, or `Undecided`. A discriminated union, so a caller cannot read a verdict without first acknowledging there might not be one. |
 | **Undecided** | `max_rounds` deliberations spent and no verdict reached. A finding about the case, recorded and serializable — not a failure. |
 | **Proceeding** | A hearing while it is still going: the live handle `hear_stream()` hands back. Iterate it to receive each entry as it is filed; when it ends it carries the same `Hearing` `hear()` would have returned. |

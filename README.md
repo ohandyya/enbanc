@@ -73,6 +73,7 @@ match hearing.outcome:              # a ruling, or no verdict at all
 
 hearing.transcript                  # every filing, in order
 hearing.usage                       # tokens and cost, judge plus advocates
+hearing.usage_by_participant        # the same spend, split by who incurred it
 ```
 
 The judge has **no tools** — it reasons only over what advocates put into the
@@ -113,8 +114,10 @@ The full design lives in [`docs/design/`](./docs/design/):
 - [**Glossary**](./docs/glossary.md) — the courtroom vocabulary. One table, one
   minute.
 
-The tribunal and API documents carry open questions that aren't settled yet. If
-you have opinions, that's the place to aim them.
+The API is settled down to the schemas. What is still open is how the
+proceeding *behaves* — what an advocate sees, and what a budget may halt — and
+[`docs/design/tribunal.md`](./docs/design/tribunal.md#open-questions) carries
+those questions. If you have opinions, that's the place to aim them.
 
 ## Status
 

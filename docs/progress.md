@@ -25,12 +25,13 @@ spec: [`design/`](./design/) is.
 **Phase:** Scaffolding complete; the `0.1.0` surface is designed but **no
 `enbanc` code exists yet** — `src/enbanc/__init__.py` is a placeholder and
 `tests/` holds one placeholder test. The published `0.0.4` on PyPI reserves the
-name and nothing more. Settled and binding: the shape of every public type, and
-now every way a proceeding can *end*
+name and nothing more. Settled and binding: every public type, every way a
+proceeding can *end*, and now every question `design/api.md` was carrying
 ([`0001`](./decisions/0001-statute-carries-no-model.md) through
-[`0013`](./decisions/0013-a-case-is-a-subclassable-base.md)).
-What remains unsettled is the *behaviour* of the proceeding itself — what
-advocates see, and what a budget may halt.
+[`0015`](./decisions/0015-interrogatory-ids-are-stamped-on-filing.md)). The
+schemas are done. What remains unsettled is the *behaviour* of the proceeding
+itself — what advocates see, and what a budget may halt — and both live in
+`design/tribunal.md`.
 
 **Next up:** Settle **advocate isolation** in
 [`design/tribunal.md`](./design/tribunal.md#open-questions) — in round 1, does
@@ -44,14 +45,41 @@ prose into `tribunal.md`, an ADR, then the bullet goes.
 
 **Open questions:**
 
-- The design docs carry their own, and own them:
-  [`tribunal.md`](./design/tribunal.md#open-questions) (advocate isolation, cost
-  control — now sharpened, with `0011` naming where its answer lands) and
-  [`api.md`](./design/api.md#open-questions) (per-agent usage, interrogatory
-  id assignment).
+- [`design/tribunal.md`](./design/tribunal.md#open-questions) owns both that
+  remain: advocate isolation, and cost control — sharpened, with `0011` naming
+  where a budget stop lands. [`design/api.md`](./design/api.md#open-questions)
+  now carries none.
 - Nothing else outstanding at the project level.
 
 ## Log
+
+### 2026-09-02 — four ADRs, and `api.md` runs out of questions
+
+**Did:** Closed the last four unsettled pieces of the `0.1.0` surface, one ADR
+each: the first failure cancels the round rather than draining it
+([`0012`](./decisions/0012-a-failure-cancels-the-round.md)), `Case` is a
+subclassable base rather than a second type parameter on every generic
+([`0013`](./decisions/0013-a-case-is-a-subclassable-base.md)), a `Hearing`
+carries `usage_by_participant` as the stored fact with `usage` as its sum
+([`0014`](./decisions/0014-usage-is-broken-down-per-participant.md)), and the
+tribunal stamps `r{round}-q{n}` onto an interrogatory when it files the
+continuance instead of asking the judge to invent it
+([`0015`](./decisions/0015-interrogatory-ids-are-stamped-on-filing.md)).
+`design/api.md` now lists no open questions; both survivors are in
+`design/tribunal.md` and both are about behaviour, not shape.
+
+**Stopped at:** Clean. `README.md` and the glossary were swept here — the README
+still claimed `api.md` carried open questions and its sample predated
+`usage_by_participant`; the glossary described a `Hearing`'s usage as merely
+aggregate and had no row for *participant*, which `0012` and `0014` both lean
+on.
+
+**Why this way:**
+[`decisions/0012`](./decisions/0012-a-failure-cancels-the-round.md)–[`0015`](./decisions/0015-interrogatory-ids-are-stamped-on-filing.md);
+no journal entry — every choice this session binds future work, so all of it is
+ADR material and none of it is session narrative.
+
+**Commits:** `26c2c16`, `329b897`, `db7ac7d`, `d4bd74f`, `f8c711c`
 
 ### 2026-09-02 — streaming, and what happens when there is no verdict
 
