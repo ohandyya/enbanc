@@ -89,9 +89,13 @@ would make the transcript's account of what was applied unfalsifiable. See
 [`0001`](../decisions/0001-statute-carries-no-model.md) and
 [`0007`](../decisions/0007-a-statute-is-opaque-text.md).
 
-**`Case`** — the facts of a single decision. Deliberately open: applicant
-details, business info, whatever the statute needs to be applied. Like
-`Statute`, it is a noun in the record — supplied by you, never an agent.
+**`Case`** — the facts of a single decision. A base class you subclass to give
+those facts a schema, and open enough to use as it is when they do not need one.
+Like `Statute`, it is a noun in the record — supplied by you, never an agent —
+and frozen, so what the transcript says was decided on cannot change under it. It
+is not a type parameter: `enbanc` renders a case and records it, and reads no
+field of it. See
+[`0013`](../decisions/0013-a-case-is-a-subclassable-base.md).
 
 **`Advocate`** — assigned one verdict value, given its own read-only tools. Tools
 are per-advocate on purpose: the advocate for approval may need different
@@ -205,6 +209,59 @@ Putting rendering on the object would hand back the behavior
 to compile prose into, and a statute has none by design. See
 [`0007`](../decisions/0007-a-statute-is-opaque-text.md).
 
+```python
+class Case(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="allow")
+```
+
+No fields, because the facts of a decision are yours. **Subclass it** to give
+them a schema:
+
+```python
+class LoanApplication(Case):
+    applicant: str
+    income: int
+    dti: float
+    documents: list[str] = []
+
+hearing = await tribunal.hear(
+    LoanApplication(
+        applicant="A. Okonkwo",
+        income=182000,
+        dti=0.51,
+        documents=["w2-2024", "schedule-c-2024"],
+    )
+)
+```
+
+That is the path for anything that runs twice: the fields are validated at
+construction, the facts the statute talks about are named in one place, and a
+reviewer reading the transcript back sees that shape rather than whatever the
+call site happened to pass.
+
+**The base is open, so it is usable as it is.** `extra="allow"` makes
+`Case(applicant="A. Okonkwo", income=182000)` a case — the shortest thing that
+works while a tribunal is still being sketched. It also does a second job that
+matters more than convenience: when a persisted transcript is validated back, a
+subclass's fields land on the base `Case` as extras rather than being rejected,
+so the artifact survives a round trip even where the static type does not.
+
+**`Case` is not a type parameter.** `Transcript.case` is typed `Case`, not
+`LoanApplication`, and nothing here is keyed on the case the way everything is
+keyed on the verdict enum. Recovering the subclass from a persisted transcript is
+`LoanApplication.model_validate(hearing.transcript.case.model_dump())`, which
+names the concrete class exactly once — the same as a parameterized `Transcript`
+would demand, without putting a second parameter on four public types. At the
+call site the question does not arise: you are holding the object you passed to
+`hear()`. See [`0013`](../decisions/0013-a-case-is-a-subclassable-base.md).
+
+**Frozen, like a statute**, and for the same reason. The case is what the
+transcript claims was decided on, and facts that could be edited mid-hearing
+would make that account unfalsifiable.
+
+Turning a case into prompt text is `enbanc`'s job, not the case's — the same
+division `Statute` draws just above.
+
 ### What participants file
 
 ```python
@@ -308,7 +365,7 @@ class Entry(BaseModel, Generic[VerdictT]):
 class Transcript(BaseModel, Generic[VerdictT]):
     question: str
     statute: Statute
-    case: Case
+    case: SerializeAsAny[Case]
     entries: list[Entry[VerdictT]] = []
 
     def __iter__(self) -> Iterator[Entry[VerdictT]]: ...
@@ -321,6 +378,14 @@ class Transcript(BaseModel, Generic[VerdictT]):
 reason `Hearing` wraps `Ruling`: `round` and `filed_at` are things the tribunal
 knows and the filer does not. Putting `round` on `Ruling` would put a field on
 the judge's own output schema that the judge cannot fill.
+
+**`Transcript.case` is `SerializeAsAny[Case]`, and has to be.** Pydantic v2
+serializes a field by its *declared* type, so a `LoanApplication` sitting in a
+plain `case: Case` field dumps as a bare `Case` and every subclass field
+disappears — silently, out of the artifact whose whole job is to be complete.
+`SerializeAsAny` switches that one field to duck-typed serialization. It is the
+same kind of forced detail as [the generic aliases](#a-note-on-generic-aliases)
+below, and it is the price of `Case` not being a type parameter.
 
 `Transcript` iterates over its entries and renders itself to readable proceeding
 text. That is the whole of its behavior — it holds no model and makes no calls,
@@ -716,10 +781,6 @@ list. A question that is only *sharpened* — its options narrowed, nothing
 decided — stays, rewritten in place. See rule 7 in
 [`../../CLAUDE.md`](../../CLAUDE.md).
 
-- Whether `Case` is a base class users subclass, or a generic container. This is
-  now load-bearing rather than cosmetic: `Transcript.case` is typed against it,
-  so if `Case` becomes generic, `Transcript` and `Hearing` each gain a second
-  type parameter.
 - Whether usage is ever broken down per agent. `hearing.usage` is the aggregate
   [`0002`](../decisions/0002-the-judge-is-a-role.md) committed to; a
   `dict[VerdictT | Literal["judge"], RunUsage]` alongside it would let a caller

@@ -50,6 +50,7 @@ full ruleset.
 | [`decisions/0010-streaming-yields-the-record.md`](./decisions/0010-streaming-yields-the-record.md) | Why `hear_stream()` yields transcript entries and nothing else, why it is a context manager over a live `Proceeding` rather than a bare generator, and why `hear()` is that stream consumed |
 | [`decisions/0011-exhaustion-is-an-outcome-failure-is-an-error.md`](./decisions/0011-exhaustion-is-an-outcome-failure-is-an-error.md) | Why a spent round limit is a recorded `Undecided` outcome while a provider or tool failure raises `ProceedingFailed`, why one advocate's failure ends the whole proceeding, and why the exception names drop the courtroom metaphor |
 | [`decisions/0012-a-failure-cancels-the-round.md`](./decisions/0012-a-failure-cancels-the-round.md) | Why the first failure cancels the advocates still in flight rather than draining them, why a failed transcript is what was filed rather than what the round contained, and why `participant` stays singular |
+| [`decisions/0013-a-case-is-a-subclassable-base.md`](./decisions/0013-a-case-is-a-subclassable-base.md) | Why `Case` is an open base class users subclass rather than a second type parameter on `Transcript` and `Hearing`, why the base allows extra fields, and why `Transcript.case` must be `SerializeAsAny` |
 
 ### Guides — user-facing how-to
 

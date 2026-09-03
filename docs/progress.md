@@ -28,7 +28,7 @@ spec: [`design/`](./design/) is.
 name and nothing more. Settled and binding: the shape of every public type, and
 now every way a proceeding can *end*
 ([`0001`](./decisions/0001-statute-carries-no-model.md) through
-[`0012`](./decisions/0012-a-failure-cancels-the-round.md)).
+[`0013`](./decisions/0013-a-case-is-a-subclassable-base.md)).
 What remains unsettled is the *behaviour* of the proceeding itself — what
 advocates see, and what a budget may halt.
 
@@ -47,8 +47,8 @@ prose into `tribunal.md`, an ADR, then the bullet goes.
 - The design docs carry their own, and own them:
   [`tribunal.md`](./design/tribunal.md#open-questions) (advocate isolation, cost
   control — now sharpened, with `0011` naming where its answer lands) and
-  [`api.md`](./design/api.md#open-questions) (`Case` as base vs. generic,
-  per-agent usage, interrogatory id assignment).
+  [`api.md`](./design/api.md#open-questions) (per-agent usage, interrogatory
+  id assignment).
 - Nothing else outstanding at the project level.
 
 ## Log

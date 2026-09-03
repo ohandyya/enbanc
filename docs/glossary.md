@@ -13,7 +13,7 @@ table is the whole tax.
 | **Tribunal** | The orchestrator. Holds the question, the statute, the judge, the advocates, the default model, and the round limit. |
 | **Statute** | The rule judged against — underwriting guidelines, selection criteria. Authored by you, in whatever form the rule wants. Inert data: it carries no model, `enbanc` makes no assumption about its text, and it is frozen. |
 | **Verdict** | The enum of allowed answers. You subclass it. One advocate is created per value, and the enum is the type parameter every other shape here is keyed on. |
-| **Case** | The facts of a single decision: applicant details, business info, whatever context you supply. |
+| **Case** | The facts of a single decision: applicant details, business info, whatever context you supply. A base class you subclass to give those facts a schema, open enough to construct as it is, and frozen once made. |
 | **Advocate** | An agent assigned one verdict value, with its own read-only tools. Its job is to convince the judge the answer is *X* — or to concede. |
 | **Judge** | The single agent that rules. It has no tools and reasons only over the record the advocates build. Concrete and `enbanc`-owned, not an interface you implement. |
 | **Guidance** | Optional per-agent steer — "ambiguity favors denial" — added to the procedural prompt `enbanc` writes for that role. Human-authored, and never a replacement for it. |
