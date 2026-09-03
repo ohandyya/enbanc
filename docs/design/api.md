@@ -58,6 +58,7 @@ match hearing.outcome:
 
 hearing.transcript                  # every filing, in order
 hearing.usage                       # tokens and cost, judge plus advocates
+hearing.usage_by_participant        # the same spend, split by who incurred it
 ```
 
 That `match` is not decoration. A proceeding either produces a ruling or spends
@@ -123,10 +124,10 @@ artifact. Self-contained: it carries the question, the statute, and the case
 alongside the entries, so a transcript dumped to JSON is a complete account on
 its own rather than a fragment that needs the `Hearing` to be legible.
 
-**`Hearing`** — what `hear()` returns: the outcome, the transcript, the
-aggregate usage, and how many rounds ran. A `Hearing` exists only when the
-tribunal ran to the end of its own process; when it could not, `hear()` raises
-instead.
+**`Hearing`** — what `hear()` returns: the outcome, the transcript, what the
+proceeding spent — in total and per participant — and how many rounds ran. A
+`Hearing` exists only when the tribunal ran to the end of its own process; when
+it could not, `hear()` raises instead.
 
 **`Outcome`** — how the proceeding ended, as a discriminated union: a `Ruling`,
 or `Undecided` when the round limit was spent without one. Both are records, and
@@ -407,6 +408,7 @@ Outcome = TypeAliasType(
 class Hearing(BaseModel, Generic[VerdictT]):
     outcome: Outcome[VerdictT]
     transcript: Transcript[VerdictT]
+    usage_by_participant: dict[VerdictT | Literal["judge"], RunUsage]
     usage: RunUsage
     rounds: int
 ```
@@ -569,6 +571,7 @@ class ProceedingFailed(EnbancError, Generic[VerdictT]):
     participant: VerdictT | Literal["judge"]
     round: int
     transcript: Transcript[VerdictT]
+    usage_by_participant: dict[VerdictT | Literal["judge"], RunUsage]
     usage: RunUsage
 ```
 
@@ -617,18 +620,27 @@ before `ProceedingFailed` is raised.
 
 **`usage` on a failure is best-effort.** It sums the runs that completed. A run
 that died mid-flight may not report what it spent, so a failure's usage is a
-floor rather than a total.
+floor rather than a total. The breakdown inherits that: a participant whose run
+was cancelled or died before reporting has **no key at all**, so
+`usage_by_participant` on a failure is not guaranteed to name every participant
+the way it is on a `Hearing`. Absence there means "did not report", never
+"spent nothing".
 
 **`ConfigurationError` is not a proceeding failure** and carries no transcript,
 because nothing ran. It is what `Tribunal(...)` raises when the `advocates`
-mapping misses a verdict or names one that does not exist.
+mapping misses a verdict, names one that does not exist, or when a verdict's
+value is the reserved string `"judge"` — see
+[Per participant](#per-participant).
 
 **`participant` is not the `author` field this document rejects.** That
 rejection — [above](#what-participants-file) — is about the *record*: a filing
 carrying `VerdictT | Literal["judge"]` would make a ruling issued by an advocate
 expressible, and the record is where that must stay impossible. An exception is
-not a filing and enters no transcript. Here the shape is only the answer to
-"who went silent?", and there is no invariant for it to weaken. See
+not a filing and enters no transcript. The same union keys
+`usage_by_participant` on both a `Hearing` and this exception, and for the same
+reason: usage is the tribunal's accounting of who spent what, not something
+anyone filed. Here the shape is only the answer to "who went silent?", and there
+is no invariant for it to weaken. See
 [`0011`](../decisions/0011-exhaustion-is-an-outcome-failure-is-an-error.md).
 
 ## Usage
@@ -659,6 +671,65 @@ Two of these are easy to read wrong:
 `RunUsage` is a stdlib dataclass rather than a `BaseModel`, but it ships
 `__get_pydantic_core_schema__`, so it embeds in `Hearing` and serializes with
 the rest of it.
+
+### Per participant
+
+`hearing.usage_by_participant` is the same spend, split by who incurred it: one
+entry per advocate, one for the judge under the key `"judge"`.
+
+```python
+hearing.usage_by_participant
+# {<LoanDecision.APPROVE: 'approve'>: RunUsage(requests=3, input_tokens=14820, ...),
+#  <LoanDecision.DENY: 'deny'>:       RunUsage(requests=4, input_tokens=18960, ...),
+#  <LoanDecision.REFER: 'refer ...'>: RunUsage(requests=2, input_tokens=7310, ...),
+#  'judge':                           RunUsage(requests=2, input_tokens=20312, ...)}
+
+hearing.usage_by_participant["judge"].cost      # what adjudication cost alone
+```
+
+**It exists because the model is per agent.** `Judge` and `Advocate` each take a
+`model` overriding the tribunal's, and a strong judge over cheap advocates is
+advertised above as a one-line change. Nothing about the aggregate says whether
+that trade paid: the judge re-reads the whole record every round while each
+advocate sees less, and there are *n* of them. Comparing two proceedings'
+aggregates does not answer it either — different case, different round count.
+The split is the only place that fact can be read, and it is one the transcript
+does not carry.
+
+**The breakdown is the stored fact; `usage` is its sum.** `RunUsage` adds, so
+the total is computed from the mapping rather than accumulated beside it. There
+is no second place for the two to disagree — the same reason `position` is not
+on `Argument`. `usage` stays because "what did this proceeding cost?" is the
+common question and should not require a fold.
+
+**Every participant appears on a `Hearing`.** Round 1 fans out to every
+advocate, so each has an entry even if it conceded immediately, and the judge
+has one because a proceeding that produced a `Hearing` deliberated at least
+once. No key is a zero placeholder: every one names a participant that actually
+ran. The guarantee is a `Hearing`'s alone —
+[on a failure](#when-something-goes-wrong) keys can be missing.
+
+**Each value is that participant's whole proceeding, not one round.** An
+advocate's entry sums every run it made across every round. There is no
+per-round breakdown: watching cost grow round by round is a cost-*control*
+question, and the governor is still open in
+[`tribunal.md`](./tribunal.md#open-questions).
+
+**An unpriced participant is visible here and invisible in the total.** Adding
+`RunUsage`s treats a `None` cost as zero, so a total whose parts are mixed
+reports the sum of the priceable ones and looks like a complete figure. In the
+breakdown, the participant with `cost=None` names itself. This is the second
+gotcha above with somewhere to land.
+
+**`"judge"` is reserved, and construction enforces it.** Verdicts are a
+`StrEnum`, so a member `JUDGE = "judge"` is equal to and hashes with the judge's
+key: that advocate and the judge would collapse into one entry, silently, in the
+one artifact that exists to attribute spend. `Tribunal(...)` raises
+`ConfigurationError` when any verdict's value is `"judge"` — the same loud
+construction-time check the `advocates` mapping already gets, and it keeps
+`ProceedingFailed.participant` unambiguous for free.
+
+See [`0014`](../decisions/0014-usage-is-broken-down-per-participant.md).
 
 ## A note on generic aliases
 
@@ -781,11 +852,6 @@ list. A question that is only *sharpened* — its options narrowed, nothing
 decided — stays, rewritten in place. See rule 7 in
 [`../../CLAUDE.md`](../../CLAUDE.md).
 
-- Whether usage is ever broken down per agent. `hearing.usage` is the aggregate
-  [`0002`](../decisions/0002-the-judge-is-a-role.md) committed to; a
-  `dict[VerdictT | Literal["judge"], RunUsage]` alongside it would let a caller
-  see that the judge cost more than every advocate combined. Nothing is built
-  for it.
 - How an `Interrogatory.id` is assigned. The judge produces the question and the
   tribunal stamps the id when the continuance is filed, so the recorded
   interrogatory is not byte-identical to what the model emitted. Whether that

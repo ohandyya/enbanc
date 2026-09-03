@@ -51,6 +51,7 @@ full ruleset.
 | [`decisions/0011-exhaustion-is-an-outcome-failure-is-an-error.md`](./decisions/0011-exhaustion-is-an-outcome-failure-is-an-error.md) | Why a spent round limit is a recorded `Undecided` outcome while a provider or tool failure raises `ProceedingFailed`, why one advocate's failure ends the whole proceeding, and why the exception names drop the courtroom metaphor |
 | [`decisions/0012-a-failure-cancels-the-round.md`](./decisions/0012-a-failure-cancels-the-round.md) | Why the first failure cancels the advocates still in flight rather than draining them, why a failed transcript is what was filed rather than what the round contained, and why `participant` stays singular |
 | [`decisions/0013-a-case-is-a-subclassable-base.md`](./decisions/0013-a-case-is-a-subclassable-base.md) | Why `Case` is an open base class users subclass rather than a second type parameter on `Transcript` and `Hearing`, why the base allows extra fields, and why `Transcript.case` must be `SerializeAsAny` |
+| [`decisions/0014-usage-is-broken-down-per-participant.md`](./decisions/0014-usage-is-broken-down-per-participant.md) | Why a `Hearing` splits its spend per advocate and judge as well as reporting a total, why the breakdown is the stored fact and the total its sum, and why `judge` becomes a reserved verdict value |
 
 ### Guides — user-facing how-to
 

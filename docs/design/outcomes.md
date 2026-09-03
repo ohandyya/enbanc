@@ -179,8 +179,26 @@ Hearing(
             ),
         ],
     ),
+    usage_by_participant={
+        <LoanDecision.APPROVE: 'approve'>: RunUsage(
+            requests=3, tool_calls=2,
+            input_tokens=14820, output_tokens=1120, cache_read_tokens=10400,
+        ),
+        <LoanDecision.DENY: 'deny'>: RunUsage(
+            requests=4, tool_calls=2,
+            input_tokens=18960, output_tokens=1240, cache_read_tokens=13800,
+        ),
+        <LoanDecision.REFER: 'refer to a senior ...'>: RunUsage(
+            requests=2, tool_calls=1,
+            input_tokens=7310, output_tokens=380, cache_read_tokens=5100,
+        ),
+        'judge': RunUsage(
+            requests=2, tool_calls=0,
+            input_tokens=20312, output_tokens=1240, cache_read_tokens=14800,
+        ),
+    },
     usage=RunUsage(
-        requests=8,
+        requests=11,
         tool_calls=5,
         input_tokens=61402,
         output_tokens=3980,
@@ -198,6 +216,7 @@ hearing.outcome.verdict                              # <LoanDecision.DENY: 'deny
 hearing.rounds                                       # 2 — not 5, the budget
 len(hearing.transcript)                              # 7
 hearing.outcome is hearing.transcript[-1].filing     # True — a pointer, not a copy
+hearing.usage_by_participant["judge"].input_tokens   # 20312 — the largest line
 ```
 
 **The concession is not a failure.** `REFER` looked at the record, found no case
@@ -207,6 +226,17 @@ two-horse ruling in a three-verdict tribunal.
 **`rounds` counts deliberations, not filings.** Seven entries, two rounds: a
 round is the advocates' filings plus the `Continuance` or `Ruling` that closes
 it.
+
+**The judge is the single most expensive participant here**, on two requests
+against the advocates' nine. It reads the whole record at every deliberation
+while each advocate sees only its own thread, and no aggregate would have shown
+that. This is what `usage_by_participant` is for — the split is the input to
+"should the judge get the stronger model, or should the advocates get the
+cheaper one?"
+
+**`usage` is the sum of those four entries**, not a number kept beside them.
+Add the four and you get `requests=11`, `input_tokens=61402`: the total is
+derived, so it cannot drift from its parts.
 
 ## 2. The judge rules in round 1
 
@@ -228,7 +258,8 @@ Hearing(
         reasoning='DTI is 0.31 on audited returns; no clause is in tension.',
     ),
     transcript=Transcript(..., entries=[...]),           # 4 entries
-    usage=RunUsage(requests=4, tool_calls=3, input_tokens=21050, ...),
+    usage_by_participant={...},                          # 3 advocates + 'judge'
+    usage=RunUsage(requests=6, tool_calls=3, input_tokens=21050, ...),
     rounds=1,
 )
 ```
@@ -283,7 +314,8 @@ Hearing(
             ),
         ],
     ),
-    usage=RunUsage(requests=7, tool_calls=4, input_tokens=58800, ...),
+    usage_by_participant={...},                          # 3 advocates + 'judge'
+    usage=RunUsage(requests=11, tool_calls=4, input_tokens=58800, ...),
     rounds=2,
 )
 ```
@@ -302,7 +334,8 @@ final `Continuance` — and how much budget was spent is `hearing.rounds`.
 Copying either onto the outcome would create two places that can disagree.
 
 **You still pay for it.** `hearing.usage` reports what an undecided proceeding
-cost, exactly as a decided one does.
+cost, exactly as a decided one does — and `usage_by_participant` still names
+every participant, because every one of them ran.
 
 **This is not an error.** It serializes, it carries a complete record of why it
 stopped, and a reviewer can pick it up. Handing a hard case back undecided is a
@@ -356,7 +389,12 @@ ProceedingFailed(
             ),
         ],
     ),
-    usage=RunUsage(requests=1, tool_calls=1, input_tokens=7020, output_tokens=410),
+    usage_by_participant={
+        <LoanDecision.APPROVE: 'approve'>: RunUsage(
+            requests=2, tool_calls=1, input_tokens=7020, output_tokens=410,
+        ),
+    },
+    usage=RunUsage(requests=2, tool_calls=1, input_tokens=7020, output_tokens=410),
 )
 ```
 
@@ -373,6 +411,13 @@ enbanc.ProceedingFailed: advocate 'deny' could not be heard in round 1
 **The judge never deliberated**, so nothing was decided and there is no
 `Hearing` to mistake for one. `APPROVE`'s argument survives on
 `e.transcript` because it had already filed.
+
+**`REFER` and `DENY` are absent from `usage_by_participant` too**, and that is
+the one place the mapping is allowed to be incomplete. `DENY`'s run died before
+it could report what it had spent; `REFER`'s was cancelled where it stood. A
+missing key here means "did not report", never "spent nothing" — which is why
+this usage is a floor and the aggregate above understates the real bill. On a
+`Hearing` there is no such gap: every participant has an entry.
 
 **`REFER` is absent from the record**, because it had not filed yet. The first
 failure cancels the round: `REFER`'s run is stopped where it stood, and nothing
@@ -391,11 +436,15 @@ ProceedingFailed(
     participant='judge',
     round=1,
     transcript=Transcript(..., entries=[...]),      # 3 entries, no Continuance
-    usage=RunUsage(requests=3, tool_calls=3, input_tokens=19400, ...),
+    usage_by_participant={...},                     # 3 advocates; no 'judge' key
+    usage=RunUsage(requests=6, tool_calls=3, input_tokens=19400, ...),
 )
 ```
 
-`participant` is `'judge'`, the one non-verdict value it can take.
+`participant` is `'judge'`, the one non-verdict value it can take — and the key
+it would have held in `usage_by_participant` is missing, because the run that
+failed never reported. All three advocates are there: they filed before the
+deliberation was attempted.
 
 ### An advocate's tool raises
 
@@ -408,7 +457,8 @@ ProceedingFailed(
     round=2,
     transcript=Transcript(..., entries=[...]),      # 5 entries: round 1 complete,
                                                     # plus APPROVE's response
-    usage=RunUsage(requests=6, tool_calls=4, ...),
+    usage_by_participant={...},                     # DENY's covers round 1 only
+    usage=RunUsage(requests=9, tool_calls=4, ...),
 )
 # e.__cause__ is psycopg.OperationalError('connection refused')
 ```
@@ -427,7 +477,9 @@ on the httpx client inside your own `Model` has already given up. See
 
 ## 5. The tribunal is misconfigured
 
-No proceeding runs at all — this raises from the constructor.
+No proceeding runs at all — these raise from the constructor.
+
+### An advocate is missing
 
 ```python
 tribunal = Tribunal(
@@ -456,6 +508,29 @@ under it.
 This is what makes adding an enum member a loud failure instead of a silent
 one: a new verdict with no advocate would otherwise be an answer nobody was
 assigned to argue for.
+
+### A verdict named `judge`
+
+The other construction-time check. `Verdict` is a `StrEnum`, so this value is
+equal to — and hashes with — the judge's own key:
+
+```python
+class Escalation(Verdict):
+    HANDLE = "handle"
+    JUDGE = "judge"                 # reserved
+
+tribunal = Tribunal(verdicts=Escalation, ...)   # this is what raises
+```
+
+```text
+enbanc.ConfigurationError: 'judge' is a reserved verdict value: it would collide
+with the judge's key in usage_by_participant
+```
+
+Left alone, that advocate's spend and the judge's would land in one entry of
+`hearing.usage_by_participant` with no sign that two participants had merged —
+in the artifact whose whole job is attributing spend. Renaming the member is the
+fix. See [`0014`](../decisions/0014-usage-is-broken-down-per-participant.md).
 
 ## 6. The same endings, watched live
 
@@ -525,6 +600,7 @@ restored = Hearing[LoanDecision].model_validate_json(blob)
 
 restored.outcome.verdict          # <LoanDecision.DENY: 'deny'> — a real enum member
 restored.transcript[3].filing     # Continuance(...), not a dict
+restored.usage_by_participant     # keys are enum members again, plus 'judge'
 ```
 
 The `kind` tags are what make this work: Pydantic discriminates on them rather
