@@ -52,6 +52,7 @@ full ruleset.
 | [`decisions/0012-a-failure-cancels-the-round.md`](./decisions/0012-a-failure-cancels-the-round.md) | Why the first failure cancels the advocates still in flight rather than draining them, why a failed transcript is what was filed rather than what the round contained, and why `participant` stays singular |
 | [`decisions/0013-a-case-is-a-subclassable-base.md`](./decisions/0013-a-case-is-a-subclassable-base.md) | Why `Case` is an open base class users subclass rather than a second type parameter on `Transcript` and `Hearing`, why the base allows extra fields, and why `Transcript.case` must be `SerializeAsAny` |
 | [`decisions/0014-usage-is-broken-down-per-participant.md`](./decisions/0014-usage-is-broken-down-per-participant.md) | Why a `Hearing` splits its spend per advocate and judge as well as reporting a total, why the breakdown is the stored fact and the total its sum, and why `judge` becomes a reserved verdict value |
+| [`decisions/0015-interrogatory-ids-are-stamped-on-filing.md`](./decisions/0015-interrogatory-ids-are-stamped-on-filing.md) | Why the judge emits an id-less interrogatory and the tribunal stamps `r{round}-q{n}` when it files the continuance, why the recorded type's `id` is required with no default, and why `Response.answering` is stamped from the dispatch too |
 
 ### Guides — user-facing how-to
 

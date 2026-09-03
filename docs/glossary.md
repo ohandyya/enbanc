@@ -22,8 +22,8 @@ table is the whole tax.
 | **Argument** | An advocate's round-1 filing: a claim and its supporting exhibits. |
 | **Concession** | An advocate stating no reasonable case exists for its assigned verdict. A first-class outcome, not a failure. |
 | **Exhibit** | A piece of evidence entered into the record by an advocate. What it *files* — not everything its tools returned. |
-| **Interrogatory** | A targeted question from the judge to a specific advocate, issued when it cannot yet rule. Carries an id naming the round it was issued in. |
-| **Response** | An advocate's answer to one interrogatory, citing that interrogatory's id and entering new exhibits as needed. |
+| **Interrogatory** | A targeted question from the judge to a specific advocate, issued when it cannot yet rule. Carries an id naming the round it was issued in, stamped by the tribunal when the continuance is filed. |
+| **Response** | An advocate's answer to one interrogatory, entering new exhibits as needed. It cites that interrogatory's id, which the tribunal stamps from the dispatch — no participant writes an id. |
 | **Ruling** | The judge's decision: a verdict plus reasoning. Terminal. |
 | **Continuance** | The judge's "not yet" — carries the interrogatories for the next round. |
 | **Entry** | One filing plus the tribunal's record of it: which round it belongs to and when it was filed. |
@@ -49,7 +49,7 @@ class Continuance(BaseModel, Generic[VerdictT]):
     interrogatories: list[Interrogatory[VerdictT]]
 
 class Interrogatory(BaseModel, Generic[VerdictT]):
-    id: str            # assigned by enbanc; names the issuing round, e.g. "r1-q2"
+    id: str            # stamped on filing; names the issuing round, e.g. "r1-q2"
     to: VerdictT       # the advocate addressed — targeted, never broadcast
     question: str
 
@@ -61,6 +61,13 @@ carries pending questions, or a non-decision with nothing to ask. The `kind`
 tags are defaulted, so the model never has to produce them, and they are what
 lets a persisted transcript be read back without Pydantic guessing a union
 member from field shape.
+
+`Interrogatory.id` is the one field here the judge does not fill either, and it
+is handled differently: a defaulted id has no correct value the way `kind` does,
+so the judge emits a private id-less twin and the tribunal stamps the id when it
+files the continuance. See [`design/api.md`](./design/api.md#where-ids-come-from)
+and
+[`decisions/0015-interrogatory-ids-are-stamped-on-filing.md`](./decisions/0015-interrogatory-ids-are-stamped-on-filing.md).
 
 A ruling carries a verdict and reasoning and nothing else, because there is
 nothing else the judge could know. Which round it was issued in, what the

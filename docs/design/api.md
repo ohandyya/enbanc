@@ -282,14 +282,14 @@ class Concession(BaseModel, Generic[VerdictT]):
     reason: str
 
 class Interrogatory(BaseModel, Generic[VerdictT]):
-    id: str                  # assigned by enbanc; names the issuing round
+    id: str                  # stamped on filing; names the issuing round
     to: VerdictT
     question: str
 
 class Response(BaseModel, Generic[VerdictT]):
     kind: Literal["response"] = "response"
     advocate: VerdictT
-    answering: str           # Interrogatory.id
+    answering: str           # stamped on filing; the Interrogatory.id
     answer: str
     exhibits: list[Exhibit] = []
 ```
@@ -307,7 +307,9 @@ unrepresentable.
 
 **`Response.answering` links back by id** rather than by position. Pairing on
 round-and-advocate alone breaks the moment the judge asks one advocate two
-questions in a round, which it is free to do.
+questions in a round, which it is free to do. Neither end of that link is
+model-authored — the tribunal stamps both, as
+[Where ids come from](#where-ids-come-from) describes.
 
 ### The judge's output
 
@@ -341,6 +343,54 @@ whole point of the artifact is that someone reads it later.
 `TypeAliasType` rather than a plain `Deliberation = Ruling[VerdictT] | ...`
 alias is a real constraint, not a style preference — see
 [the implementation note](#a-note-on-generic-aliases) below.
+
+#### Where ids come from
+
+`Interrogatory.id` is required and has no default, because `Response.answering`
+is a link and a transcript whose link does not resolve is not an audit artifact.
+The judge cannot fill that field: it does not know its own round number, and
+nothing would stop it issuing the same id in two rounds.
+
+So it is never asked to. The judge agent's output type is a **private pair** —
+`_Interrogatory`, which is `to` and `question`, and the `_Continuance` that
+holds them — and the tribunal converts to the public types when it files the
+deliberation:
+
+```python
+class _Interrogatory(BaseModel, Generic[VerdictT]):   # what the judge emits
+    to: VerdictT
+    question: str
+
+class _Continuance(BaseModel, Generic[VerdictT]):
+    kind: Literal["continuance"] = "continuance"
+    interrogatories: list[_Interrogatory[VerdictT]]
+
+# the judge's output_type is Ruling[VerdictT] | _Continuance[VerdictT]
+```
+
+Ids are `r{round}-q{n}`, `n` numbered from 1 within the continuance that issued
+them. The round prefix carries uniqueness, so numbering restarts each round and
+the id says where to look: a reviewer holding `answering="r1-q1"` knows the
+question is in round 1. **Nothing the judge wrote is altered** — `to` and
+`question` are recorded verbatim and the id is added beside them.
+
+`Response.answering` is stamped the same way. The tribunal dispatches one
+advocate run per interrogatory, so it knows which question that run answers and
+fills the link from the dispatch rather than from the model. No participant
+authors an id in either direction, and a response citing a question nobody asked
+is not a state the library can reach.
+
+This is the [`Entry`](#the-record) move applied one level down. `round` and
+`filed_at` are the tribunal's facts and live on an envelope; an id is the same
+kind of fact with nowhere to put an envelope, because interrogatories nest so
+that each question appears in the record exactly once. Both are stamped at the
+same seam — the moment a filing enters the record. The second type is what buys
+`id` its required-no-default: a single class would need a default for the judge's
+output to validate, and a defaulted id is one a malformed transcript reconstructs
+silently. `Judge` being closed
+([`0002`](../decisions/0002-the-judge-is-a-role.md)) is what keeps the emitted
+pair private and off this surface. See
+[`0015`](../decisions/0015-interrogatory-ids-are-stamped-on-filing.md).
 
 ### The record
 
@@ -852,8 +902,5 @@ list. A question that is only *sharpened* — its options narrowed, nothing
 decided — stays, rewritten in place. See rule 7 in
 [`../../CLAUDE.md`](../../CLAUDE.md).
 
-- How an `Interrogatory.id` is assigned. The judge produces the question and the
-  tribunal stamps the id when the continuance is filed, so the recorded
-  interrogatory is not byte-identical to what the model emitted. Whether that
-  wants two types — one emitted, one recorded — or one type with a field the
-  judge's schema omits is unsettled.
+*None open.* The proceeding still has two, in
+[`tribunal.md`](./tribunal.md#open-questions).

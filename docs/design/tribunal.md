@@ -40,6 +40,14 @@ subset of advocates, not a broadcast.
 answering one interrogatory by id, entering new exhibits as needed. Then the
 judge deliberates again. Repeat.
 
+Interrogatory ids are the tribunal's, not a participant's. The judge emits the
+question; the tribunal stamps `r{round}-q{n}` on it when the continuance is
+filed, and dispatches one advocate run per interrogatory — so an advocate asked
+two questions files two responses, and the link each carries comes from the
+dispatch rather than from the model. See
+[`api.md`](./api.md#where-ids-come-from) and
+[`0015`](../decisions/0015-interrogatory-ids-are-stamped-on-filing.md).
+
 A round is the advocates' filings **plus the deliberation that closes it**. So
 round 1 is the arguments and the continuance that follows them, and
 `max_rounds` counts judge deliberations — the thing that actually drives cost.
