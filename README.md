@@ -37,10 +37,23 @@ uv add enbanc
 *Planned API. None of this works today.*
 
 ```python
+from pydantic_ai.models.anthropic import AnthropicModel
+
+from enbanc import (
+    Advocate, Case, Judge, Ruling, Statute, Tribunal, Undecided, Verdict,
+)
+
+class LoanDecision(Verdict):        # the allowed answers, one advocate each
+    APPROVE = "approve"
+    DENY = "deny"
+
 tribunal = Tribunal(
     question="Shall the bank loan this applicant $500k?",
-    verdicts=LoanDecision,          # your enum: APPROVE / DENY
-    statute=statute,                # the rule being judged against
+    verdicts=LoanDecision,
+    statute=Statute(                # the rule being judged against
+        text="Approve $500k loans only where DTI < 0.43 and ...",
+        name="underwriting-v3",
+    ),
     model=AnthropicModel("claude-sonnet-5"),
     judge=Judge(guidance="Where the record is ambiguous, deny."),
     advocates={
@@ -52,16 +65,39 @@ tribunal = Tribunal(
 
 hearing = await tribunal.hear(Case(applicant=..., income=...))
 
-if hearing.ruling is not None:      # None only when the round limit was hit
-    hearing.ruling.verdict          # LoanDecision.DENY
-    hearing.ruling.reasoning
+match hearing.outcome:              # a ruling, or no verdict at all
+    case Ruling(verdict=verdict, reasoning=reasoning):
+        verdict                     # LoanDecision.DENY
+    case Undecided():               # max_rounds spent, the judge never ruled
+        ...
 
 hearing.transcript                  # every filing, in order
 hearing.usage                       # tokens and cost, judge plus advocates
+hearing.usage_by_participant        # the same spend, split by who incurred it
 ```
 
 The judge has **no tools** — it reasons only over what advocates put into the
 record. All advocate tools are **strictly read-only**.
+
+A tribunal that spends its rounds without reaching a verdict returns
+`Undecided`; that is a finding, and it comes back on the hearing with the full
+transcript. A tribunal that loses a participant — the provider is down, a tool
+raises — is a different thing, and raises `ProceedingFailed` with the record so
+far attached. No ruling is ever issued on a bench that lost an advocate.
+
+A proceeding takes minutes, so you can watch the record being written instead of
+waiting for it:
+
+```python
+async with tribunal.hear_stream(case) as proceeding:
+    async for entry in proceeding:  # each filing, at the moment it is filed
+        print(f"round {entry.round}: {entry.filing.kind}")
+
+hearing = proceeding.hearing        # the Hearing hear() would have returned
+```
+
+What you watch is the transcript itself — the same entries, in the same order —
+and `hear()` is this stream consumed to the end.
 
 ## Design
 
@@ -72,11 +108,16 @@ The full design lives in [`docs/design/`](./docs/design/):
   together.
 - [**Public API**](./docs/design/api.md) — the surface being designed toward
   `0.1.0`, and what each piece carries.
+- [**Outcomes**](./docs/design/outcomes.md) — every way a proceeding can end,
+  worked through with concrete values: a ruling, a spent round limit, a downed
+  provider, a misconfigured tribunal.
 - [**Glossary**](./docs/glossary.md) — the courtroom vocabulary. One table, one
   minute.
 
-Both design documents carry open questions that aren't settled yet. If you have
-opinions, that's the place to aim them.
+The API is settled down to the schemas. What is still open is how the
+proceeding *behaves* — what an advocate sees, and what a budget may halt — and
+[`docs/design/tribunal.md`](./docs/design/tribunal.md#open-questions) carries
+those questions. If you have opinions, that's the place to aim them.
 
 ## Status
 

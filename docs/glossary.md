@@ -13,22 +13,26 @@ table is the whole tax.
 | **Tribunal** | The orchestrator. Holds the question, the statute, the judge, the advocates, the default model, and the round limit. |
 | **Statute** | The rule judged against — underwriting guidelines, selection criteria. Authored by you, in whatever form the rule wants. Inert data: it carries no model, `enbanc` makes no assumption about its text, and it is frozen. |
 | **Verdict** | The enum of allowed answers. You subclass it. One advocate is created per value, and the enum is the type parameter every other shape here is keyed on. |
-| **Case** | The facts of a single decision: applicant details, business info, whatever context you supply. |
+| **Case** | The facts of a single decision: applicant details, business info, whatever context you supply. A base class you subclass to give those facts a schema, open enough to construct as it is, and frozen once made. |
 | **Advocate** | An agent assigned one verdict value, with its own read-only tools. Its job is to convince the judge the answer is *X* — or to concede. |
 | **Judge** | The single agent that rules. It has no tools and reasons only over the record the advocates build. Concrete and `enbanc`-owned, not an interface you implement. |
+| **Participant** | Any agent that runs in a proceeding: each advocate, plus the judge. It is the unit filings are made by and spend is attributed to, keyed by the advocate's verdict value or the literal `"judge"` — which is reserved, so a verdict may not use it. |
 | **Guidance** | Optional per-agent steer — "ambiguity favors denial" — added to the procedural prompt `enbanc` writes for that role. Human-authored, and never a replacement for it. |
 | **Round** | One exchange: the advocates' filings, plus the judge's deliberation that closes it. `max_rounds` counts deliberations. |
 | **Filing** | Anything a participant enters into the record: an argument, a concession, a response, a continuance, or a ruling. |
 | **Argument** | An advocate's round-1 filing: a claim and its supporting exhibits. |
 | **Concession** | An advocate stating no reasonable case exists for its assigned verdict. A first-class outcome, not a failure. |
 | **Exhibit** | A piece of evidence entered into the record by an advocate. What it *files* — not everything its tools returned. |
-| **Interrogatory** | A targeted question from the judge to a specific advocate, issued when it cannot yet rule. Carries an id naming the round it was issued in. |
-| **Response** | An advocate's answer to one interrogatory, citing that interrogatory's id and entering new exhibits as needed. |
+| **Interrogatory** | A targeted question from the judge to a specific advocate, issued when it cannot yet rule. Carries an id naming the round it was issued in, stamped by the tribunal when the continuance is filed. |
+| **Response** | An advocate's answer to one interrogatory, entering new exhibits as needed. It cites that interrogatory's id, which the tribunal stamps from the dispatch — no participant writes an id. |
 | **Ruling** | The judge's decision: a verdict plus reasoning. Terminal. |
 | **Continuance** | The judge's "not yet" — carries the interrogatories for the next round. |
 | **Entry** | One filing plus the tribunal's record of it: which round it belongs to and when it was filed. |
 | **Transcript** | Append-only record of every filing, in order, together with the question, statute, and case it was decided under. This is your audit artifact. |
-| **Hearing** | What `hear()` returns: the ruling, the transcript, the aggregate usage, and the round count. |
+| **Hearing** | What `hear()` returns: the outcome, the transcript, the round count, and what the proceeding spent — broken down per participant, with the aggregate as that breakdown's sum. It exists only when the tribunal ran to the end of its own process. |
+| **Outcome** | How a proceeding ended: a `Ruling`, or `Undecided`. A discriminated union, so a caller cannot read a verdict without first acknowledging there might not be one. |
+| **Undecided** | `max_rounds` deliberations spent and no verdict reached. A finding about the case, recorded and serializable — not a failure. |
+| **Proceeding** | A hearing while it is still going: the live handle `hear_stream()` hands back. Iterate it to receive each entry as it is filed; when it ends it carries the same `Hearing` `hear()` would have returned. |
 
 ## Judge output shape
 
@@ -46,7 +50,7 @@ class Continuance(BaseModel, Generic[VerdictT]):
     interrogatories: list[Interrogatory[VerdictT]]
 
 class Interrogatory(BaseModel, Generic[VerdictT]):
-    id: str            # assigned by enbanc; names the issuing round, e.g. "r1-q2"
+    id: str            # stamped on filing; names the issuing round, e.g. "r1-q2"
     to: VerdictT       # the advocate addressed — targeted, never broadcast
     question: str
 
@@ -58,6 +62,13 @@ carries pending questions, or a non-decision with nothing to ask. The `kind`
 tags are defaulted, so the model never has to produce them, and they are what
 lets a persisted transcript be read back without Pydantic guessing a union
 member from field shape.
+
+`Interrogatory.id` is the one field here the judge does not fill either, and it
+is handled differently: a defaulted id has no correct value the way `kind` does,
+so the judge emits a private id-less twin and the tribunal stamps the id when it
+files the continuance. See [`design/api.md`](./design/api.md#where-ids-come-from)
+and
+[`decisions/0015-interrogatory-ids-are-stamped-on-filing.md`](./decisions/0015-interrogatory-ids-are-stamped-on-filing.md).
 
 A ruling carries a verdict and reasoning and nothing else, because there is
 nothing else the judge could know. Which round it was issued in, what the
@@ -82,3 +93,11 @@ immediately.
 The metaphor governs `enbanc`'s vocabulary, not its surface area. Anything
 `enbanc` does not expose — temperature, retries, per-request settings — you
 configure on the `Model` you build, in ordinary PydanticAI terms.
+
+It also stops at the exceptions, deliberately. `EnbancError`,
+`ConfigurationError`, `ProceedingFailed`, and `ProceedingUnfinished` say what
+went wrong in plain terms rather than courtroom ones, because they are read in
+stack traces by people who have not opened this table. `Mistrial` is the right
+legal word for a proceeding terminated without a verdict, and it is not the
+right word to meet at 3am. See
+[`0011`](./decisions/0011-exhaustion-is-an-outcome-failure-is-an-error.md).

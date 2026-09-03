@@ -7,7 +7,9 @@ updated: 2026-09-02
 
 The surface being designed toward `0.1.0`. Mechanics behind it are in
 [`tribunal.md`](./tribunal.md); terms are defined in
-[`../glossary.md`](../glossary.md).
+[`../glossary.md`](../glossary.md). This document specifies the types —
+[`outcomes.md`](./outcomes.md) shows every way a proceeding can end, with
+values in them.
 
 > `status: draft` — none of this exists yet, and it will change. This is the
 > target, not a reference.
@@ -17,7 +19,9 @@ The surface being designed toward `0.1.0`. Mechanics behind it are in
 ```python
 from pydantic_ai.models.anthropic import AnthropicModel
 
-from enbanc import Tribunal, Judge, Advocate, Statute, Case, Verdict
+from enbanc import (
+    Tribunal, Judge, Advocate, Statute, Case, Verdict, Ruling, Undecided,
+)
 
 class LoanDecision(Verdict):
     APPROVE = "approve"
@@ -46,19 +50,27 @@ tribunal = Tribunal(
 
 hearing = await tribunal.hear(Case(applicant=..., income=...))
 
-if hearing.ruling is not None:      # None only when the round limit was hit
-    hearing.ruling.verdict          # LoanDecision.DENY
-    hearing.ruling.reasoning
+match hearing.outcome:
+    case Ruling(verdict=verdict, reasoning=reasoning):
+        verdict                     # LoanDecision.DENY
+    case Undecided():               # max_rounds spent, the judge never ruled
+        ...
 
 hearing.transcript                  # every filing, in order
 hearing.usage                       # tokens and cost, judge plus advocates
+hearing.usage_by_participant        # the same spend, split by who incurred it
 ```
 
-That `if` is not decoration. `hearing.ruling` is optional because
-round-limit exhaustion is still unsettled — see
-[`tribunal.md`](./tribunal.md#open-questions) — and writing the sample out
-honestly is the clearest argument that exhaustion should resolve toward an
-exception instead, which would let the check go.
+That `match` is not decoration. A proceeding either produces a ruling or spends
+`max_rounds` deliberations without reaching one, and `Outcome` is a
+discriminated union rather than an optional so the second arm cannot be read
+past — a type checker will not let you touch `.verdict` until you have narrowed.
+
+What is *not* in that union is **failure**. If a provider is unreachable, an
+advocate's tool raises, or a model's output cannot be validated, `hear()` raises
+and there is no `Hearing` at all. See
+[When something goes wrong](#when-something-goes-wrong) and
+[`0011`](../decisions/0011-exhaustion-is-an-outcome-failure-is-an-error.md).
 
 ## What each piece carries
 
@@ -66,8 +78,8 @@ exception instead, which would let the check go.
 values determines how many advocates exist; there is exactly one advocate per
 value, and no way to end up with an advocate arguing for an answer outside the
 enum. It is also the type parameter every other generic here is keyed on:
-`verdicts=LoanDecision` is what makes `hearing.ruling.verdict` a
-`LoanDecision` rather than a `str`.
+`verdicts=LoanDecision` is what makes a ruling's `verdict` a `LoanDecision`
+rather than a `str`.
 
 **`Statute`** — the rule being judged against, and nothing else. You author it;
 it carries no model and does nothing on its own. Its `text` is yours: whatever
@@ -78,9 +90,13 @@ would make the transcript's account of what was applied unfalsifiable. See
 [`0001`](../decisions/0001-statute-carries-no-model.md) and
 [`0007`](../decisions/0007-a-statute-is-opaque-text.md).
 
-**`Case`** — the facts of a single decision. Deliberately open: applicant
-details, business info, whatever the statute needs to be applied. Like
-`Statute`, it is a noun in the record — supplied by you, never an agent.
+**`Case`** — the facts of a single decision. A base class you subclass to give
+those facts a schema, and open enough to use as it is when they do not need one.
+Like `Statute`, it is a noun in the record — supplied by you, never an agent —
+and frozen, so what the transcript says was decided on cannot change under it. It
+is not a type parameter: `enbanc` renders a case and records it, and reads no
+field of it. See
+[`0013`](../decisions/0013-a-case-is-a-subclassable-base.md).
 
 **`Advocate`** — assigned one verdict value, given its own read-only tools. Tools
 are per-advocate on purpose: the advocate for approval may need different
@@ -99,19 +115,34 @@ there is nothing to configure there. Like an advocate, it takes an optional
 **`Tribunal`** — holds the question, statute, judge, advocates, default model,
 and round limit. Async, because every round fans out across advocates. The
 `advocates` mapping must cover every value of the verdict enum: a missing key
-and an unknown key are both errors at construction, so adding an enum member
-fails loudly instead of quietly seating a tool-less advocate nobody meant to
-create.
+and an unknown key each raise `ConfigurationError` at construction, so adding an
+enum member fails loudly instead of quietly seating a tool-less advocate nobody
+meant to create.
 
 **`Transcript`** — the append-only record of every filing, and the audit
 artifact. Self-contained: it carries the question, the statute, and the case
 alongside the entries, so a transcript dumped to JSON is a complete account on
 its own rather than a fragment that needs the `Hearing` to be legible.
 
-**`Hearing`** — what `hear()` returns: the judge's ruling, the transcript, the
-aggregate usage, and how many rounds ran.
+**`Hearing`** — what `hear()` returns: the outcome, the transcript, what the
+proceeding spent — in total and per participant — and how many rounds ran. A
+`Hearing` exists only when the tribunal ran to the end of its own process; when
+it could not, `hear()` raises instead.
+
+**`Outcome`** — how the proceeding ended, as a discriminated union: a `Ruling`,
+or `Undecided` when the round limit was spent without one. Both are records, and
+both serialize, because a proceeding that could not decide is a finding about
+the case and belongs in the audit artifact.
 
 **`hear(case)`** — runs the proceeding and returns the `Hearing`.
+
+**`hear_stream(case)`** — the same proceeding, watched as it happens: an async
+context manager over a `Proceeding`, which yields each entry at the moment it is
+filed. `hear()` is that stream consumed to the end.
+
+**`Proceeding`** — the live handle. Async-iterable over `Entry`, carrying the
+transcript as it grows and the `Hearing` once the proceeding ends. The one type
+here that is not a record.
 
 ## Schemas
 
@@ -179,6 +210,59 @@ Putting rendering on the object would hand back the behavior
 to compile prose into, and a statute has none by design. See
 [`0007`](../decisions/0007-a-statute-is-opaque-text.md).
 
+```python
+class Case(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="allow")
+```
+
+No fields, because the facts of a decision are yours. **Subclass it** to give
+them a schema:
+
+```python
+class LoanApplication(Case):
+    applicant: str
+    income: int
+    dti: float
+    documents: list[str] = []
+
+hearing = await tribunal.hear(
+    LoanApplication(
+        applicant="A. Okonkwo",
+        income=182000,
+        dti=0.51,
+        documents=["w2-2024", "schedule-c-2024"],
+    )
+)
+```
+
+That is the path for anything that runs twice: the fields are validated at
+construction, the facts the statute talks about are named in one place, and a
+reviewer reading the transcript back sees that shape rather than whatever the
+call site happened to pass.
+
+**The base is open, so it is usable as it is.** `extra="allow"` makes
+`Case(applicant="A. Okonkwo", income=182000)` a case — the shortest thing that
+works while a tribunal is still being sketched. It also does a second job that
+matters more than convenience: when a persisted transcript is validated back, a
+subclass's fields land on the base `Case` as extras rather than being rejected,
+so the artifact survives a round trip even where the static type does not.
+
+**`Case` is not a type parameter.** `Transcript.case` is typed `Case`, not
+`LoanApplication`, and nothing here is keyed on the case the way everything is
+keyed on the verdict enum. Recovering the subclass from a persisted transcript is
+`LoanApplication.model_validate(hearing.transcript.case.model_dump())`, which
+names the concrete class exactly once — the same as a parameterized `Transcript`
+would demand, without putting a second parameter on four public types. At the
+call site the question does not arise: you are holding the object you passed to
+`hear()`. See [`0013`](../decisions/0013-a-case-is-a-subclassable-base.md).
+
+**Frozen, like a statute**, and for the same reason. The case is what the
+transcript claims was decided on, and facts that could be edited mid-hearing
+would make that account unfalsifiable.
+
+Turning a case into prompt text is `enbanc`'s job, not the case's — the same
+division `Statute` draws just above.
+
 ### What participants file
 
 ```python
@@ -198,14 +282,14 @@ class Concession(BaseModel, Generic[VerdictT]):
     reason: str
 
 class Interrogatory(BaseModel, Generic[VerdictT]):
-    id: str                  # assigned by enbanc; names the issuing round
+    id: str                  # stamped on filing; names the issuing round
     to: VerdictT
     question: str
 
 class Response(BaseModel, Generic[VerdictT]):
     kind: Literal["response"] = "response"
     advocate: VerdictT
-    answering: str           # Interrogatory.id
+    answering: str           # stamped on filing; the Interrogatory.id
     answer: str
     exhibits: list[Exhibit] = []
 ```
@@ -223,7 +307,9 @@ unrepresentable.
 
 **`Response.answering` links back by id** rather than by position. Pairing on
 round-and-advocate alone breaks the moment the judge asks one advocate two
-questions in a round, which it is free to do.
+questions in a round, which it is free to do. Neither end of that link is
+model-authored — the tribunal stamps both, as
+[Where ids come from](#where-ids-come-from) describes.
 
 ### The judge's output
 
@@ -258,6 +344,54 @@ whole point of the artifact is that someone reads it later.
 alias is a real constraint, not a style preference — see
 [the implementation note](#a-note-on-generic-aliases) below.
 
+#### Where ids come from
+
+`Interrogatory.id` is required and has no default, because `Response.answering`
+is a link and a transcript whose link does not resolve is not an audit artifact.
+The judge cannot fill that field: it does not know its own round number, and
+nothing would stop it issuing the same id in two rounds.
+
+So it is never asked to. The judge agent's output type is a **private pair** —
+`_Interrogatory`, which is `to` and `question`, and the `_Continuance` that
+holds them — and the tribunal converts to the public types when it files the
+deliberation:
+
+```python
+class _Interrogatory(BaseModel, Generic[VerdictT]):   # what the judge emits
+    to: VerdictT
+    question: str
+
+class _Continuance(BaseModel, Generic[VerdictT]):
+    kind: Literal["continuance"] = "continuance"
+    interrogatories: list[_Interrogatory[VerdictT]]
+
+# the judge's output_type is Ruling[VerdictT] | _Continuance[VerdictT]
+```
+
+Ids are `r{round}-q{n}`, `n` numbered from 1 within the continuance that issued
+them. The round prefix carries uniqueness, so numbering restarts each round and
+the id says where to look: a reviewer holding `answering="r1-q1"` knows the
+question is in round 1. **Nothing the judge wrote is altered** — `to` and
+`question` are recorded verbatim and the id is added beside them.
+
+`Response.answering` is stamped the same way. The tribunal dispatches one
+advocate run per interrogatory, so it knows which question that run answers and
+fills the link from the dispatch rather than from the model. No participant
+authors an id in either direction, and a response citing a question nobody asked
+is not a state the library can reach.
+
+This is the [`Entry`](#the-record) move applied one level down. `round` and
+`filed_at` are the tribunal's facts and live on an envelope; an id is the same
+kind of fact with nowhere to put an envelope, because interrogatories nest so
+that each question appears in the record exactly once. Both are stamped at the
+same seam — the moment a filing enters the record. The second type is what buys
+`id` its required-no-default: a single class would need a default for the judge's
+output to validate, and a defaulted id is one a malformed transcript reconstructs
+silently. `Judge` being closed
+([`0002`](../decisions/0002-the-judge-is-a-role.md)) is what keeps the emitted
+pair private and off this surface. See
+[`0015`](../decisions/0015-interrogatory-ids-are-stamped-on-filing.md).
+
 ### The record
 
 ```python
@@ -282,7 +416,7 @@ class Entry(BaseModel, Generic[VerdictT]):
 class Transcript(BaseModel, Generic[VerdictT]):
     question: str
     statute: Statute
-    case: Case
+    case: SerializeAsAny[Case]
     entries: list[Entry[VerdictT]] = []
 
     def __iter__(self) -> Iterator[Entry[VerdictT]]: ...
@@ -296,6 +430,14 @@ reason `Hearing` wraps `Ruling`: `round` and `filed_at` are things the tribunal
 knows and the filer does not. Putting `round` on `Ruling` would put a field on
 the judge's own output schema that the judge cannot fill.
 
+**`Transcript.case` is `SerializeAsAny[Case]`, and has to be.** Pydantic v2
+serializes a field by its *declared* type, so a `LoanApplication` sitting in a
+plain `case: Case` field dumps as a bare `Case` and every subclass field
+disappears — silently, out of the artifact whose whole job is to be complete.
+`SerializeAsAny` switches that one field to duck-typed serialization. It is the
+same kind of forced detail as [the generic aliases](#a-note-on-generic-aliases)
+below, and it is the price of `Case` not being a type parameter.
+
 `Transcript` iterates over its entries and renders itself to readable proceeding
 text. That is the whole of its behavior — it holds no model and makes no calls,
 and `render()` is `enbanc` formatting its own artifact, not a statute acquiring
@@ -304,22 +446,52 @@ opinions.
 ### The result
 
 ```python
+class Undecided(BaseModel):
+    kind: Literal["undecided"] = "undecided"
+
+Outcome = TypeAliasType(
+    "Outcome",
+    Annotated[Ruling[VerdictT] | Undecided, Field(discriminator="kind")],
+    type_params=(VerdictT,),
+)
+
 class Hearing(BaseModel, Generic[VerdictT]):
-    ruling: Ruling[VerdictT] | None
+    outcome: Outcome[VerdictT]
     transcript: Transcript[VerdictT]
+    usage_by_participant: dict[VerdictT | Literal["judge"], RunUsage]
     usage: RunUsage
     rounds: int
 ```
 
 `hear()` returns a `Hearing`, not a widened `Ruling`. The judge's output may
 only carry what the judge knows; the transcript and the usage are the
-tribunal's. And exhaustion has to land somewhere — a widened `Ruling` could
-express it only as `verdict: V | None`, which re-admits exactly the invalid
-state the `Ruling | Continuance` union exists to rule out.
+tribunal's. And the two ways a proceeding can end have to land somewhere — a
+widened `Ruling` could express the second only as `verdict: V | None`, which
+re-admits exactly the invalid state the `Ruling | Continuance` union exists to
+rule out.
 
-`hearing.ruling` **is** the final entry's filing, not a copy of it. The
-transcript is complete on its own; the field is a pointer to the terminal
-ruling so callers do not have to walk backwards to find it.
+**`outcome` is a union, not an optional.** `Ruling | None` would let a caller
+reach a verdict without acknowledging that there might not be one; a
+discriminated union makes the type checker insist on the narrowing first. It is
+the same move `Ruling | Continuance` makes on the judge's output, applied to the
+result — and `Outcome` needs `TypeAliasType` for the same Pydantic reason those
+do, described in [the note below](#a-note-on-generic-aliases).
+
+**`Undecided` carries nothing.** Not the round count, which is `Hearing.rounds`;
+not the questions the judge still wanted answered, which are the interrogatories
+on the last `Continuance` in the transcript. Either would be the same
+store-it-twice mistake that kept `position` off `Argument`. It is not generic
+either, because there is no verdict in it to key on.
+
+**The outcome is the final entry's filing only when it is a `Ruling`.** There
+the field is a pointer, not a copy, so callers do not walk the record backwards
+to find the terminal ruling. An `Undecided` is not an entry at all: nobody filed
+it, the transcript ends on the judge's last `Continuance`, and the outcome is
+the tribunal's own statement that no round followed it.
+
+See [`0005`](../decisions/0005-hear-returns-a-hearing.md) for the wrapper and
+[`0011`](../decisions/0011-exhaustion-is-an-outcome-failure-is-an-error.md) for
+what fills it. [`outcomes.md`](./outcomes.md) writes both arms out as values.
 
 ## What a transcript holds
 
@@ -368,6 +540,159 @@ Note that `type(entry.filing) is Ruling` is **False** — Pydantic makes
 `Ruling[LoanDecision]` a genuine subclass — so identity checks against the
 origin class do not work. `isinstance` and `match` both do.
 
+## Watching it live
+
+`hear()` returns when the proceeding is over. `hear_stream()` is the same
+proceeding with the record readable as it is written:
+
+```python
+async with tribunal.hear_stream(case) as proceeding:
+    async for entry in proceeding:
+        print(f"round {entry.round}: {entry.filing.kind}")
+        # round 1: argument, argument, concession, continuance
+        # round 2: response, response, ruling
+
+hearing = proceeding.hearing        # the Hearing hear() would have returned
+```
+
+```python
+class Proceeding(Generic[VerdictT]):
+    transcript: Transcript[VerdictT]   # live: the entry just yielded is its last
+    hearing: Hearing[VerdictT]         # raises until the proceeding ends well
+
+    def __aiter__(self) -> AsyncIterator[Entry[VerdictT]]: ...
+
+# on Tribunal
+def hear_stream(
+    self, case: Case
+) -> AbstractAsyncContextManager[Proceeding[VerdictT]]: ...
+```
+
+**What it yields is the record.** Each value is the `Entry` appended to the
+transcript at that moment — the same object, in filing order, and nothing else.
+There are no lifecycle events, no partial filings, and no token deltas: a viewer
+that saw something the transcript does not contain would be watching a second
+channel, and the transcript would no longer be a complete account of what
+happened. Round boundaries need no event either — `entry.round` names the round,
+and a `Continuance` or a `Ruling` is what closes one.
+
+**`hear()` is this, consumed.** It is defined as `hear_stream()` driven to
+exhaustion, so there is one implementation of a proceeding and the two entry
+points cannot come apart.
+
+**`Proceeding` is a handle, not a record**, which is why it is not a `BaseModel`.
+It holds no fact of its own — `transcript` and `hearing` are views of things that
+exist anyway — it is never serialized, and it never appears on a result.
+
+**Abandoning is allowed.** Break out of the loop and the block exits: the
+in-flight advocate and judge runs are cancelled, `proceeding.transcript` holds
+everything filed up to that point, and `proceeding.hearing` raises
+`ProceedingUnfinished` — there was no hearing. Like `hear()`, `hear_stream()`
+parks no state on the tribunal and is safe to run concurrently over several
+cases. See [`0010`](../decisions/0010-streaming-yields-the-record.md).
+
+**Ending is the same here as it is for `hear()`.** Exhaustion does not raise
+from the stream: the `async for` simply ends after the judge's last
+`Continuance`, and `proceeding.hearing.outcome` is `Undecided`. A failure does
+raise — `ProceedingFailed` propagates out of the `async with`, and
+`proceeding.transcript` survives it, holding everything filed before the
+participant went silent. `proceeding.hearing` then re-raises that same
+`ProceedingFailed` rather than reporting the blander `ProceedingUnfinished`,
+which is reserved for a proceeding still running or one the caller walked away
+from.
+
+## When something goes wrong
+
+A proceeding has two endings and one interruption. It rules, it spends its
+rounds without ruling, or a participant cannot be heard and it stops. The first
+two are outcomes and come back on a `Hearing`; the third raises.
+[`outcomes.md`](./outcomes.md) works each one through end to end — including a
+downed provider, a raising tool, and a misconfigured tribunal.
+
+```python
+EnbancError                 # base for everything enbanc raises
+├── ConfigurationError      # the tribunal could not be built
+├── ProceedingFailed        # a participant could not be heard
+└── ProceedingUnfinished    # proceeding.hearing before there is one
+```
+
+```python
+class ProceedingFailed(EnbancError, Generic[VerdictT]):
+    participant: VerdictT | Literal["judge"]
+    round: int
+    transcript: Transcript[VerdictT]
+    usage_by_participant: dict[VerdictT | Literal["judge"], RunUsage]
+    usage: RunUsage
+```
+
+**No provider exception reaches you bare.** An unreachable model, an advocate
+tool that raises, and output validation that runs out of retries all surface as
+`ProceedingFailed`, with the original error as `__cause__`. `enbanc` does not
+classify them further: PydanticAI and httpx already raise specific types, and a
+second taxonomy over them would be one more thing to keep true.
+
+**`round` says where it stopped, and there is no `rounds`.** A `Hearing` reports
+how many rounds ran because a finished proceeding is asked what it spent; a
+failure is asked where it died. The two would be the same fact written twice — a
+round completes when its deliberation is filed, so failing in round *N* always
+leaves *N-1* behind it.
+
+**The record survives.** `ProceedingFailed` carries the transcript as it stood,
+plus who failed and in which round. It cannot carry a `Hearing` — `outcome` is
+required and a failed proceeding has none — which is the point: an outage is not
+an adjudication and must not be storable as one.
+
+**A failure is terminal for the whole proceeding**, even when only one advocate
+is affected and the judge and its peers are healthy. Letting the judge rule on
+what is left produces a decision reached because the opposing advocate was
+knocked offline rather than answered, and nothing in its type distinguishes it
+from a ruling on a full bench. `enbanc` would rather return no ruling than a
+quietly one-sided one; concession is how an advocate declines to argue, and an
+outage is not a concession.
+
+**The first failure cancels the round.** Advocates fan out concurrently, so a
+failure in round *N* catches siblings mid-run; those runs are cancelled, and the
+transcript on the exception is what had been filed at that moment — not what the
+round would have contained. A filing enters the record when its run completes,
+so a cancelled advocate leaves no trace, and two runs of the same outage can
+leave different numbers of entries behind. This is the rule abandoning a stream
+already follows, and it is why `participant` is singular: the first failure ends
+the fan-out, so there is never a set of simultaneous ones. See
+[`0012`](../decisions/0012-a-failure-cancels-the-round.md).
+
+**`enbanc` retries nothing of its own.** HTTP retry and backoff live on the
+httpx client inside the `Model` you inject
+([`0009`](../decisions/0009-model-settings-live-on-the-model.md)), so an error
+that reaches `enbanc` is one your policy already gave up on; a retry loop here
+would sit silently above the one you configured. The library's own budget —
+`Agent(retries=...)`, guarding the `Ruling | Continuance` contract — is spent
+before `ProceedingFailed` is raised.
+
+**`usage` on a failure is best-effort.** It sums the runs that completed. A run
+that died mid-flight may not report what it spent, so a failure's usage is a
+floor rather than a total. The breakdown inherits that: a participant whose run
+was cancelled or died before reporting has **no key at all**, so
+`usage_by_participant` on a failure is not guaranteed to name every participant
+the way it is on a `Hearing`. Absence there means "did not report", never
+"spent nothing".
+
+**`ConfigurationError` is not a proceeding failure** and carries no transcript,
+because nothing ran. It is what `Tribunal(...)` raises when the `advocates`
+mapping misses a verdict, names one that does not exist, or when a verdict's
+value is the reserved string `"judge"` — see
+[Per participant](#per-participant).
+
+**`participant` is not the `author` field this document rejects.** That
+rejection — [above](#what-participants-file) — is about the *record*: a filing
+carrying `VerdictT | Literal["judge"]` would make a ruling issued by an advocate
+expressible, and the record is where that must stay impossible. An exception is
+not a filing and enters no transcript. The same union keys
+`usage_by_participant` on both a `Hearing` and this exception, and for the same
+reason: usage is the tribunal's accounting of who spent what, not something
+anyone filed. Here the shape is only the answer to "who went silent?", and there
+is no invariant for it to weaken. See
+[`0011`](../decisions/0011-exhaustion-is-an-outcome-failure-is-an-error.md).
+
 ## Usage
 
 `hearing.usage` is `pydantic_ai.usage.RunUsage`, summed across the judge and
@@ -397,10 +722,69 @@ Two of these are easy to read wrong:
 `__get_pydantic_core_schema__`, so it embeds in `Hearing` and serializes with
 the rest of it.
 
+### Per participant
+
+`hearing.usage_by_participant` is the same spend, split by who incurred it: one
+entry per advocate, one for the judge under the key `"judge"`.
+
+```python
+hearing.usage_by_participant
+# {<LoanDecision.APPROVE: 'approve'>: RunUsage(requests=3, input_tokens=14820, ...),
+#  <LoanDecision.DENY: 'deny'>:       RunUsage(requests=4, input_tokens=18960, ...),
+#  <LoanDecision.REFER: 'refer ...'>: RunUsage(requests=2, input_tokens=7310, ...),
+#  'judge':                           RunUsage(requests=2, input_tokens=20312, ...)}
+
+hearing.usage_by_participant["judge"].cost      # what adjudication cost alone
+```
+
+**It exists because the model is per agent.** `Judge` and `Advocate` each take a
+`model` overriding the tribunal's, and a strong judge over cheap advocates is
+advertised above as a one-line change. Nothing about the aggregate says whether
+that trade paid: the judge re-reads the whole record every round while each
+advocate sees less, and there are *n* of them. Comparing two proceedings'
+aggregates does not answer it either — different case, different round count.
+The split is the only place that fact can be read, and it is one the transcript
+does not carry.
+
+**The breakdown is the stored fact; `usage` is its sum.** `RunUsage` adds, so
+the total is computed from the mapping rather than accumulated beside it. There
+is no second place for the two to disagree — the same reason `position` is not
+on `Argument`. `usage` stays because "what did this proceeding cost?" is the
+common question and should not require a fold.
+
+**Every participant appears on a `Hearing`.** Round 1 fans out to every
+advocate, so each has an entry even if it conceded immediately, and the judge
+has one because a proceeding that produced a `Hearing` deliberated at least
+once. No key is a zero placeholder: every one names a participant that actually
+ran. The guarantee is a `Hearing`'s alone —
+[on a failure](#when-something-goes-wrong) keys can be missing.
+
+**Each value is that participant's whole proceeding, not one round.** An
+advocate's entry sums every run it made across every round. There is no
+per-round breakdown: watching cost grow round by round is a cost-*control*
+question, and the governor is still open in
+[`tribunal.md`](./tribunal.md#open-questions).
+
+**An unpriced participant is visible here and invisible in the total.** Adding
+`RunUsage`s treats a `None` cost as zero, so a total whose parts are mixed
+reports the sum of the priceable ones and looks like a complete figure. In the
+breakdown, the participant with `cost=None` names itself. This is the second
+gotcha above with somewhere to land.
+
+**`"judge"` is reserved, and construction enforces it.** Verdicts are a
+`StrEnum`, so a member `JUDGE = "judge"` is equal to and hashes with the judge's
+key: that advocate and the judge would collapse into one entry, silently, in the
+one artifact that exists to attribute spend. `Tribunal(...)` raises
+`ConfigurationError` when any verdict's value is `"judge"` — the same loud
+construction-time check the `advocates` mapping already gets, and it keeps
+`ProceedingFailed.participant` unambiguous for free.
+
+See [`0014`](../decisions/0014-usage-is-broken-down-per-participant.md).
+
 ## A note on generic aliases
 
-`Filing` and `Deliberation` are declared with `TypeAliasType` rather than as
-plain aliases. This is forced, not cosmetic.
+`Filing`, `Deliberation`, and `Outcome` are declared with `TypeAliasType`
+rather than as plain aliases. This is forced, not cosmetic.
 
 Pydantic's `__class_getitem__` returns the origin class when a generic model is
 parameterized with a bare `TypeVar` — `Argument[VerdictT] is Argument` is
@@ -423,15 +807,29 @@ serialize that or lie about it.
 callback you have to install. If the result can be returned, the record that
 produced it can be inspected — that is the product.
 
+**A `Hearing` means the tribunal finished; an exception means it did not.**
+Running the full process and finding no verdict is a result — it serializes, it
+carries the record that shows why, and a reviewer can read it back. Losing a
+provider mid-round is not a result, and there is no `Hearing` for it. The
+division is not about how bad the ending was; it is about whether the tribunal
+got to the end of its own process.
+
+**Streaming is a view of the record, not a second channel.** `hear_stream()`
+yields the entries the transcript is receiving, as it receives them. Everything
+a caller can watch is in the artifact afterwards, and everything in the artifact
+was watchable — which is what makes the live view and the audit trail the same
+account of the proceeding rather than two.
+
 **Verdicts are an enum, not free text.** The judge picks from a closed set, and
 the type system knows the set.
 
 **The verdict enum parameterizes everything.** `Tribunal(verdicts=LoanDecision)`
 infers `Tribunal[LoanDecision]`, and the type flows through `Ruling`,
-`Continuance`, `Interrogatory`, every filing, `Transcript`, and `Hearing`. This
-is what makes the previous commitment true at the call site rather than merely
-true in the prompt: `hearing.ruling.verdict` is a `LoanDecision`, and comparing
-it against a value from some other enum is a type error.
+`Continuance`, `Interrogatory`, every filing, `Transcript`, `Outcome`, and
+`Hearing`. This is what makes the previous commitment true at the call site
+rather than merely true in the prompt: the `verdict` a `Ruling` arm binds is a
+`LoanDecision`, and comparing it against a value from some other enum is a type
+error.
 
 **A statute is data, not an agent.** A statute carries no model, and its text is
 the author's rather than the library's. Holding a rule fixed while swapping the
@@ -490,7 +888,9 @@ on the injected object would let one case's record leak into the next.
 **The set of judge implementations is closed.** `Judge` is a concrete class, not
 a protocol you implement. The guarantees that make a transcript auditable — the
 judge has no tools, and nothing reaches it that is not already in the record —
-are enforceable only while `enbanc` owns every judge. See
+are enforceable only while `enbanc` owns every judge. If a bench ever sits it
+joins `judge=` as a union member (`Judge | Bench`) rather than arriving as a
+second parameter; it would still be `enbanc`'s own. See
 [`0002`](../decisions/0002-the-judge-is-a-role.md).
 
 ## Open questions
@@ -502,27 +902,5 @@ list. A question that is only *sharpened* — its options narrowed, nothing
 decided — stays, rewritten in place. See rule 7 in
 [`../../CLAUDE.md`](../../CLAUDE.md).
 
-- Whether a bench ever sits. If it does, it joins `judge=` as a union member
-  (`Judge | Bench`) rather than arriving as a second parameter. This is not an
-  extension point: any bench would be `enbanc`'s own, for the reason in
-  [`0002`](../decisions/0002-the-judge-is-a-role.md).
-- Whether `hear()` has a streaming counterpart for observing rounds live.
-- Whether `Hearing.ruling` is optional at all. It is `Ruling | None` above only
-  because round-limit exhaustion is unsettled. That question belongs to
-  [`tribunal.md`](./tribunal.md#open-questions); what this document owns is its
-  consequence for the public surface — if exhaustion resolves toward an
-  exception, `ruling` stops being optional and the `if` in the sample goes away.
-- Whether `Case` is a base class users subclass, or a generic container. This is
-  now load-bearing rather than cosmetic: `Transcript.case` is typed against it,
-  so if `Case` becomes generic, `Transcript` and `Hearing` each gain a second
-  type parameter.
-- Whether usage is ever broken down per agent. `hearing.usage` is the aggregate
-  [`0002`](../decisions/0002-the-judge-is-a-role.md) committed to; a
-  `dict[VerdictT | Literal["judge"], RunUsage]` alongside it would let a caller
-  see that the judge cost more than every advocate combined. Nothing is built
-  for it.
-- How an `Interrogatory.id` is assigned. The judge produces the question and the
-  tribunal stamps the id when the continuance is filed, so the recorded
-  interrogatory is not byte-identical to what the model emitted. Whether that
-  wants two types — one emitted, one recorded — or one type with a field the
-  judge's schema omits is unsettled.
+*None open.* The proceeding still has two, in
+[`tribunal.md`](./tribunal.md#open-questions).
