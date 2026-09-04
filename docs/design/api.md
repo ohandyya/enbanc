@@ -127,7 +127,10 @@ meant to create.
 **`Transcript`** — the append-only record of every filing, and the audit
 artifact. Self-contained: it carries the question, the statute, and the case
 alongside the entries, so a transcript dumped to JSON is a complete account on
-its own rather than a fragment that needs the `Hearing` to be legible.
+its own rather than a fragment that needs the `Hearing` to be legible. Beside
+the entries it carries the `ledger` — every source every advocate's tools
+returned, filed or not — so the record answers *what was left out?* as well as
+*what was this decided on?*
 
 **`Hearing`** — what `hear()` returns: the outcome, the transcript, what the
 proceeding spent — in total and per participant — and how many rounds ran. A
@@ -272,6 +275,7 @@ division `Statute` draws just above.
 
 ```python
 class Exhibit(BaseModel):
+    source: str              # the ledger id it cites; resolves in Transcript.ledger
     tool: str                # stamped on filing; the tool that produced it
     reference: str           # stamped on filing; where a reviewer looks
     content: str             # the advocate's excerpt
@@ -451,11 +455,21 @@ class Entry(BaseModel, Generic[VerdictT]):
     filed_at: datetime
     filing: Filing[VerdictT]
 
+class Retrieval(BaseModel, Generic[VerdictT]):
+    id: str                   # the ledger id; what an Exhibit.source cites
+    round: int
+    advocate: VerdictT        # whose tool call produced it
+    tool: str
+    reference: str
+    content: str              # verbatim, as the tool returned it
+    label: str | None = None
+
 class Transcript(BaseModel, Generic[VerdictT]):
     question: str
     statute: Statute
     case: SerializeAsAny[Case]
     entries: list[Entry[VerdictT]] = []
+    ledger: list[Retrieval[VerdictT]] = []
 
     def __iter__(self) -> Iterator[Entry[VerdictT]]: ...
     def __len__(self) -> int: ...
@@ -475,6 +489,42 @@ disappears — silently, out of the artifact whose whole job is to be complete.
 `SerializeAsAny` switches that one field to duck-typed serialization. It is the
 same kind of forced detail as [the generic aliases](#a-note-on-generic-aliases)
 below, and it is the price of `Case` not being a type parameter.
+
+**`ledger` is every source every tool returned, verbatim** — not only the ones
+an advocate filed. It is the second half of the audit artifact: `entries` says
+what the ruling rests on, and `ledger` says what was available to rest on. A
+reviewer checking whether an advocate argued fairly reads the retrievals no
+exhibit cites, and can do it without leaving the document or holding credentials
+to the systems the tools queried. See [`evidence.md`](./evidence.md) and
+[`0019`](../decisions/0019-the-ledger-is-part-of-the-record.md).
+
+**Suppression is found by joining, not by a flag.** `Exhibit.source` holds the
+ledger id it cites, and the join key is `(advocate, id)` — ids are numbered
+within an advocate, so `APPROVE`'s `s1` and `DENY`'s `s1` are different
+retrievals. Per-advocate numbering is deliberate: an advocate's tool calls are
+sequential, so its ids are deterministic, whereas one counter shared across
+advocates running concurrently would assign different ids on every run of the
+same proceeding.
+
+There is deliberately no `cited: bool` on `Retrieval`. Whether a round-1 source
+is ever cited is not known until the proceeding ends, so the field would be
+written on append and rewritten when a later round cites it — and a transcript
+whose rows change after they are appended is not append-only. The join is exact
+anyway, because both sides carry the same tribunal-stamped id.
+
+**`Retrieval.content` is verbatim; `Exhibit.content` is the advocate's excerpt.**
+They are different facts about the same source and both are load-bearing: the
+excerpt says what the advocate claimed mattered, the verbatim text is what it
+actually had in front of it. Reading them side by side is how a misquote is
+caught.
+
+**The ledger's size is the caller's to control.** `enbanc` stores what a tool
+returned and does not truncate it, so a tool that returns whole pages produces a
+transcript that holds whole pages. The lever is the tool: return the snippet you
+want the advocate to reason over, not the document it came from. This is the
+same discipline that keeps an advocate's context small, and it is why
+[`web_search`](./evidence.md#the-default-tool) does not request Tavily's
+`raw_content`.
 
 `Transcript` iterates over its entries and renders itself to readable proceeding
 text. That is the whole of its behavior — it holds no model and makes no calls,
@@ -558,11 +608,15 @@ What is deliberately *not* in `entries`:
   standing record, not something a participant said.
 - **Individual interrogatories.** They are nested inside the `Continuance` that
   issued them, so each question appears in the record exactly once.
-- **Raw tool traffic.** An advocate queries freely and files what it chooses to
-  rely on. The judge only ever sees filings, so filings are a complete account
-  of what the ruling rests on — but not of what was searched. See the invariant
-  in [`tribunal.md`](./tribunal.md#constraints-that-define-the-design) and
-  [`0006`](../decisions/0006-the-transcript-schema.md).
+- **Retrievals.** What an advocate's tools returned is recorded, but in
+  `Transcript.ledger` rather than as entries. Nobody *filed* it — an entry is a
+  filing, and there are exactly five — so it is a sibling field, not a sixth
+  `kind`. The judge still sees only filings; the ledger is written for the
+  reviewer, not for the proceeding. See
+  [`evidence.md`](./evidence.md#the-ledger-is-part-of-the-record) and
+  [`0019`](../decisions/0019-the-ledger-is-part-of-the-record.md), which
+  supersedes the reading of
+  [`0006`](../decisions/0006-the-transcript-schema.md) that kept it out.
 
 Narrowing a filing works by `isinstance` or `match`, against the unparameterized
 class:

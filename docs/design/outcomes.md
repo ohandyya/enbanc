@@ -101,12 +101,14 @@ Hearing(
                     claim='DTI is 0.38 on documented income.',
                     exhibits=[
                         Exhibit(
+                            source='s1',
                             tool='psql',
                             reference='psql(sql="SELECT net_profit FROM '
                                       'schedule_c WHERE applicant = ...")',
                             content='schedule_c_2024: 182000',
                         ),
                         Exhibit(
+                            source='s3',
                             tool='web_search',
                             reference='https://www.irs.gov/forms-pubs/about-schedule-c-form-1040',
                             label='About Schedule C (Form 1040)',
@@ -125,6 +127,7 @@ Hearing(
                     claim='Stated income unverified; DTI is 0.51 on W-2s.',
                     exhibits=[
                         Exhibit(
+                            source='s1',
                             tool='psql',
                             reference='psql(sql="SELECT wages FROM w2 '
                                       'WHERE applicant = ...")',
@@ -183,6 +186,7 @@ Hearing(
                     answer='Filed but unaudited; §4.2 requires verification.',
                     exhibits=[
                         Exhibit(
+                            source='s2',
                             tool='psql',
                             reference='psql(sql="SELECT verification_status '
                                       'FROM income_docs WHERE ...")',
@@ -200,6 +204,46 @@ Hearing(
                     reasoning='Documented income governs. ...',
                 ),
             ),
+        ],
+        ledger=[
+            # APPROVE's tools returned three sources; it filed two.
+            Retrieval(
+                id='s1', round=1, advocate=<LoanDecision.APPROVE: 'approve'>,
+                tool='psql',
+                reference='psql(sql="SELECT net_profit FROM schedule_c '
+                          'WHERE applicant = ...")',
+                content='schedule_c_2024: 182000',
+            ),
+            Retrieval(
+                id='s2', round=1, advocate=<LoanDecision.APPROVE: 'approve'>,
+                tool='psql',
+                reference='psql(sql="SELECT verification_status FROM '
+                          'income_docs WHERE ...")',
+                content='verification_status: none',   # never cited by APPROVE
+            ),
+            Retrieval(
+                id='s3', round=1, advocate=<LoanDecision.APPROVE: 'approve'>,
+                tool='web_search',
+                reference='https://www.irs.gov/forms-pubs/about-schedule-c-form-1040',
+                label='About Schedule C (Form 1040)',
+                content='Net profit from Schedule C is reportable '
+                        'self-employment income.',
+            ),
+            # DENY's, numbered from s1 again — ids are per advocate.
+            Retrieval(
+                id='s1', round=1, advocate=<LoanDecision.DENY: 'deny'>,
+                tool='psql',
+                reference='psql(sql="SELECT wages FROM w2 WHERE applicant = ...")',
+                content='w2_2024: 131400',
+            ),
+            Retrieval(
+                id='s2', round=2, advocate=<LoanDecision.DENY: 'deny'>,
+                tool='psql',
+                reference='psql(sql="SELECT verification_status FROM '
+                          'income_docs WHERE ...")',
+                content='verification_status: none',
+            ),
+            # REFER conceded without calling a tool, so it has no retrievals.
         ],
     ),
     usage_by_participant={
@@ -240,7 +284,39 @@ hearing.rounds                                       # 2 — not 5, the budget
 len(hearing.transcript)                              # 7
 hearing.outcome is hearing.transcript[-1].filing     # True — a pointer, not a copy
 hearing.usage_by_participant["judge"].input_tokens   # 20312 — the largest line
+len(hearing.transcript.ledger)                       # 5 retrieved, 4 filed
 ```
+
+**The ledger shows what the filings do not.** `APPROVE` retrieved five sources
+across the proceeding and cited four. The one it left out —
+`(APPROVE, 's2')`, the verification status — is the fact `DENY` filed in round 2
+and the judge ruled on. Reading only the entries, `APPROVE` looks like an
+advocate that argued from the evidence it had. Reading the ledger, it is an
+advocate that queried the verification status, saw `none`, and argued around it:
+
+```python
+cited = {(e.filing.advocate, x.source)
+         for e in hearing.transcript
+         for x in getattr(e.filing, "exhibits", [])}
+[(r.advocate, r.id) for r in hearing.transcript.ledger
+ if (r.advocate, r.id) not in cited]
+# [(<LoanDecision.APPROVE: 'approve'>, 's2')]
+```
+
+Nothing here calls that misconduct — an advocate is *supposed* to argue one
+side, and declining to volunteer the other side's best fact is the job. What the
+ledger changes is that a reviewer can see it happened and weigh the argument
+accordingly, instead of reading a record in which it never occurred. Note also
+that both advocates ran the same query and it is ledgered twice, once under each
+— retrievals are per advocate, because what each one saw is a separate fact.
+
+**Ids restart per advocate.** `APPROVE`'s `s1` and `DENY`'s `s1` are different
+retrievals, which is why an exhibit resolves on `(advocate, id)` and not on `id`
+alone.
+
+**`REFER` has no retrievals at all.** It conceded without calling a tool, and an
+advocate that searched nothing is distinguishable from one that searched and
+filed nothing — a distinction the record could not make before.
 
 **The concession is not a failure.** `REFER` looked at the record, found no case
 worth making, and said so. That filing is why the transcript explains a
@@ -407,6 +483,7 @@ ProceedingFailed(
                     claim='DTI is 0.38 on documented income.',
                     exhibits=[
                         Exhibit(
+                            source='s1',
                             tool='psql',
                             reference='psql(sql="SELECT net_profit FROM '
                                       'schedule_c WHERE applicant = ...")',

@@ -88,6 +88,12 @@ actually returned rather than from what the model said it returned. So a
 reviewer can follow any piece of evidence back to its source, and an advocate
 cannot cite something no tool produced.
 
+The transcript also holds everything the advocates' tools returned and they
+*didn't* file, verbatim. An advocate that queries a damaging fact and argues
+around it leaves a trace: the retrieval is in the record and no exhibit cites
+it. That is the question no LLM-as-judge transcript usually answers — not
+*what did it decide on?* but *what did it leave out?*
+
 A tool is a plain async function; there is nothing to register or decorate, and
 `enbanc.tools.web_search` is built the same way yours is.
 

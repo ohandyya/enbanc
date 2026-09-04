@@ -82,24 +82,29 @@ These are load-bearing. Relaxing any of them changes what the system is.
 record. This is what makes the transcript complete: if the judge could go
 gather its own evidence, the record would no longer explain the ruling.
 
-**Nothing reaches an agent from outside itself that is not also in the
-transcript.** Agents accumulate message history across rounds, and that history
-is a representation of the transcript — shaped for the provider and cheap to
-cache — never a second channel. A framing turn, a reminder, or a summary
-injected into an agent's history and nowhere else would silently break the
-guarantee above: the transcript would no longer be a complete account of what
-the ruling was based on. If one participant should see what another said, it
-goes in the record.
+**Nothing enters an agent's context that is not also in the transcript.** Agents
+accumulate message history across rounds, and that history is a representation
+of the transcript — shaped for the provider and cheap to cache — never a second
+channel. A framing turn, a reminder, or a summary injected into an agent's
+history and nowhere else would silently break the guarantee above: the
+transcript would no longer be a complete account of what the ruling was based
+on. If one participant should see what another said, it goes in the record.
 
-The qualifier *from outside itself* is doing real work, and it is narrower than
-this invariant was originally stated. An advocate's own tool results reach its
-context and stop there unless it files them as exhibits. That is deliberate:
-the judge only ever sees filings, so filings remain a complete account of what
-the ruling rests on. **The record is complete as to the ruling, not as to the
-search** — an advocate that pulled damaging evidence and quietly declined to
-file it leaves no trace. See
-[`0006`](../decisions/0006-the-transcript-schema.md), which refines the form of
-the invariant stated in [`0002`](../decisions/0002-the-judge-is-a-role.md).
+This is the absolute form [`0002`](../decisions/0002-the-judge-is-a-role.md)
+originally stated. [`0006`](../decisions/0006-the-transcript-schema.md) had to
+narrow it to *nothing from outside itself*, because an advocate's tool results
+reached its context and stopped there unless filed as exhibits — leaving the
+record complete as to the ruling but not as to the search.
+[`0019`](../decisions/0019-the-ledger-is-part-of-the-record.md) removes the
+exception: what a tool returns is recorded verbatim on `Transcript.ledger`, so
+there is no longer anything an agent sees that the transcript does not hold.
+
+**The record is complete as to the search as well as the ruling.** `entries` say
+what the ruling rests on; the ledger says what was available to rest on. An
+advocate that pulls damaging evidence and declines to file it leaves a trace —
+the retrieval is recorded and no exhibit cites it — which is the cost `0006`
+accepted and `0019` reverses. The judge still sees only filings: the ledger is
+written for the reviewer, not for the proceeding.
 
 **Advocate tools are read-only.** An adjudication must never mutate the world it
 is reasoning about: a proceeding that changed the facts it was weighing would
@@ -120,6 +125,11 @@ transcript checkable rather than merely complete — the audit claim above is
 otherwise only as good as the models' honesty about their own sources. See
 [`evidence.md`](./evidence.md) and
 [`0016`](../decisions/0016-exhibits-are-stamped-citations.md).
+
+The two halves answer different questions, and an audit needs both. A stamped
+reference answers *is this exhibit real?*; the ledger answers *what was left
+out?* Neither alone is enough — a proceeding can cite honestly and still argue
+from a third of what it found.
 
 **Concession is a first-class outcome, not a failure.** An advocate that
 concedes has done its job well. Treating concession as an error would pressure

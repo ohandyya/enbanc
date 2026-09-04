@@ -31,6 +31,11 @@ Everything below follows from that one requirement, plus the constraint that the
 reference must be trustworthy — see
 [How a source becomes an exhibit](#how-a-source-becomes-an-exhibit).
 
+There is a second question a reviewer asks, and it is not answered by any
+exhibit: *what did the advocate see and choose not to show me?* The record
+answers that too, because what an advocate's tools returned is recorded whole —
+see [The ledger is part of the record](#the-ledger-is-part-of-the-record).
+
 ## What a tool is
 
 **A plain async function.** There is nothing to register, decorate, subclass, or
@@ -171,15 +176,18 @@ excerpt:
 
 ```python
 class Exhibit(BaseModel):
+    source: str               # the ledger id it cited
     tool: str                 # stamped
     reference: str            # stamped
     content: str              # the advocate's excerpt
     label: str | None = None  # stamped, when the source carried one
 ```
 
-Three of the four fields are the tribunal's. The one the advocate writes is the
+Four of the five fields are the tribunal's. The one the advocate writes is the
 one that says what mattered, and the stamped reference is how a reviewer checks
-whether it says it fairly.
+whether it says it fairly. `source` is kept rather than consumed, because the
+ledger is [part of the record](#the-ledger-is-part-of-the-record) and the id is
+what joins an exhibit to the retrieval behind it.
 
 ### Why `content` is the advocate's excerpt
 
@@ -194,19 +202,75 @@ The excerpt is model-authored and can therefore misquote. That is what the
 reference is for. A misquote is a defect a reviewer can *find*, because the
 citation resolves; a fabricated citation is one they cannot.
 
-### Source ids never leave the advocate's context
+### The ledger is part of the record
 
-The ledger is intra-agent state. It is created when a proceeding starts, lives
-as long as that advocate's run, and is discarded with it. Nothing in the record
-holds a source id: the judge sees resolved exhibits, and the transcript stores
-resolved exhibits.
+The ledger is not discarded when the proceeding ends. It is recorded on the
+transcript, verbatim, as `Transcript.ledger`:
 
-This leaves [`0006`](../decisions/0006-the-transcript-schema.md) untouched. The
-record is still **complete as to the ruling, not as to the search** — an
-advocate that pulled damaging evidence and quietly declined to file it still
-leaves no trace, and the ledger does not change that, because the ledger is not
-in the record. What it changes is that the evidence which *was* filed can now be
-located.
+```python
+class Retrieval(BaseModel, Generic[VerdictT]):
+    id: str                   # the ledger id; what an Exhibit.source cites
+    round: int
+    advocate: VerdictT        # whose tool call produced it
+    tool: str
+    reference: str
+    content: str              # verbatim, as the tool returned it
+    label: str | None = None
+```
+
+**This is what makes the record complete as to the search, not only as to the
+ruling.** An advocate that pulls damaging evidence and quietly declines to file
+it now leaves a trace: the retrieval is in the ledger and no exhibit cites it.
+That reverses the cost
+[`0006`](../decisions/0006-the-transcript-schema.md) accepted and named as the
+consequence most likely to force a successor. See
+[`0019`](../decisions/0019-the-ledger-is-part-of-the-record.md).
+
+**Suppression is found by joining, not by a flag.** The retrievals nothing rests
+on are the ledger ids no `Exhibit.source` names:
+
+```python
+cited = {(entry.filing.advocate, e.source)
+         for entry in transcript
+         for e in exhibits_of(entry.filing)}
+buried = [r for r in transcript.ledger if (r.advocate, r.id) not in cited]
+```
+
+**The join key is `(advocate, id)`, not `id`.** Ids are numbered within an
+advocate — [step 1](#how-a-source-becomes-an-exhibit) — so `APPROVE`'s `s1` and
+`DENY`'s `s1` are different retrievals. Keeping the counter per advocate is what
+makes ids deterministic: an advocate's tool calls are sequential, while one
+counter shared across advocates running concurrently would number the same
+proceeding differently on every run.
+
+There is no `cited: bool` on `Retrieval` on purpose. Whether a round-1 source is
+ever cited is unknown until the proceeding ends, so the field would be written
+on append and rewritten when a later round cites it — and a transcript whose
+rows change after they are appended is not append-only. The join is exact,
+because both sides carry the same tribunal-stamped id.
+
+**Why the content and not just the reference.** A reference alone would be
+smaller, and it would be enough in principle — following it is what a reviewer
+does for a filed exhibit. It was rejected because it makes the common audit
+require what the artifact was supposed to remove: credentials for the systems
+the tools queried, a source that still exists and still says what it said, and a
+second tool to go look. Storing the content means a reviewer holding only the
+transcript can see what the advocate saw and decide whether burying it was fair.
+Ease of audit is the product; size is a cost. Following the reference stays
+available for anyone who wants the primary source.
+
+**What this costs, plainly: the transcript is larger, and by an amount `enbanc`
+does not control.** A tool that returns whole pages puts whole pages in the
+record. `enbanc` stores what a tool returned and truncates nothing — a truncated
+retrieval could cut the exact sentence an audit turns on. The lever is the tool:
+return the snippet you want the advocate to reason over, not the document it
+came from. That is the same discipline that keeps an advocate's context small.
+
+**And it carries what the tools returned into an artifact that travels.**
+Content from systems with their own access controls is now reproduced in a
+document people forward. Under a reference-only record the source system would
+still govern who can read it; here the transcript does. Treat a transcript as
+being as sensitive as the most sensitive thing an advocate's tools can reach.
 
 ### An unresolvable id is a validation failure
 
@@ -247,6 +311,7 @@ gets stamped is the call:
 
 ```python
 Exhibit(
+    source="s1",
     tool="dti_for",
     reference='dti_for(applicant="A. Okonkwo")',
     content="dti: 0.51",
@@ -281,12 +346,16 @@ than at the search that found it:
 
 ```python
 Exhibit(
+    source="s1",
     tool="find_filings",
     reference="s3://underwriting-docs/okonkwo/schedule-c-2024.pdf",
     label="Schedule C, 2024",
     content="net profit: 182,000",
 )
 ```
+
+And `s2`, the W-2 it did not cite, is in `transcript.ledger` with its text
+intact, where a reviewer will find it.
 
 ### Step 3 — a factory, when the tool needs configuration
 
@@ -342,9 +411,10 @@ response is dropped:
   is scoped to the request that produced it (`"e5450d-00"`), not to the
   document, so it identifies nothing a reviewer could look up later.
 - **`raw_content` and `favicon`** are absent unless asked for, and `web_search`
-  does not ask. Raw content is the full page; the ledger holds what the tool
-  returned, and filing a page in place of a snippet is the bulk problem
-  [`0006`](../decisions/0006-the-transcript-schema.md) already refused.
+  does not ask. Raw content is the full page, and the ledger records verbatim
+  what a tool returned — so requesting it would put whole pages in every
+  transcript. The snippet is what the advocate reasons over and what a reviewer
+  needs; the page is a click away through the reference.
 - **The top-level `answer`** — Tavily's own LLM summary of the results —
   is not requested either, and could not become an exhibit if it were. It is
   synthesized across sources, so there is no single reference behind it. An
@@ -412,16 +482,6 @@ commit: the answer goes into the prose above, an ADR in
 list. A question that is only *sharpened* — its options narrowed, nothing
 decided — stays, rewritten in place. See rule 7 in
 [`../../CLAUDE.md`](../../CLAUDE.md).
-
-- **Does the ledger ever enter the record?**
-  [`0006`](../decisions/0006-the-transcript-schema.md) names
-  suppression-invisibility as the consequence most likely to force a successor
-  ADR: an advocate that finds damaging evidence and declines to file it leaves
-  no trace. A ledger now exists in memory, which makes recording what was
-  searched a smaller step than it was when `0006` was written — the data is
-  already assembled. What has not changed is `0006`'s reason for refusing: a
-  record whose bulk is unfiled retrieval is one nobody reads. Any answer has to
-  say what happens to transcript size.
 
 - **Where does tool execution configuration live?** PydanticAI puts
   `tool_timeout` and `max_concurrency` on `Agent`, not on `Model`, so
