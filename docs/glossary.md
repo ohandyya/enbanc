@@ -28,12 +28,13 @@ table is the whole tax.
 | **Exhibit** | A piece of evidence entered into the record by an advocate: its excerpt, plus the tool and reference the tribunal stamps from what that tool actually returned. What it *files* — a subset of what its tools returned, and the ledger holds the rest. |
 | **Retrieval** | One source a tool returned, recorded verbatim with the round and advocate that produced it. Filed or not — that is what makes suppression visible. |
 | **Ledger** | Every retrieval in a proceeding, on `Transcript.ledger`. Where `entries` say what the ruling rests on, the ledger says what was available to rest on. |
+| **Tool failure** | A tool call that returned nothing — it timed out. Recorded on `Transcript.failures` so an advocate blocked from a source is distinguishable from one that never looked. It carries no id, because nothing came back to cite. |
 | **Interrogatory** | A targeted question from the judge to a specific advocate, issued when it cannot yet rule. Carries an id naming the round it was issued in, stamped by the tribunal when the continuance is filed. |
 | **Response** | An advocate's answer to one interrogatory, entering new exhibits as needed. It cites that interrogatory's id, which the tribunal stamps from the dispatch — no participant writes an id. |
 | **Ruling** | The judge's decision: a verdict plus reasoning. Terminal. |
 | **Continuance** | The judge's "not yet" — carries the interrogatories for the next round. |
 | **Entry** | One filing plus the tribunal's record of it: which round it belongs to and when it was filed. |
-| **Transcript** | Append-only record of every filing, in order, plus the ledger of everything the advocates' tools returned, together with the question, statute, and case it was decided under. This is your audit artifact. |
+| **Transcript** | Append-only record of every filing, in order, plus the ledger of everything the advocates' tools returned and the calls that returned nothing, together with the question, statute, and case it was decided under. This is your audit artifact. |
 | **Hearing** | What `hear()` returns: the outcome, the transcript, the round count, and what the proceeding spent — broken down per participant, with the aggregate as that breakdown's sum. It exists only when the tribunal ran to the end of its own process. |
 | **Outcome** | How a proceeding ended: a `Ruling`, or `Undecided`. A discriminated union, so a caller cannot read a verdict without first acknowledging there might not be one. |
 | **Undecided** | `max_rounds` deliberations spent and no verdict reached. A finding about the case, recorded and serializable — not a failure. |

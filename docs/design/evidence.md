@@ -272,6 +272,47 @@ document people forward. Under a reference-only record the source system would
 still govern who can read it; here the transcript does. Treat a transcript as
 being as sensitive as the most sensitive thing an advocate's tools can reach.
 
+### A call that returned nothing is recorded too
+
+A tool that times out produces no source, so it produces no `Retrieval`. Left
+there, an advocate blocked from its best source would be indistinguishable in
+the record from one that never looked — and the transcript would say the second
+thing while the first was true. Failed calls get a list of their own:
+
+```python
+class ToolFailure(BaseModel, Generic[VerdictT]):
+    round: int
+    advocate: VerdictT
+    tool: str
+    reference: str    # the call: 'find_filings(applicant="A. Okonkwo")'
+    detail: str       # what the advocate was told
+```
+
+**One row per attempt.** Timing out three times is a different fact from timing
+out once.
+
+**No `id`, deliberately.** A `Retrieval` carries one so an `Exhibit.source` can
+name it — that is the whole reason the type exists. A failed call produced
+nothing and can never be cited, and the absent id is the type saying so. It is
+also why failures are a separate list rather than `Retrieval`s with an `outcome`
+flag: a successful call yields a row per source and a failed call yields none,
+so folding them together would make the ledger's rows mean two different things.
+
+**Why this is not just tidiness.** [`0011`](../decisions/0011-exhaustion-is-an-outcome-failure-is-an-error.md)
+and [`0012`](../decisions/0012-a-failure-cancels-the-round.md) turn on the
+difference between an advocate that *declined* to argue and one that *could not
+be heard* — a tribunal that loses a participant does not rule. A timeout creates
+a third state those ADRs have no vocabulary for: alive, degraded, still filing,
+and the proceeding rules. Which state a proceeding lands in otherwise depends on
+how a tool broke rather than on how much evidence was lost — a store that
+returns 500 raises and ends the proceeding, while a store that hangs degrades it
+silently. See [`0022`](../decisions/0022-tool-failures-are-recorded.md).
+
+**A populated `failures` is not a finding.** It records that a tool failed, not
+that the ruling turned on it. `enbanc` does not mark a hearing degraded, warn,
+or adjust the outcome. Whether the judge should have weighed a gap is the
+reviewer's call; the record's job is to make it askable.
+
 ### An unresolvable id is a validation failure
 
 An advocate that cites an id the ledger does not hold has invented a citation,
@@ -498,7 +539,10 @@ want the same bound.
 another tool, or file what it has. Only an exhausted budget raises, and that
 surfaces as `ProceedingFailed`. The ladder is **timeout → the advocate adapts →
 retries spent → the proceeding fails**, and only the last rung ends anything.
-See [`0020`](../decisions/0020-tool-timeouts-ride-on-the-tool.md).
+Each timed-out call is recorded on
+[`Transcript.failures`](#a-call-that-returned-nothing-is-recorded-too), so an
+advocate that adapted around a dead tool does not read afterwards as one that
+never looked. See [`0020`](../decisions/0020-tool-timeouts-ride-on-the-tool.md).
 
 **A tool that raises ends the proceeding.** It is not caught, retried, or
 recorded as a concession; it surfaces as `ProceedingFailed` with the original
@@ -522,15 +566,5 @@ list. A question that is only *sharpened* — its options narrowed, nothing
 decided — stays, rewritten in place. See rule 7 in
 [`../../CLAUDE.md`](../../CLAUDE.md).
 
-- **Should the record show that a tool failed?** A retry prompt is
-  library-authored text an agent sees and no transcript holds, which
-  [`0021`](../decisions/0021-retry-prompts-are-outside-the-invariant.md) accepts
-  as an exception to the invariant. The cost it accepts is that an advocate
-  whose searches timed out three times and then filed a thin argument reads, in
-  the record, as an advocate that argued thinly. The ledger records what came
-  back, not what failed to come back, so a weak case and a degraded one are
-  indistinguishable. An answer would have to close that without recording every
-  prompt — an `outcome` on `Retrieval`, or a failures list beside the ledger,
-  are the two shapes that seem plausible. Any answer inherits
-  [`0006`](../decisions/0006-the-transcript-schema.md)'s constraint: intra-agent
-  churn does not belong in an artifact someone has to read.
+*None open.* The proceeding still has two, in
+[`tribunal.md`](./tribunal.md#open-questions).

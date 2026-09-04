@@ -245,6 +245,22 @@ Hearing(
             ),
             # REFER conceded without calling a tool, so it has no retrievals.
         ],
+        failures=[
+            # Why APPROVE's round-2 response cites nothing.
+            ToolFailure(
+                round=2, advocate=<LoanDecision.APPROVE: 'approve'>,
+                tool='web_search',
+                reference='web_search(query="self-employment income '
+                          'verification underwriting")',
+                detail='Timed out after 15.0 seconds.',
+            ),
+            ToolFailure(
+                round=2, advocate=<LoanDecision.APPROVE: 'approve'>,
+                tool='web_search',
+                reference='web_search(query="§4.2 filed income")',
+                detail='Timed out after 15.0 seconds.',
+            ),
+        ],
     ),
     usage_by_participant={
         <LoanDecision.APPROVE: 'approve'>: RunUsage(
@@ -285,6 +301,7 @@ len(hearing.transcript)                              # 7
 hearing.outcome is hearing.transcript[-1].filing     # True — a pointer, not a copy
 hearing.usage_by_participant["judge"].input_tokens   # 20312 — the largest line
 len(hearing.transcript.ledger)                       # 5 retrieved, 4 filed
+len(hearing.transcript.failures)                     # 2 — both APPROVE, round 2
 ```
 
 **The ledger shows what the filings do not.** `APPROVE` retrieved five sources
@@ -309,6 +326,17 @@ ledger changes is that a reviewer can see it happened and weigh the argument
 accordingly, instead of reading a record in which it never occurred. Note also
 that both advocates ran the same query and it is ledgered twice, once under each
 — retrievals are per advocate, because what each one saw is a separate fact.
+
+**The empty `exhibits` in APPROVE's round-2 response has an explanation, and it
+is in `failures`.** Read the entries alone and that response is an advocate with
+nothing to add. Read `failures` and it is an advocate whose two searches timed
+out. The judge ruled against it in the next entry.
+
+Nothing here says the ruling was wrong. `enbanc` does not mark this hearing
+degraded, does not warn, and does not adjust the outcome — a populated
+`failures` is not a finding. What it does is make the question askable, which is
+the whole difference between a record that explains a ruling and one that merely
+reports it.
 
 **Ids restart per advocate.** `APPROVE`'s `s1` and `DENY`'s `s1` are different
 retrievals, which is why an exhibit resolves on `(advocate, id)` and not on `id`

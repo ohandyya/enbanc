@@ -464,12 +464,20 @@ class Retrieval(BaseModel, Generic[VerdictT]):
     content: str              # verbatim, as the tool returned it
     label: str | None = None
 
+class ToolFailure(BaseModel, Generic[VerdictT]):
+    round: int
+    advocate: VerdictT
+    tool: str
+    reference: str            # the call that returned nothing
+    detail: str               # what the advocate was told
+
 class Transcript(BaseModel, Generic[VerdictT]):
     question: str
     statute: Statute
     case: SerializeAsAny[Case]
     entries: list[Entry[VerdictT]] = []
     ledger: list[Retrieval[VerdictT]] = []
+    failures: list[ToolFailure[VerdictT]] = []
 
     def __iter__(self) -> Iterator[Entry[VerdictT]]: ...
     def __len__(self) -> int: ...
@@ -511,6 +519,24 @@ is ever cited is not known until the proceeding ends, so the field would be
 written on append and rewritten when a later round cites it — and a transcript
 whose rows change after they are appended is not append-only. The join is exact
 anyway, because both sides carry the same tribunal-stamped id.
+
+**`failures` is every tool call that returned nothing.** A timed-out call
+produces no source, so it produces no `Retrieval` and would otherwise appear
+nowhere — leaving an advocate that was blocked from its best source
+indistinguishable from one that did not look. One row per attempt, because
+timing out three times is a different fact from timing out once. See
+[`0022`](../decisions/0022-tool-failures-are-recorded.md).
+
+**`ToolFailure` has no `id`, and that is the point.** A `Retrieval` carries one
+so an `Exhibit.source` can name it; a failed call produced nothing and can never
+be cited. Keeping failures in their own list rather than as `Retrieval`s with an
+`outcome` flag is what keeps the ledger's rows meaning one thing: a successful
+call yields a row per source, and a failed call yields no source at all.
+
+**A populated `failures` is not a finding.** It records that a tool failed, not
+that the ruling turned on it. `enbanc` does not mark a hearing degraded, warn,
+or adjust the outcome — whether the judge should have weighed a gap is the
+reviewer's call, and the record's job is to make it askable.
 
 **`Retrieval.content` is verbatim; `Exhibit.content` is the advocate's excerpt.**
 They are different facts about the same source and both are load-bearing: the

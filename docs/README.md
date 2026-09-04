@@ -60,6 +60,7 @@ full ruleset.
 | [`decisions/0019-the-ledger-is-part-of-the-record.md`](./decisions/0019-the-ledger-is-part-of-the-record.md) | Why every source an advocate's tools returned is recorded verbatim on `Transcript.ledger`, reversing the suppression-invisibility cost `0006` accepted; why references without content and an opt-out flag were both rejected; and what unbounded transcript size and travelling content now cost |
 | [`decisions/0020-tool-timeouts-ride-on-the-tool.md`](./decisions/0020-tool-timeouts-ride-on-the-tool.md) | Why a tool's timeout goes on `pydantic_ai.Tool` rather than on any `enbanc` type, why per-advocate and tribunal-wide defaults and a built-in default were all rejected, why the unbounded bare function is accepted, and why `max_concurrency` was never a tool setting |
 | [`decisions/0021-retry-prompts-are-outside-the-invariant.md`](./decisions/0021-retry-prompts-are-outside-the-invariant.md) | Why the transcript invariant excludes `enbanc`'s own retry prompts, why naming the exception beats an invariant known to be false, and the cost accepted — a record that cannot tell a weak argument from a degraded one |
+| [`decisions/0022-tool-failures-are-recorded.md`](./decisions/0022-tool-failures-are-recorded.md) | Why a tool call that returned nothing gets a row on `Transcript.failures`, why it carries no id and lives outside the ledger rather than as an `outcome` flag on `Retrieval`, why `enbanc` records the gap instead of acting on it, and how this narrows `0021` |
 
 ### Guides — user-facing how-to
 

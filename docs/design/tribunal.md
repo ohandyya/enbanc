@@ -136,15 +136,28 @@ otherwise only as good as the models' honesty about their own sources. See
 [`evidence.md`](./evidence.md) and
 [`0016`](../decisions/0016-exhibits-are-stamped-citations.md).
 
-The two halves answer different questions, and an audit needs both. A stamped
-reference answers *is this exhibit real?*; the ledger answers *what was left
-out?* Neither alone is enough — a proceeding can cite honestly and still argue
-from a third of what it found.
+The three parts answer different questions, and an audit needs all of them. A
+stamped reference answers *is this exhibit real?*; the ledger answers *what was
+left out?*; `Transcript.failures` answers *what did an advocate try to get and
+not get?* No one of them is enough — a proceeding can cite honestly, argue from
+a third of what it found, and file thinly because its best source was down, and
+the first two would show only the middle failing.
 
 **Concession is a first-class outcome, not a failure.** An advocate that
 concedes has done its job well. Treating concession as an error would pressure
 advocates into manufacturing arguments for indefensible positions — exactly the
 failure mode the adversarial structure exists to prevent.
+
+**An advocate can be degraded without being lost, and the record says so.** A
+tool that raises ends the proceeding under the rule below; a tool that times out
+does not — the advocate is told, adapts, and files what it can
+([`0020`](../decisions/0020-tool-timeouts-ride-on-the-tool.md)). That is a third
+state between *heard* and *not heard*, and without a trace it would make a
+blocked advocate read as a lazy one. Each failed call is recorded on
+`Transcript.failures`
+([`0022`](../decisions/0022-tool-failures-are-recorded.md)). `enbanc` does not
+act on it: whether a gap should have changed the ruling is the reviewer's
+judgment, not the library's.
 
 **A tribunal that loses a participant does not rule.** One advocate's model
 failing ends the proceeding, even when the judge and the remaining advocates are
