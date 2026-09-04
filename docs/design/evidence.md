@@ -334,9 +334,25 @@ Advocate(tools=[web_search(api_key=...)])
 | `title` | `label` |
 | `content` | `content` |
 
-`score`, `raw_content`, and `favicon` are dropped. They are not locators, and an
-exhibit carries what a reviewer needs to find the evidence, not everything the
-provider said about it.
+All three are present on every result and are non-empty strings. The rest of the
+response is dropped:
+
+- **`score` and `id`** are always returned and neither is a locator. Tavily's
+  `id` is tempting as a ready-made citation handle, and it is the wrong one: it
+  is scoped to the request that produced it (`"e5450d-00"`), not to the
+  document, so it identifies nothing a reviewer could look up later.
+- **`raw_content` and `favicon`** are absent unless asked for, and `web_search`
+  does not ask. Raw content is the full page; the ledger holds what the tool
+  returned, and filing a page in place of a snippet is the bulk problem
+  [`0006`](../decisions/0006-the-transcript-schema.md) already refused.
+- **The top-level `answer`** — Tavily's own LLM summary of the results —
+  is not requested either, and could not become an exhibit if it were. It is
+  synthesized across sources, so there is no single reference behind it. An
+  advocate wanting that synthesis can read the results and write it as its
+  claim, where a claim belongs.
+
+`web_search` therefore sends `query` and `max_results` and nothing that changes
+the response shape.
 
 It is **written against Tavily's own SDK** as a plain async function returning
 `Source` — Step 3 above, with nothing added. PydanticAI ships a
