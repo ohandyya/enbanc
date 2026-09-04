@@ -14,6 +14,18 @@
 
 ## To Dos
 
+1. How to design accuracy evaluation
+
+    - What possible datasets can we use?
+
+2. How to design tools an how to allow user to extend the tool?
+
+    - What is a good interface?
+
+    - How can user extend?
+
+    - What are the default tools that we can build? Just web?
+
 ## Daily Log
 
 ### Sep 1
