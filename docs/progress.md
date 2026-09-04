@@ -22,36 +22,29 @@ spec: [`design/`](./design/) is.
 
 ## Current state
 
-**Phase:** Scaffolding complete; the `0.1.0` surface is designed but **no
-`enbanc` code exists yet** — `src/enbanc/__init__.py` is a placeholder and
-`tests/` holds one placeholder test. The published `0.0.4` on PyPI reserves the
-name and nothing more. Settled and binding: every public type, every way a
-proceeding can *end*, and now every question `design/api.md` was carrying
-([`0001`](./decisions/0001-statute-carries-no-model.md) through
-[`0015`](./decisions/0015-interrogatory-ids-are-stamped-on-filing.md)). The
-schemas are done, and as of
-[`0023`](./decisions/0023-advocates-argue-blind-and-rebut-informed.md) so is the
-*behaviour* of the proceeding: an advocate argues blind in round 1 and reads the
-record from round 2. What remains unsettled is only what a proceeding may
-*spend*.
+**Phase:** Design complete; **no `enbanc` code exists yet** —
+`src/enbanc/__init__.py` is a placeholder and `tests/` holds one placeholder
+test. The published `0.0.4` on PyPI reserves the name and nothing more. Settled
+and binding, across
+[`0001`](./decisions/0001-statute-carries-no-model.md)–[`0024`](./decisions/0024-a-budget-stops-the-proceeding-between-rounds.md):
+every public type, every way a proceeding can *end*, and now its *behaviour*.
+[`0023`](./decisions/0023-advocates-argue-blind-and-rebut-informed.md) settled
+what an advocate sees (blind in round 1, the record from round 2);
+[`0024`](./decisions/0024-a-budget-stops-the-proceeding-between-rounds.md)
+settled what a proceeding may spend: an optional `budget` checked between
+rounds, landing as `Undecided(reason='budget')`, plus a `max_concurrency` that
+bounds the fan-out. **`docs/design/` now describes a complete system with no
+open questions in it.**
 
-**Next up:** Settle **cost control** in
-[`design/tribunal.md`](./design/tribunal.md#open-questions) — whether
-`max_rounds` is the only governor or a token budget can halt a proceeding
-mid-round, where a budget stop lands under
-[`0011`](./decisions/0011-exhaustion-is-an-outcome-failure-is-an-error.md)
-(outcome or error), and whether fan-out width is the caller's to bound. It is
-the last open question, and unlike the ones before it the likely answer is a
-pass-through of PydanticAI's `UsageLimits` rather than something to invent. Per
-rule 7, three moves in one commit: prose into `tribunal.md`, an ADR, then the
-bullet goes.
+**Next up:** Implementation. There is no design work queued — the next commit
+that matters puts code in `src/enbanc/`, and the schemas in `design/api.md` are
+the thing to build first, since every other piece is keyed on them.
 
 **Open questions:**
 
-- [`design/tribunal.md`](./design/tribunal.md#open-questions) owns the one that
-  remains: cost control — sharpened, with `0011` naming where a budget stop
-  lands and `0020` re-filing fan-out width into it.
-  [`design/api.md`](./design/api.md#open-questions) carries none.
+- None. [`design/tribunal.md`](./design/tribunal.md#open-questions) and
+  [`design/api.md`](./design/api.md#open-questions) both carry none, and
+  `0001`–`0024` record why each was closed.
 - Nothing else outstanding at the project level.
 
 ## Log

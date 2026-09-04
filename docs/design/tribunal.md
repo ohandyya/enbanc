@@ -54,12 +54,14 @@ dispatch rather than from the model. See
 
 A round is the advocates' filings **plus the deliberation that closes it**. So
 round 1 is the arguments and the continuance that follows them, and
-`max_rounds` counts judge deliberations — the thing that actually drives cost.
+`max_rounds` counts judge deliberations. It bounds how many times the judge
+thinks, not what a round costs — that is the `budget`, below.
 
 **Termination.** A proceeding ends in one of three ways. The judge issues a
-**ruling**. Or `max_rounds` deliberations pass without one, and the hearing's
-outcome is **undecided** — a real finding about the case, recorded and
-serializable, not an error. Or a participant **cannot be heard** — its model is
+**ruling**. Or the envelope the caller set runs out — `max_rounds` deliberations
+without a ruling, or a `budget` spent — and the outcome is **undecided**, saying
+which of the two it was: recorded and serializable, not an error. Or a
+participant **cannot be heard** — its model is
 unreachable, its tool raises, its output will not validate — and the proceeding
 stops without an outcome at all. Only the third raises; see
 [`api.md`](./api.md#when-something-goes-wrong),
@@ -195,6 +197,32 @@ counterpart to concession being first-class: an advocate that declines to argue
 has done its job, and an advocate that could not argue has not been heard at
 all. The two must never be recorded as the same thing.
 
+**A proceeding stops inside the envelope it was given, and the record says which
+half ran out.** `max_rounds` bounds deliberations. The optional `budget` —
+PydanticAI's `UsageLimits`, carrying a cost, token, or request ceiling — bounds
+what the whole proceeding spends, checked between rounds against the running
+total `enbanc` already keeps per participant. Both are limits the caller
+declared, so reaching either is an ordinary end rather than a failure: the
+outcome is `Undecided`, and its `reason` says whether the rounds or the money
+ran out. A reviewer must never have to guess whether a hard case was hard or
+merely expensive.
+
+Checking between rounds rather than mid-run is what makes that true. A budget
+enforced inside an advocate's run would stop with a round half-filed and nothing
+adjudicated — the tribunal would not have finished its own process, which is the
+exception side of `0011`'s line. Stopping at a round boundary lands on the same
+seam `max_rounds` lands on, with whole rounds behind it. The price is a coarse
+governor: a proceeding stops within one round of its budget, not before crossing
+it.
+
+`max_concurrency` is a second lever rather than the same one in different units.
+It bounds how many advocates run at once — a provider's rate limit, not the
+caller's wallet — and a twelve-verdict tribunal meets that limit in round 1
+however much it is allowed to spend. `enbanc` passes no usage limit into an
+individual run, so PydanticAI's own default is the only per-run bound, and a run
+that exhausts it is a participant that could not be heard. See
+[`0024`](../decisions/0024-a-budget-stops-the-proceeding-between-rounds.md).
+
 **Ruling and continuance are a discriminated union, not a flag.** The judge
 returns either a `Ruling` (verdict + reasoning, terminal) or a `Continuance`
 (interrogatories for the next round), both parameterized by the verdict enum
@@ -207,31 +235,6 @@ persisted and read back. Shape is in
 
 ## Open questions
 
-Unresolved, and owned by this document. Settling one is three moves in a single
-commit: the answer goes into the prose above, an ADR in
-[`../decisions/`](../decisions/) records why, and then the bullet leaves this
-list. A question that is only *sharpened* — its options narrowed, nothing
-decided — stays, rewritten in place. See rule 7 in
-[`../../CLAUDE.md`](../../CLAUDE.md).
-
-- **Cost control.** Rounds multiply tokens by the advocate count. Reporting is
-  settled — `hearing.usage` reports what a proceeding spent — but the governor
-  is not: whether `max_rounds` is the only one, or a budget can halt a
-  proceeding mid-round. PydanticAI already ships `UsageLimits` and
-  `UsageLimitExceeded`, so the likely answer is a pass-through rather than
-  something to invent. What
-  [`0011`](../decisions/0011-exhaustion-is-an-outcome-failure-is-an-error.md)
-  adds is where the answer lands: a budget stop is either a finding about the
-  case, in which case it joins `Undecided` as an outcome, or a fact about the
-  caller's wallet, in which case it is a `ProceedingFailed`. That is the same
-  line `0011` draws, applied to a governor that does not exist yet.
-
-  **Fan-out width is part of this question**, re-filed here from
-  [`evidence.md`](./evidence.md) by
-  [`0020`](../decisions/0020-tool-timeouts-ride-on-the-tool.md). PydanticAI's
-  `Agent(max_concurrency=...)` limits concurrent *agent runs*, not tool calls,
-  so in `enbanc` it governs how many advocates argue at once — a tribunal with
-  twelve verdicts opens twelve provider connections in round 1. Whether that is
-  the caller's to bound, and whether it is the same lever as a token budget or a
-  different one, is unsettled. It is not a tool setting, which is why it is no
-  longer filed as one.
+*None open.* Settling one was three moves in a single commit: the answer into
+the prose above, an ADR in [`../decisions/`](../decisions/), and then the bullet
+left this list. See rule 7 in [`../../CLAUDE.md`](../../CLAUDE.md).

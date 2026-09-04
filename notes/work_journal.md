@@ -28,11 +28,16 @@
 
 3. After all desings are done, cut a new release, 0.0.x.
 
+4. Ask AI if we are missing any important `decisions` before we can move on to implementations.
+
 ## Questions
 
 1. How to organize implementation plan?
 
 ## Daily Log
+
+### Setp 4
+
 
 ### Sep 1
 

@@ -10,7 +10,7 @@ table is the whole tax.
 
 | Term | What it is |
 |---|---|
-| **Tribunal** | The orchestrator. Holds the question, the statute, the judge, the advocates, the default model, and the round limit. |
+| **Tribunal** | The orchestrator. Holds the question, the statute, the judge, the advocates, the default model, and the limits a proceeding runs inside — the round limit, an optional budget, an optional concurrency bound. |
 | **Statute** | The rule judged against — underwriting guidelines, selection criteria. Authored by you, in whatever form the rule wants. Inert data: it carries no model, `enbanc` makes no assumption about its text, and it is frozen. |
 | **Verdict** | The enum of allowed answers. You subclass it. One advocate is created per value, and the enum is the type parameter every other shape here is keyed on. |
 | **Case** | The facts of a single decision: applicant details, business info, whatever context you supply. A base class you subclass to give those facts a schema, open enough to construct as it is, and frozen once made. |
@@ -37,7 +37,8 @@ table is the whole tax.
 | **Transcript** | Append-only record of every filing, in order, plus the ledger of everything the advocates' tools returned and the calls that returned nothing, together with the question, statute, and case it was decided under. This is your audit artifact. |
 | **Hearing** | What `hear()` returns: the outcome, the transcript, the round count, and what the proceeding spent — broken down per participant, with the aggregate as that breakdown's sum. It exists only when the tribunal ran to the end of its own process. |
 | **Outcome** | How a proceeding ended: a `Ruling`, or `Undecided`. A discriminated union, so a caller cannot read a verdict without first acknowledging there might not be one. |
-| **Undecided** | `max_rounds` deliberations spent and no verdict reached. A finding about the case, recorded and serializable — not a failure. |
+| **Undecided** | The proceeding ran out of the envelope it was given — `max_rounds` deliberations, or the budget — and reached no verdict. Recorded and serializable, not a failure, and it names which of the two ran out. |
+| **Budget** | An optional ceiling on what a whole proceeding may spend, given as PydanticAI's `UsageLimits`. Checked between rounds against the running total, never inside a round. |
 | **Proceeding** | A hearing while it is still going: the live handle `hear_stream()` hands back. Iterate it to receive each entry as it is filed; when it ends it carries the same `Hearing` `hear()` would have returned. |
 
 ## Judge output shape

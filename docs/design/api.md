@@ -17,7 +17,10 @@ with values in them.
 ## Shape
 
 ```python
+from decimal import Decimal
+
 from pydantic_ai.models.anthropic import AnthropicModel
+from pydantic_ai.usage import UsageLimits
 
 from enbanc import (
     Tribunal, Judge, Advocate, Statute, Case, Verdict, Ruling, Undecided,
@@ -47,6 +50,8 @@ tribunal = Tribunal(
         ),
     },
     max_rounds=5,
+    budget=UsageLimits(cost_limit=Decimal("2.00")),
+    max_concurrency=4,
 )
 
 hearing = await tribunal.hear(Case(applicant=..., income=...))
@@ -54,7 +59,7 @@ hearing = await tribunal.hear(Case(applicant=..., income=...))
 match hearing.outcome:
     case Ruling(verdict=verdict, reasoning=reasoning):
         verdict                     # LoanDecision.DENY
-    case Undecided():               # max_rounds spent, the judge never ruled
+    case Undecided(reason=reason):  # the rounds or the budget ran out
         ...
 
 hearing.transcript                  # every filing, in order
@@ -62,8 +67,8 @@ hearing.usage                       # tokens and cost, judge plus advocates
 hearing.usage_by_participant        # the same spend, split by who incurred it
 ```
 
-That `match` is not decoration. A proceeding either produces a ruling or spends
-`max_rounds` deliberations without reaching one, and `Outcome` is a
+That `match` is not decoration. A proceeding either produces a ruling or runs
+out of the envelope it was given without reaching one, and `Outcome` is a
 discriminated union rather than an optional so the second arm cannot be read
 past — a type checker will not let you touch `.verdict` until you have narrowed.
 
@@ -118,11 +123,12 @@ there is nothing to configure there. Like an advocate, it takes an optional
 `model` and optional `guidance`.
 
 **`Tribunal`** — holds the question, statute, judge, advocates, default model,
-and round limit. Async, because every round fans out across advocates. The
-`advocates` mapping must cover every value of the verdict enum: a missing key
-and an unknown key each raise `ConfigurationError` at construction, so adding an
-enum member fails loudly instead of quietly seating a tool-less advocate nobody
-meant to create.
+and the limits a proceeding runs inside: `max_rounds`, an optional `budget`, and
+an optional `max_concurrency`. Async, because every round fans out across
+advocates. The `advocates` mapping must cover every value of the verdict enum: a
+missing key and an unknown key each raise `ConfigurationError` at construction,
+so adding an enum member fails loudly instead of quietly seating a tool-less
+advocate nobody meant to create.
 
 **`Transcript`** — the append-only record of every filing, and the audit
 artifact. Self-contained: it carries the question, the statute, and the case
@@ -138,9 +144,9 @@ proceeding spent — in total and per participant — and how many rounds ran. A
 it could not, `hear()` raises instead.
 
 **`Outcome`** — how the proceeding ended, as a discriminated union: a `Ruling`,
-or `Undecided` when the round limit was spent without one. Both are records, and
-both serialize, because a proceeding that could not decide is a finding about
-the case and belongs in the audit artifact.
+or `Undecided` when the rounds or the budget ran out without one. Both are
+records, and both serialize, because a proceeding that stopped inside the limits
+it was given belongs in the audit artifact whether or not it decided.
 
 **`hear(case)`** — runs the proceeding and returns the `Hearing`.
 
@@ -270,6 +276,54 @@ would make that account unfalsifiable.
 
 Turning a case into prompt text is `enbanc`'s job, not the case's — the same
 division `Statute` draws just above.
+
+### The governors
+
+```python
+Tribunal(
+    ...,
+    max_rounds=5,                                     # judge deliberations
+    budget=UsageLimits(cost_limit=Decimal("2.00")),   # the whole proceeding
+    max_concurrency=4,                                # advocates at once
+)
+```
+
+Three limits, and only the first is required. `max_rounds` counts deliberations
+and is what makes a proceeding terminate at all.
+
+**`budget` is PydanticAI's `UsageLimits`, scoped to the proceeding.** `enbanc`
+defines no budget type of its own, for the same reason it takes `RunUsage`
+rather than defining a usage type. What changes is the scope: PydanticAI applies
+these limits to one agent run, and `enbanc` applies them to the accumulated
+total across every participant — the same number `hearing.usage` reports. The
+fields keep their meanings, and the two that are per-request rather than
+cumulative, `per_request_input_tokens_limit` and `count_tokens_before_request`,
+have nothing to apply to at a round boundary and are ignored.
+
+**It is checked between rounds, never inside one.** Before dispatching a round,
+`enbanc` runs the limits against the total spent so far and stops if they are
+exceeded — so a proceeding that runs out of budget ends the way a proceeding
+that runs out of rounds does, on a whole round, with `Undecided(reason='budget')`
+as the outcome. The cost is that the governor is coarse: nothing halts a runaway
+mid-round, so a proceeding stops within one round of its budget rather than
+before crossing it.
+
+**`enbanc` passes no usage limit into an individual run**, which leaves
+PydanticAI's own default in place: `Agent.run` falls back to `UsageLimits()`, and
+`request_limit` defaults to 50, so each participant gets fifty model requests per
+round. That is not `enbanc`'s number and it is not configurable through
+`enbanc`; a run that exhausts it is a participant that could not be heard, and
+raises `ProceedingFailed` like any other.
+
+**`max_concurrency` is a different lever, not the same one in other units.** It
+bounds how many advocates run at once — a tribunal with twelve verdicts opens
+twelve provider connections in round 1 otherwise — and it takes PydanticAI's
+`int | ConcurrencyLimit | AbstractConcurrencyLimiter | None`. Passing a limiter
+object shares one budget of slots with your own agents; passing an int lets
+`enbanc` build that limiter. The judge is never given a slot: it runs alone, and
+the fan-out is the only place concurrency exists in a proceeding.
+
+See [`0024`](../decisions/0024-a-budget-stops-the-proceeding-between-rounds.md).
 
 ### What participants file
 
@@ -562,6 +616,7 @@ opinions.
 ```python
 class Undecided(BaseModel):
     kind: Literal["undecided"] = "undecided"
+    reason: Literal["rounds", "budget"]
 
 Outcome = TypeAliasType(
     "Outcome",
@@ -591,11 +646,16 @@ the same move `Ruling | Continuance` makes on the judge's output, applied to the
 result — and `Outcome` needs `TypeAliasType` for the same Pydantic reason those
 do, described in [the note below](#a-note-on-generic-aliases).
 
-**`Undecided` carries nothing.** Not the round count, which is `Hearing.rounds`;
-not the questions the judge still wanted answered, which are the interrogatories
-on the last `Continuance` in the transcript. Either would be the same
-store-it-twice mistake that kept `position` off `Argument`. It is not generic
-either, because there is no verdict in it to key on.
+**`Undecided` carries one thing: which envelope ran out.** Not the round count,
+which is `Hearing.rounds`; not the questions the judge still wanted answered,
+which are the interrogatories on the last `Continuance` in the transcript.
+Either would be the same store-it-twice mistake that kept `position` off
+`Argument`. `reason` is not that mistake — it is the one fact nothing else
+carries, and `rounds` cannot stand in for it, because a proceeding can spend its
+budget on the round it would have spent its last deliberation. It is undefaulted
+for the same reason `kind` is defaulted: `kind` has exactly one correct value and
+`reason` has two, so a default would be a guess that reads as a fact. `Undecided`
+is not generic either, because there is no verdict in it to key on.
 
 **The outcome is the final entry's filing only when it is a `Ruling`.** There
 the field is a pointer, not a copy, so callers do not walk the record backwards
@@ -711,7 +771,8 @@ cases. See [`0010`](../decisions/0010-streaming-yields-the-record.md).
 
 **Ending is the same here as it is for `hear()`.** Exhaustion does not raise
 from the stream: the `async for` simply ends after the judge's last
-`Continuance`, and `proceeding.hearing.outcome` is `Undecided`. A failure does
+`Continuance`, and `proceeding.hearing.outcome` is an `Undecided` naming the
+envelope that ran out. A failure does
 raise — `ProceedingFailed` propagates out of the `async with`, and
 `proceeding.transcript` survives it, holding everything filed before the
 participant went silent. `proceeding.hearing` then re-raises that same
@@ -721,9 +782,9 @@ from.
 
 ## When something goes wrong
 
-A proceeding has two endings and one interruption. It rules, it spends its
-rounds without ruling, or a participant cannot be heard and it stops. The first
-two are outcomes and come back on a `Hearing`; the third raises.
+A proceeding has two endings and one interruption. It rules, it runs out of
+rounds or budget without ruling, or a participant cannot be heard and it stops.
+The first two are outcomes and come back on a `Hearing`; the third raises.
 [`outcomes.md`](./outcomes.md) works each one through end to end — including a
 downed provider, a raising tool, and a misconfigured tribunal.
 
@@ -1024,5 +1085,4 @@ list. A question that is only *sharpened* — its options narrowed, nothing
 decided — stays, rewritten in place. See rule 7 in
 [`../../CLAUDE.md`](../../CLAUDE.md).
 
-*None open.* The proceeding still has two, in
-[`tribunal.md`](./tribunal.md#open-questions).
+*None open* — here or in [`tribunal.md`](./tribunal.md#open-questions).

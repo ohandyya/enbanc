@@ -18,13 +18,16 @@ this is the same surface with values in it.
 | Ending | `hear()` | `hearing.outcome` | The transcript ends on |
 |---|---|---|---|
 | The judge rules | returns a `Hearing` | `Ruling(...)` | that same `Ruling` |
-| `max_rounds` is spent | returns a `Hearing` | `Undecided()` | a `Continuance` |
+| `max_rounds` is spent | returns a `Hearing` | `Undecided(reason='rounds')` | a `Continuance` |
+| The `budget` is spent | returns a `Hearing` | `Undecided(reason='budget')` | a `Continuance` |
 | A participant cannot be heard | raises `ProceedingFailed` | — | wherever it stopped |
 | The tribunal is misconfigured | never runs — `Tribunal(...)` raises | — | there is none |
 
-Two endings, one interruption, and one thing that never starts. Only the first
-two produce a `Hearing`, which is the whole of the division: a `Hearing` means
-the tribunal reached the end of its own process.
+Two endings, one interruption, and one thing that never starts — the two
+`Undecided` rows are one ending with two causes, which is why they share a type
+and differ by a field. Only the first three produce a `Hearing`, which is the
+whole of the division: a `Hearing` means the tribunal reached the end of its own
+process, inside the limits it was given.
 
 ## The tribunal these examples use
 
@@ -393,7 +396,11 @@ Hearing(
 
 A `Continuance` never appears. `max_rounds=5` is a ceiling, not a target.
 
-## 3. The round limit is spent
+## 3. The envelope is spent
+
+Two ways to run out, one outcome type. `Undecided.reason` says which.
+
+### The round limit
 
 Same tribunal, but built with `max_rounds=2`. The judge asks, gets answers,
 and still cannot rule.
@@ -413,7 +420,7 @@ hearing = await tribunal.hear(case)      # returns normally — nothing raises
 
 ```python
 Hearing(
-    outcome=Undecided(kind='undecided'),
+    outcome=Undecided(kind='undecided', reason='rounds'),
     transcript=Transcript(
         question='Shall the bank loan this applicant $500k?',
         statute=Statute(text='...', name='underwriting-v3'),
@@ -455,10 +462,11 @@ hearing.outcome is hearing.transcript[-1].filing     # False — nobody filed it
 #  'Would verification alone resolve this?']
 ```
 
-**`Undecided()` has one field, the `kind` tag, and that is deliberate.** What
+**`Undecided` carries `reason` and nothing else, and that is deliberate.** What
 the judge still wanted is already in the record — the interrogatories on the
-final `Continuance` — and how much budget was spent is `hearing.rounds`.
-Copying either onto the outcome would create two places that can disagree.
+final `Continuance` — and how many rounds ran is `hearing.rounds`. Copying
+either onto the outcome would create two places that can disagree. `reason` is
+not that: nothing else in the artifact says which limit stopped the proceeding.
 
 **You still pay for it.** `hearing.usage` reports what an undecided proceeding
 cost, exactly as a decided one does — and `usage_by_participant` still names
@@ -467,6 +475,57 @@ every participant, because every one of them ran.
 **This is not an error.** It serializes, it carries a complete record of why it
 stopped, and a reviewer can pick it up. Handing a hard case back undecided is a
 finding about the case.
+
+### The budget
+
+Same tribunal again, this time with room to deliberate but not to pay for it:
+`max_rounds=5` and `budget=UsageLimits(cost_limit=Decimal("0.40"))`. Round 2
+finishes, the judge files a third `Continuance`, and the total spent has passed
+the ceiling — so round 3 is never dispatched.
+
+```text
+round 1   Argument(APPROVE), Argument(DENY), Concession(REFER)
+          Continuance(interrogatories=[r1-q1 -> APPROVE, r1-q2 -> DENY])
+
+round 2   Response(APPROVE), Response(DENY)
+          Continuance(interrogatories=[r2-q1 -> APPROVE, r2-q2 -> DENY])
+          ^ 2 of 5 deliberations. $0.41 spent of $0.40. No round 3 follows.
+```
+
+```python
+hearing = await tribunal.hear(case)      # returns normally — nothing raises
+```
+
+```python
+Hearing(
+    outcome=Undecided(kind='undecided', reason='budget'),
+    transcript=Transcript(...),          # identical in shape to the case above
+    usage_by_participant={...},
+    usage=RunUsage(requests=11, tool_calls=4, cost=Decimal('0.41'), ...),
+    rounds=2,
+)
+```
+
+```python
+hearing.rounds                 # 2 — and max_rounds was 5
+hearing.usage.cost             # Decimal('0.41') — the ceiling was 0.40
+```
+
+**The transcript is indistinguishable from the round-limit case; the outcome is
+not.** Both end on a `Continuance` nobody answered, and that is exactly why
+`reason` exists: a reviewer reading the record alone cannot tell a hard case
+from an expensive one, and `hearing.rounds < max_rounds` is an inference, not a
+statement.
+
+**It stopped after a whole round, not inside one.** The budget is checked
+between rounds, so every round in the transcript is complete and every advocate
+that was dispatched filed. That is what makes this an outcome rather than a
+`ProceedingFailed` — the tribunal reached the end of its own process, which here
+means the end of what it was allowed to spend.
+
+**It overshot, and the record says by how much.** `usage.cost` is past
+`cost_limit`, because nothing halts an advocate mid-run. The guarantee is that a
+proceeding stops within one round of its budget, not that it never crosses it.
 
 ## 4. A participant cannot be heard
 
@@ -682,16 +741,19 @@ async with tribunal.hear_stream(case) as proceeding:
 proceeding.hearing.outcome        # Ruling(verdict=<LoanDecision.DENY: 'deny'>, ...)
 ```
 
-**The round limit** — the loop ends after the final `Continuance`, and nothing
-raises:
+**The round limit or the budget** — the loop ends after the final
+`Continuance`, and nothing raises:
 
 ```python
         # round 1: argument, argument, concession, continuance
         # round 2: response, response, continuance
-        #                              ^ last entry; max_rounds spent
+        #                              ^ last entry; the envelope is spent
 
-proceeding.hearing.outcome        # Undecided(kind='undecided')
+proceeding.hearing.outcome        # Undecided(kind='undecided', reason='rounds')
 ```
+
+A budget stop looks the same from the stream — the entries arrive, the loop
+ends after a `Continuance`, and only `reason` differs.
 
 **A failure** — the exception comes out of the `async with`, not the `async
 for`, and the partial record is still readable:
@@ -758,8 +820,8 @@ also legitimate — it carries the question, statute, and case, and needs no
 ## What is not here
 
 **A forced verdict.** No ending in this document converts "we could not decide"
-into a decision. `Undecided` is the answer to a spent round limit, and it stays
-an answer.
+into a decision. `Undecided` is the answer to a spent envelope — rounds or
+budget — and it stays an answer.
 
 **A ruling on a partial bench.** There is no example of the judge ruling after
 an advocate dropped out, because the design has none: a participant that cannot

@@ -69,7 +69,7 @@ hearing = await tribunal.hear(Case(applicant=..., income=...))
 match hearing.outcome:              # a ruling, or no verdict at all
     case Ruling(verdict=verdict, reasoning=reasoning):
         verdict                     # LoanDecision.DENY
-    case Undecided():               # max_rounds spent, the judge never ruled
+    case Undecided():               # rounds or budget spent, no verdict
         ...
 
 hearing.transcript                  # every filing, in order
@@ -97,9 +97,10 @@ it. That is the question no LLM-as-judge transcript usually answers — not
 A tool is a plain async function; there is nothing to register or decorate, and
 `enbanc.tools.web_search` is built the same way yours is.
 
-A tribunal that spends its rounds without reaching a verdict returns
-`Undecided`; that is a finding, and it comes back on the hearing with the full
-transcript. A tribunal that loses a participant — the provider is down, a tool
+A tribunal that runs out of the envelope it was given — `max_rounds`
+deliberations, or an optional token or cost `budget` — without reaching a
+verdict returns `Undecided`, naming which of the two ran out. That is a finding,
+and it comes back on the hearing with the full transcript. A tribunal that loses a participant — the provider is down, a tool
 raises — is a different thing, and raises `ProceedingFailed` with the record so
 far attached. No ruling is ever issued on a bench that lost an advocate.
 
@@ -129,15 +130,16 @@ The full design lives in [`docs/design/`](./docs/design/):
 - [**Evidence**](./docs/design/evidence.md) — what a tool is, how you add your
   own, and how what one returns becomes an exhibit a reviewer can check.
 - [**Outcomes**](./docs/design/outcomes.md) — every way a proceeding can end,
-  worked through with concrete values: a ruling, a spent round limit, a downed
-  provider, a misconfigured tribunal.
+  worked through with concrete values: a ruling, a spent round limit, a spent
+  budget, a downed provider, a misconfigured tribunal.
 - [**Glossary**](./docs/glossary.md) — the courtroom vocabulary. One table, one
   minute.
 
-The API is settled down to the schemas. What is still open is how the
-proceeding *behaves* — what an advocate sees, and what a budget may halt — and
-[`docs/design/tribunal.md`](./docs/design/tribunal.md#open-questions) carries
-those questions. If you have opinions, that's the place to aim them.
+The design is settled down to the schemas and the behaviour both: what an
+advocate sees, how a proceeding stops, and what every ending looks like. The
+open questions those documents carried are closed, each with an ADR in
+[`docs/decisions/`](./docs/decisions/) saying what was rejected and why. If you
+have opinions, that's the place to aim them.
 
 ## Status
 

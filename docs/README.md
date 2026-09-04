@@ -33,7 +33,7 @@ full ruleset.
 | [`design/tribunal.md`](./design/tribunal.md) | The proceeding: rounds, interrogatories, concession, and the constraints that make the transcript complete |
 | [`design/api.md`](./design/api.md) | The public surface being designed toward `0.1.0` |
 | [`design/evidence.md`](./design/evidence.md) | Tools: what one is, how you add your own, and how what it returns becomes an exhibit a reviewer can check |
-| [`design/outcomes.md`](./design/outcomes.md) | Every way a proceeding can end, worked through with concrete values: a ruling, a spent round limit, a downed provider, a misconfigured tribunal |
+| [`design/outcomes.md`](./design/outcomes.md) | Every way a proceeding can end, worked through with concrete values: a ruling, a spent round limit, a spent budget, a downed provider, a misconfigured tribunal |
 
 ### Decisions — ADRs
 
@@ -62,6 +62,7 @@ full ruleset.
 | [`decisions/0021-retry-prompts-are-outside-the-invariant.md`](./decisions/0021-retry-prompts-are-outside-the-invariant.md) | Why the transcript invariant excludes `enbanc`'s own retry prompts, why naming the exception beats an invariant known to be false, and the cost accepted — a record that cannot tell a weak argument from a degraded one |
 | [`decisions/0022-tool-failures-are-recorded.md`](./decisions/0022-tool-failures-are-recorded.md) | Why a tool call that returned nothing gets a row on `Transcript.failures`, why it carries no id and lives outside the ledger rather than as an `outcome` flag on `Retrieval`, why `enbanc` records the gap instead of acting on it, and how this narrows `0021` |
 | [`decisions/0023-advocates-argue-blind-and-rebut-informed.md`](./decisions/0023-advocates-argue-blind-and-rebut-informed.md) | Why an advocate sees no peer filing in round 1 but reads the record from round 2, why sequencing the round and a two-phase argue-then-rebut round were both rejected, why concession stays a round-1 filing, and why visibility is a rule rather than a knob |
+| [`decisions/0024-a-budget-stops-the-proceeding-between-rounds.md`](./decisions/0024-a-budget-stops-the-proceeding-between-rounds.md) | Why a proceeding-wide `budget` is checked between rounds rather than inside one, why that makes a budget stop an `Undecided` outcome with a `reason` rather than an exception or a third outcome type, why a shared usage accumulator and an `enbanc` budget type were rejected, and what `max_concurrency` actually bounds |
 
 ### Guides — user-facing how-to
 
