@@ -102,8 +102,11 @@ still citable, just with the call as its reference. See
 [`design/evidence.md`](./design/evidence.md).
 
 The metaphor governs `enbanc`'s vocabulary, not its surface area. Anything
-`enbanc` does not expose — temperature, retries, per-request settings — you
-configure on the `Model` you build, in ordinary PydanticAI terms.
+`enbanc` does not expose you configure on the PydanticAI object it belongs to,
+in ordinary PydanticAI terms: temperature, retries, and per-request settings on
+the `Model` you build; a tool's execution timeout on the `Tool` you wrap it in.
+There is no `settings=` and no `tool_timeout=` anywhere on `enbanc`'s own
+types.
 
 It also stops at the exceptions, deliberately. `EnbancError`,
 `ConfigurationError`, `ProceedingFailed`, and `ProceedingUnfinished` say what

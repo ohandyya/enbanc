@@ -718,8 +718,12 @@ class ProceedingFailed(EnbancError, Generic[VerdictT]):
 ```
 
 **No provider exception reaches you bare.** An unreachable model, an advocate
-tool that raises, and output validation that runs out of retries all surface as
-`ProceedingFailed`, with the original error as `__cause__`. `enbanc` does not
+tool that raises, a tool that keeps timing out until its retries are spent, and
+output validation that runs out of retries all surface as `ProceedingFailed`,
+with the original error as `__cause__`. A tool timeout on its own is not a
+failure — it returns a retry prompt and the advocate carries on; see
+[`evidence.md`](./evidence.md#what-tools-may-do) and
+[`0020`](../decisions/0020-tool-timeouts-ride-on-the-tool.md). `enbanc` does not
 classify them further: PydanticAI and httpx already raise specific types, and a
 second taxonomy over them would be one more thing to keep true.
 

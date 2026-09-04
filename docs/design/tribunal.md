@@ -82,10 +82,11 @@ These are load-bearing. Relaxing any of them changes what the system is.
 record. This is what makes the transcript complete: if the judge could go
 gather its own evidence, the record would no longer explain the ruling.
 
-**Nothing enters an agent's context that is not also in the transcript.** Agents
-accumulate message history across rounds, and that history is a representation
-of the transcript — shaped for the provider and cheap to cache — never a second
-channel. A framing turn, a reminder, or a summary injected into an agent's
+**Nothing enters an agent's context that is not also in the transcript**, except
+`enbanc`'s own retry prompts — which carry no fact about the case, the statute,
+or another participant. Agents accumulate message history across rounds, and
+that history is a representation of the transcript — shaped for the provider and
+cheap to cache — never a second channel. A framing turn, a reminder, or a summary injected into an agent's
 history and nowhere else would silently break the guarantee above: the
 transcript would no longer be a complete account of what the ruling was based
 on. If one participant should see what another said, it goes in the record.
@@ -95,9 +96,18 @@ originally stated. [`0006`](../decisions/0006-the-transcript-schema.md) had to
 narrow it to *nothing from outside itself*, because an advocate's tool results
 reached its context and stopped there unless filed as exhibits — leaving the
 record complete as to the ruling but not as to the search.
-[`0019`](../decisions/0019-the-ledger-is-part-of-the-record.md) removes the
-exception: what a tool returns is recorded verbatim on `Transcript.ledger`, so
-there is no longer anything an agent sees that the transcript does not hold.
+[`0019`](../decisions/0019-the-ledger-is-part-of-the-record.md) removes that
+exception: what a tool returns is recorded verbatim on `Transcript.ledger`.
+
+The one exception left is procedural. When a tool times out or an advocate cites
+a ledger id that does not resolve, the library puts a retry prompt into that
+agent's history — `Timed out after 15.0 seconds.` — and no transcript holds it.
+It is named rather than hidden because an invariant listed here that is known to
+be false is worse than a narrower one that is true. A retry prompt reports a
+mechanical failure of the agent's own last action; it carries no evidence and
+nothing another participant said, so it cannot bear on the ruling, and whatever
+the agent files in response is in the record. See
+[`0021`](../decisions/0021-retry-prompts-are-outside-the-invariant.md).
 
 **The record is complete as to the search as well as the ruling.** `entries` say
 what the ruling rests on; the ledger says what was available to rest on. An
@@ -180,3 +190,13 @@ decided — stays, rewritten in place. See rule 7 in
   case, in which case it joins `Undecided` as an outcome, or a fact about the
   caller's wallet, in which case it is a `ProceedingFailed`. That is the same
   line `0011` draws, applied to a governor that does not exist yet.
+
+  **Fan-out width is part of this question**, re-filed here from
+  [`evidence.md`](./evidence.md) by
+  [`0020`](../decisions/0020-tool-timeouts-ride-on-the-tool.md). PydanticAI's
+  `Agent(max_concurrency=...)` limits concurrent *agent runs*, not tool calls,
+  so in `enbanc` it governs how many advocates argue at once — a tribunal with
+  twelve verdicts opens twelve provider connections in round 1. Whether that is
+  the caller's to bound, and whether it is the same lever as a token budget or a
+  different one, is unsettled. It is not a tool setting, which is why it is no
+  longer filed as one.

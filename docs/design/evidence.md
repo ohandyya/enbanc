@@ -386,6 +386,12 @@ That last line is the point. `web_search` is a factory of exactly this shape, so
 There is no privileged path for built-in tools, and no capability a default tool
 has that yours cannot.
 
+**Name the inner function what you want the model to call**, and give it a real
+docstring. PydanticAI reads `__name__` and `__doc__` off the function it is
+handed, so a factory that returns `async def _inner(...)` puts a tool called
+`_inner` in front of the model. The closure above is named `find_filings` for
+that reason, not for style.
+
 ## The default tool
 
 ```python
@@ -461,6 +467,39 @@ advocates still in flight
 awaiting I/O when that happens is cancelled where it stands. Clean up in
 `finally`, and do not assume a call that started will finish.
 
+**Bound any tool that talks to something you do not control.** A tool that hangs
+stalls the round, and `max_rounds` does not help — it counts deliberations, and
+the deliberation never happens. `enbanc` supplies no default and adds no
+parameter for this: the setting rides on the tool, which is
+[`0009`](../decisions/0009-model-settings-live-on-the-model.md) applied to a
+second kind of object. Wrap with PydanticAI's `Tool`:
+
+```python
+from pydantic_ai import Tool
+
+Advocate(
+    tools=[
+        Tool(web_search(api_key=...), timeout=15.0),   # third-party HTTP
+        Tool(find_filings, timeout=30.0),              # S3 plus OCR, legitimately slow
+        Tool(dti_for, timeout=5.0),                    # a local warehouse
+        parse_statute_dates,                           # pure CPU; nothing to bound
+    ],
+)
+```
+
+Wrapping is per tool and opt-in — the last entry is still a tool — and the
+number belongs to the system behind it, which is why there is no tribunal-wide
+or per-advocate default to inherit. A warehouse query and an OCR pipeline do not
+want the same bound.
+
+**A timeout is not fatal.** PydanticAI cancels the call and tells the model
+`Timed out after 15.0 seconds.`, counting against the library's
+`Agent(retries=...)` budget. The advocate can narrow the query, reach for
+another tool, or file what it has. Only an exhausted budget raises, and that
+surfaces as `ProceedingFailed`. The ladder is **timeout → the advocate adapts →
+retries spent → the proceeding fails**, and only the last rung ends anything.
+See [`0020`](../decisions/0020-tool-timeouts-ride-on-the-tool.md).
+
 **A tool that raises ends the proceeding.** It is not caught, retried, or
 recorded as a concession; it surfaces as `ProceedingFailed` with the original
 exception as `__cause__`. An advocate that could not gather evidence has not
@@ -483,10 +522,15 @@ list. A question that is only *sharpened* — its options narrowed, nothing
 decided — stays, rewritten in place. See rule 7 in
 [`../../CLAUDE.md`](../../CLAUDE.md).
 
-- **Where does tool execution configuration live?** PydanticAI puts
-  `tool_timeout` and `max_concurrency` on `Agent`, not on `Model`, so
-  [`0009`](../decisions/0009-model-settings-live-on-the-model.md)'s "settings
-  ride on the model" does not reach them and they currently have nowhere to go.
-  A tool that hangs stalls a round with no bound, which makes this the more
-  urgent of the two. It is adjacent to the cost-control question in
-  [`tribunal.md`](./tribunal.md#open-questions) and may want the same answer.
+- **Should the record show that a tool failed?** A retry prompt is
+  library-authored text an agent sees and no transcript holds, which
+  [`0021`](../decisions/0021-retry-prompts-are-outside-the-invariant.md) accepts
+  as an exception to the invariant. The cost it accepts is that an advocate
+  whose searches timed out three times and then filed a thin argument reads, in
+  the record, as an advocate that argued thinly. The ledger records what came
+  back, not what failed to come back, so a weak case and a degraded one are
+  indistinguishable. An answer would have to close that without recording every
+  prompt — an `outcome` on `Retrieval`, or a failures list beside the ledger,
+  are the two shapes that seem plausible. Any answer inherits
+  [`0006`](../decisions/0006-the-transcript-schema.md)'s constraint: intra-agent
+  churn does not belong in an artifact someone has to read.
