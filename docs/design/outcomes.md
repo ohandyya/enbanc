@@ -1,6 +1,6 @@
 ---
 status: draft
-updated: 2026-09-02
+updated: 2026-09-04
 ---
 
 # Every way a proceeding ends
@@ -44,7 +44,7 @@ tribunal = Tribunal(
     model=AnthropicModel("claude-sonnet-5"),
     judge=Judge(guidance="Where the record is ambiguous, deny."),
     advocates={
-        LoanDecision.APPROVE: Advocate(tools=[psql, tavily]),
+        LoanDecision.APPROVE: Advocate(tools=[psql, web_search(api_key=...)]),
         LoanDecision.DENY: Advocate(tools=[psql]),
         LoanDecision.REFER: Advocate(tools=[psql]),
     },
@@ -60,7 +60,7 @@ Three advocates argue, one concedes, the judge asks two questions and then
 rules.
 
 ```text
-round 1   Argument(advocate=APPROVE, exhibits=[psql, tavily])
+round 1   Argument(advocate=APPROVE, exhibits=[psql, web_search])
           Argument(advocate=DENY,    exhibits=[psql])
           Concession(advocate=REFER)
           Continuance(interrogatories=[r1-q1 -> APPROVE, r1-q2 -> DENY])
@@ -100,8 +100,19 @@ Hearing(
                     advocate=<LoanDecision.APPROVE: 'approve'>,
                     claim='DTI is 0.38 on documented income.',
                     exhibits=[
-                        Exhibit(source='psql', content='schedule_c_2024: 182000'),
-                        Exhibit(source='tavily', content='...'),
+                        Exhibit(
+                            tool='psql',
+                            reference='psql(sql="SELECT net_profit FROM '
+                                      'schedule_c WHERE applicant = ...")',
+                            content='schedule_c_2024: 182000',
+                        ),
+                        Exhibit(
+                            tool='web_search',
+                            reference='https://www.irs.gov/forms-pubs/about-schedule-c-form-1040',
+                            label='About Schedule C (Form 1040)',
+                            content='Net profit from Schedule C is reportable '
+                                    'self-employment income.',
+                        ),
                     ],
                 ),
             ),
@@ -112,7 +123,14 @@ Hearing(
                     kind='argument',
                     advocate=<LoanDecision.DENY: 'deny'>,
                     claim='Stated income unverified; DTI is 0.51 on W-2s.',
-                    exhibits=[Exhibit(source='psql', content='w2_2024: 131400')],
+                    exhibits=[
+                        Exhibit(
+                            tool='psql',
+                            reference='psql(sql="SELECT wages FROM w2 '
+                                      'WHERE applicant = ...")',
+                            content='w2_2024: 131400',
+                        ),
+                    ],
                 ),
             ),
             Entry(
@@ -164,7 +182,12 @@ Hearing(
                     answering='r1-q2',
                     answer='Filed but unaudited; §4.2 requires verification.',
                     exhibits=[
-                        Exhibit(source='psql', content='verification_status: none'),
+                        Exhibit(
+                            tool='psql',
+                            reference='psql(sql="SELECT verification_status '
+                                      'FROM income_docs WHERE ...")',
+                            content='verification_status: none',
+                        ),
                     ],
                 ),
             ),
@@ -245,7 +268,7 @@ interrogatory is needed.
 
 ```text
 round 1   Argument(advocate=APPROVE, exhibits=[psql])
-          Argument(advocate=DENY,    exhibits=[psql, tavily])
+          Argument(advocate=DENY,    exhibits=[psql, web_search])
           Concession(advocate=REFER)
           Ruling(verdict=APPROVE)
 ```
@@ -353,7 +376,7 @@ Advocates fan out concurrently, so `APPROVE` files before `DENY`'s model call
 gives up.
 
 ```text
-round 1   Argument(advocate=APPROVE, exhibits=[psql, tavily])
+round 1   Argument(advocate=APPROVE, exhibits=[psql, web_search])
           <DENY's provider unreachable; the caller's retry transport gave up>
 ```
 
@@ -383,7 +406,12 @@ ProceedingFailed(
                     advocate=<LoanDecision.APPROVE: 'approve'>,
                     claim='DTI is 0.38 on documented income.',
                     exhibits=[
-                        Exhibit(source='psql', content='schedule_c_2024: 182000'),
+                        Exhibit(
+                            tool='psql',
+                            reference='psql(sql="SELECT net_profit FROM '
+                                      'schedule_c WHERE applicant = ...")',
+                            content='schedule_c_2024: 182000',
+                        ),
                     ],
                 ),
             ),

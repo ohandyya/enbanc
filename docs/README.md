@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-09-02
+updated: 2026-09-04
 ---
 
 # Documentation
@@ -32,6 +32,7 @@ full ruleset.
 |---|---|
 | [`design/tribunal.md`](./design/tribunal.md) | The proceeding: rounds, interrogatories, concession, and the constraints that make the transcript complete |
 | [`design/api.md`](./design/api.md) | The public surface being designed toward `0.1.0` |
+| [`design/evidence.md`](./design/evidence.md) | Tools: what one is, how you add your own, and how what it returns becomes an exhibit a reviewer can check |
 | [`design/outcomes.md`](./design/outcomes.md) | Every way a proceeding can end, worked through with concrete values: a ruling, a spent round limit, a downed provider, a misconfigured tribunal |
 
 ### Decisions — ADRs
@@ -53,6 +54,8 @@ full ruleset.
 | [`decisions/0013-a-case-is-a-subclassable-base.md`](./decisions/0013-a-case-is-a-subclassable-base.md) | Why `Case` is an open base class users subclass rather than a second type parameter on `Transcript` and `Hearing`, why the base allows extra fields, and why `Transcript.case` must be `SerializeAsAny` |
 | [`decisions/0014-usage-is-broken-down-per-participant.md`](./decisions/0014-usage-is-broken-down-per-participant.md) | Why a `Hearing` splits its spend per advocate and judge as well as reporting a total, why the breakdown is the stored fact and the total its sum, and why `judge` becomes a reserved verdict value |
 | [`decisions/0015-interrogatory-ids-are-stamped-on-filing.md`](./decisions/0015-interrogatory-ids-are-stamped-on-filing.md) | Why the judge emits an id-less interrogatory and the tribunal stamps `r{round}-q{n}` when it files the continuance, why the recorded type's `id` is required with no default, and why `Response.answering` is stamped from the dispatch too |
+| [`decisions/0016-exhibits-are-stamped-citations.md`](./decisions/0016-exhibits-are-stamped-citations.md) | Why an advocate cites a ledgered source id instead of writing a reference, what a tool may return and why `Source` is opt-in, why the excerpt stays model-authored while everything around it is stamped, and why the shipped `web_search` is written against Tavily's SDK rather than wrapping PydanticAI's |
+| [`decisions/0017-read-only-is-a-contract.md`](./decisions/0017-read-only-is-a-contract.md) | Why `enbanc` cannot enforce read-only tools at the tool boundary as `tribunal.md` once claimed, why a declared-read-only flag and an approval-gated toolset were both rejected, and what real enforcement would cost |
 
 ### Guides — user-facing how-to
 

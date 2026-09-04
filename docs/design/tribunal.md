@@ -1,12 +1,14 @@
 ---
 status: draft
-updated: 2026-09-02
+updated: 2026-09-04
 ---
 
 # The tribunal
 
 How a decision is actually reached. Vocabulary is defined in
-[`../glossary.md`](../glossary.md); the public surface is in [`api.md`](./api.md).
+[`../glossary.md`](../glossary.md); the public surface is in
+[`api.md`](./api.md), and how advocates gather what they file is in
+[`evidence.md`](./evidence.md).
 
 > `status: draft` — nothing here is implemented. This describes the system being
 > built toward `0.1.0`, and it is the document to argue with before writing code.
@@ -99,9 +101,25 @@ file it leaves no trace. See
 [`0006`](../decisions/0006-the-transcript-schema.md), which refines the form of
 the invariant stated in [`0002`](../decisions/0002-the-judge-is-a-role.md).
 
-**Advocate tools are strictly read-only.** An adjudication must never mutate
-the world it is reasoning about. This is enforced at the tool boundary, not by
-instructing the model to behave.
+**Advocate tools are read-only.** An adjudication must never mutate the world it
+is reasoning about: a proceeding that changed the facts it was weighing would
+produce a record that no longer describes the thing decided. `enbanc` enforces
+this where it can — it ships no tool that writes, the judge has no tools at all,
+and the library itself has no mutation path — but a tool you pass is your code,
+and a function cannot be inspected for side effects. **Read-only is a contract
+you keep, not one `enbanc` checks**, and saying otherwise would be a guarantee
+the library cannot honor. See
+[`0017`](../decisions/0017-read-only-is-a-contract.md).
+
+**A filed exhibit carries a reference the tribunal stamped.** An advocate cites
+a source its tools actually returned and writes the excerpt it relies on; the
+tribunal fills in where that evidence came from. So a reviewer reading the
+record can follow any exhibit back to the document, row, or page behind it, and
+an advocate cannot cite something no tool produced. This is what makes the
+transcript checkable rather than merely complete — the audit claim above is
+otherwise only as good as the models' honesty about their own sources. See
+[`evidence.md`](./evidence.md) and
+[`0016`](../decisions/0016-exhibits-are-stamped-citations.md).
 
 **Concession is a first-class outcome, not a failure.** An advocate that
 concedes has done its job well. Treating concession as an error would pressure

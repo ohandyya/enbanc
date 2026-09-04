@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-09-02
+updated: 2026-09-04
 ---
 
 # Glossary
@@ -22,7 +22,10 @@ table is the whole tax.
 | **Filing** | Anything a participant enters into the record: an argument, a concession, a response, a continuance, or a ruling. |
 | **Argument** | An advocate's round-1 filing: a claim and its supporting exhibits. |
 | **Concession** | An advocate stating no reasonable case exists for its assigned verdict. A first-class outcome, not a failure. |
-| **Exhibit** | A piece of evidence entered into the record by an advocate. What it *files* — not everything its tools returned. |
+| **Tool** | A plain async function an advocate may call to gather evidence. Read-only, per-advocate, and PydanticAI's own — `enbanc` defines no tool base class and no tool decorator. |
+| **Source** | One piece of evidence a tool found, together with the reference that locates it. What tools *return*; most never become exhibits. |
+| **Reference** | The string that says where a piece of evidence lives — a URL, a document key, a file path, the query that produced a row. Each tool defines what a locator means for it; `enbanc` never parses one. |
+| **Exhibit** | A piece of evidence entered into the record by an advocate: its excerpt, plus the tool and reference the tribunal stamps from what that tool actually returned. What it *files* — not everything its tools returned. |
 | **Interrogatory** | A targeted question from the judge to a specific advocate, issued when it cannot yet rule. Carries an id naming the round it was issued in, stamped by the tribunal when the continuance is filed. |
 | **Response** | An advocate's answer to one interrogatory, entering new exhibits as needed. It cites that interrogatory's id, which the tribunal stamps from the dispatch — no participant writes an id. |
 | **Ruling** | The judge's decision: a verdict plus reasoning. Terminal. |
@@ -84,11 +87,17 @@ here, for a Pydantic reason recorded in
 
 ## Where the metaphor stops
 
-Tools and models look like ordinary PydanticAI: you pass PydanticAI tools, and
-you construct a PydanticAI `Model` and inject it. Usage comes back as
-PydanticAI's `RunUsage`. No `@discovery` decorator, no `jurisdictions` for
+Tools and models look like ordinary PydanticAI: you pass PydanticAI tools and
+toolsets, and you construct a PydanticAI `Model` and inject it. Usage comes back
+as PydanticAI's `RunUsage`. No `@discovery` decorator, no `jurisdictions` for
 providers. Someone arriving from PydanticAI should recognize all three
 immediately.
+
+A tool is a plain async function and stays one. `Source` is the only `enbanc`
+type that appears anywhere near it, it is a *return* type rather than a base
+class or a registration, and it is optional: a tool that returns a string is
+still citable, just with the call as its reference. See
+[`design/evidence.md`](./design/evidence.md).
 
 The metaphor governs `enbanc`'s vocabulary, not its surface area. Anything
 `enbanc` does not expose — temperature, retries, per-request settings — you

@@ -1,15 +1,15 @@
 ---
 status: draft
-updated: 2026-09-02
+updated: 2026-09-04
 ---
 
 # Public API
 
 The surface being designed toward `0.1.0`. Mechanics behind it are in
-[`tribunal.md`](./tribunal.md); terms are defined in
-[`../glossary.md`](../glossary.md). This document specifies the types —
-[`outcomes.md`](./outcomes.md) shows every way a proceeding can end, with
-values in them.
+[`tribunal.md`](./tribunal.md) and [`evidence.md`](./evidence.md); terms are
+defined in [`../glossary.md`](../glossary.md). This document specifies the
+types — [`outcomes.md`](./outcomes.md) shows every way a proceeding can end,
+with values in them.
 
 > `status: draft` — none of this exists yet, and it will change. This is the
 > target, not a reference.
@@ -22,6 +22,7 @@ from pydantic_ai.models.anthropic import AnthropicModel
 from enbanc import (
     Tribunal, Judge, Advocate, Statute, Case, Verdict, Ruling, Undecided,
 )
+from enbanc.tools import web_search
 
 class LoanDecision(Verdict):
     APPROVE = "approve"
@@ -39,7 +40,7 @@ tribunal = Tribunal(
     model=AnthropicModel("claude-sonnet-5"),
     judge=Judge(guidance="Where the record is ambiguous, deny."),
     advocates={
-        LoanDecision.APPROVE: Advocate(tools=[psql, tavily]),
+        LoanDecision.APPROVE: Advocate(tools=[psql, web_search(api_key=...)]),
         LoanDecision.DENY: Advocate(
             tools=[psql],
             guidance="Weigh documented income over stated income.",
@@ -98,12 +99,16 @@ is not a type parameter: `enbanc` renders a case and records it, and reads no
 field of it. See
 [`0013`](../decisions/0013-a-case-is-a-subclassable-base.md).
 
-**`Advocate`** — assigned one verdict value, given its own read-only tools. Tools
-are per-advocate on purpose: the advocate for approval may need different
+**`Advocate`** — assigned one verdict value, given its own read-only `tools` and
+`toolsets`. Both are PydanticAI's, passed through as they are: a tool is a plain
+async function, and `enbanc` defines no tool base class and no tool decorator.
+They are per-advocate on purpose — the advocate for approval may need different
 evidence sources than the advocate for denial, and giving both the same toolbox
 would flatten a real asymmetry. Takes an optional `model`, overriding the
 tribunal's, and optional `guidance` — prose you write, which `enbanc` appends to
-the procedural prompt it owns and does not otherwise touch.
+the procedural prompt it owns and does not otherwise touch. What a tool may
+return, and how its output becomes a citable exhibit, is
+[`evidence.md`](./evidence.md).
 
 **`Judge`** — exactly one, and it has no tools. It reasons only over what
 advocates put into the record, which is what keeps the transcript a complete
@@ -267,8 +272,10 @@ division `Statute` draws just above.
 
 ```python
 class Exhibit(BaseModel):
-    source: str              # the tool that produced it
-    content: str
+    tool: str                # stamped on filing; the tool that produced it
+    reference: str           # stamped on filing; where a reviewer looks
+    content: str             # the advocate's excerpt
+    label: str | None = None # stamped on filing, when the source had one
 
 class Argument(BaseModel, Generic[VerdictT]):
     kind: Literal["argument"] = "argument"
@@ -293,6 +300,17 @@ class Response(BaseModel, Generic[VerdictT]):
     answer: str
     exhibits: list[Exhibit] = []
 ```
+
+**An exhibit's `reference` is stamped, not written.** It is the string a
+reviewer follows to check the evidence — a URL, a document key, a file path, the
+query that produced a row — and its whole value is that it can be trusted, so
+the advocate does not author it. It cites a source the tribunal ledgered from a
+tool result, and the tribunal fills `tool`, `reference`, and `label` from that
+ledger when it files. `content` is the one field the advocate writes: the
+excerpt it relies on. What a `reference` may be, and why the excerpt is not
+stamped verbatim too, is [`evidence.md`](./evidence.md); the mechanism is
+[Where ids come from](#where-ids-come-from) and
+[`0016`](../decisions/0016-exhibits-are-stamped-citations.md).
 
 **An argument has no `position` field.** The filing already names its
 `advocate`, and an advocate is assigned exactly one verdict, so the position it
@@ -379,6 +397,26 @@ advocate run per interrogatory, so it knows which question that run answers and
 fills the link from the dispatch rather than from the model. No participant
 authors an id in either direction, and a response citing a question nobody asked
 is not a state the library can reach.
+
+**An advocate's exhibits are stamped by the same move.** Its output type
+carries a private `_Exhibit` — a ledger id and the excerpt — and the tribunal
+resolves the id into the public `Exhibit` when it files:
+
+```python
+class _Exhibit(BaseModel):   # what an advocate emits
+    source: str              # a ledger id, e.g. "s2"
+    content: str
+```
+
+The parallel is exact. In both cases a model is asked only for what it knows —
+the question it wants asked, the passage it relies on — and every field whose
+correctness the record depends on is filled by the tribunal from something it
+observed. An advocate citing a source no tool returned is as unreachable a state
+as a response citing a question nobody asked, and for the same reason. The one
+difference is where an unresolvable value lands: an interrogatory id cannot be
+wrong, because the tribunal writes both ends, while a source id is the
+advocate's to get right and a bad one fails output validation. See
+[`0016`](../decisions/0016-exhibits-are-stamped-citations.md).
 
 This is the [`Entry`](#the-record) move applied one level down. `round` and
 `filed_at` are the tribunal's facts and live on an envelope; an id is the same
@@ -499,7 +537,7 @@ Every filing any participant makes, in the order it was made. Three advocates,
 two rounds, seven entries:
 
 ```text
-round 1   Argument(advocate=APPROVE, exhibits=[psql, tavily])
+round 1   Argument(advocate=APPROVE, exhibits=[psql, web_search])
           Argument(advocate=DENY,    exhibits=[psql])
           Concession(advocate=REFER)
           Continuance(interrogatories=[r1-q1 -> APPROVE, r1-q2 -> DENY])
