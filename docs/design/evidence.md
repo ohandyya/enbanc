@@ -361,11 +361,10 @@ one returns `TypedDict`s, so using it would require an adapter layer between the
 tool and the ledger that no user's tool ever has. The default tool would then
 stop being an example of the mechanism and become an exception to it.
 
-Tavily is an optional dependency, so the core install stays thin:
-
-```bash
-pip install "enbanc[web]"
-```
+`tavily-python` is a core dependency, so `web_search` imports on a plain
+install. It is the only tool `0.1.0` ships and it appears in the first example a
+reader copies; a default that a default install cannot import is not a default.
+See [`0018`](../decisions/0018-the-search-client-is-a-core-dependency.md).
 
 **Database query and local file search are not in `0.1.0`.** They are the next
 two, and the `reference` contract is what makes them additive rather than

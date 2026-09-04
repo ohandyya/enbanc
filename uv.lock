@@ -545,10 +545,6 @@ version = "0.0.4"
 source = { editable = "." }
 dependencies = [
     { name = "pydantic-ai" },
-]
-
-[package.optional-dependencies]
-web = [
     { name = "tavily-python" },
 ]
 
@@ -564,9 +560,8 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "pydantic-ai", specifier = ">=2.36.0" },
-    { name = "tavily-python", marker = "extra == 'web'", specifier = ">=0.5.0" },
+    { name = "tavily-python", specifier = ">=0.8.1" },
 ]
-provides-extras = ["web"]
 
 [package.metadata.requires-dev]
 dev = [

@@ -29,8 +29,7 @@ Not yet. Wait for `0.1.0`.
 Once it ships:
 
 ```bash
-uv add enbanc          # core
-uv add "enbanc[web]"   # plus the built-in web search tool
+uv add enbanc
 ```
 
 ## A taste

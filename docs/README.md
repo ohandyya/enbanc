@@ -56,6 +56,7 @@ full ruleset.
 | [`decisions/0015-interrogatory-ids-are-stamped-on-filing.md`](./decisions/0015-interrogatory-ids-are-stamped-on-filing.md) | Why the judge emits an id-less interrogatory and the tribunal stamps `r{round}-q{n}` when it files the continuance, why the recorded type's `id` is required with no default, and why `Response.answering` is stamped from the dispatch too |
 | [`decisions/0016-exhibits-are-stamped-citations.md`](./decisions/0016-exhibits-are-stamped-citations.md) | Why an advocate cites a ledgered source id instead of writing a reference, what a tool may return and why `Source` is opt-in, why the excerpt stays model-authored while everything around it is stamped, and why the shipped `web_search` is written against Tavily's SDK rather than wrapping PydanticAI's |
 | [`decisions/0017-read-only-is-a-contract.md`](./decisions/0017-read-only-is-a-contract.md) | Why `enbanc` cannot enforce read-only tools at the tool boundary as `tribunal.md` once claimed, why a declared-read-only flag and an approval-gated toolset were both rejected, and what real enforcement would cost |
+| [`decisions/0018-the-search-client-is-a-core-dependency.md`](./decisions/0018-the-search-client-is-a-core-dependency.md) | Why `tavily-python` is a core dependency rather than the `enbanc[web]` extra `0016` called for, what the install actually costs once `pydantic-ai`'s tree is accounted for, and why this is not precedent for a second provider SDK |
 
 ### Guides — user-facing how-to
 
