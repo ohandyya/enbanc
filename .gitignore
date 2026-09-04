@@ -32,3 +32,4 @@ htmlcov/
 # Local files that are not meant to be included
 .claude/settings.local.json
 local/
+pr_summary.md

@@ -16,6 +16,12 @@ classifiers = [
 ]
 dependencies = [
     "pydantic-ai>=2.36.0",
+    # `web_search` is the default tool docs/design/evidence.md ships, and it calls Tavily's SDK
+    # directly rather than wrapping PydanticAI's built-in. It is core rather than an extra because
+    # it appears in the README sample and in api.md's first example: a default a default install
+    # cannot import is not a default. Only tiktoken is genuinely new — httpx and requests already
+    # arrive with pydantic-ai. See docs/decisions/0018-the-search-client-is-a-core-dependency.md.
+    "tavily-python>=0.8.1",
 ]
 
 [project.urls]

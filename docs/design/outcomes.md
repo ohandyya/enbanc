@@ -1,6 +1,6 @@
 ---
 status: draft
-updated: 2026-09-02
+updated: 2026-09-04
 ---
 
 # Every way a proceeding ends
@@ -18,13 +18,16 @@ this is the same surface with values in it.
 | Ending | `hear()` | `hearing.outcome` | The transcript ends on |
 |---|---|---|---|
 | The judge rules | returns a `Hearing` | `Ruling(...)` | that same `Ruling` |
-| `max_rounds` is spent | returns a `Hearing` | `Undecided()` | a `Continuance` |
+| `max_rounds` is spent | returns a `Hearing` | `Undecided(reason='rounds')` | a `Continuance` |
+| The `budget` is spent | returns a `Hearing` | `Undecided(reason='budget')` | a `Continuance` |
 | A participant cannot be heard | raises `ProceedingFailed` | — | wherever it stopped |
 | The tribunal is misconfigured | never runs — `Tribunal(...)` raises | — | there is none |
 
-Two endings, one interruption, and one thing that never starts. Only the first
-two produce a `Hearing`, which is the whole of the division: a `Hearing` means
-the tribunal reached the end of its own process.
+Two endings, one interruption, and one thing that never starts — the two
+`Undecided` rows are one ending with two causes, which is why they share a type
+and differ by a field. Only the first three produce a `Hearing`, which is the
+whole of the division: a `Hearing` means the tribunal reached the end of its own
+process, inside the limits it was given.
 
 ## The tribunal these examples use
 
@@ -44,7 +47,7 @@ tribunal = Tribunal(
     model=AnthropicModel("claude-sonnet-5"),
     judge=Judge(guidance="Where the record is ambiguous, deny."),
     advocates={
-        LoanDecision.APPROVE: Advocate(tools=[psql, tavily]),
+        LoanDecision.APPROVE: Advocate(tools=[psql, web_search(api_key=...)]),
         LoanDecision.DENY: Advocate(tools=[psql]),
         LoanDecision.REFER: Advocate(tools=[psql]),
     },
@@ -60,7 +63,7 @@ Three advocates argue, one concedes, the judge asks two questions and then
 rules.
 
 ```text
-round 1   Argument(advocate=APPROVE, exhibits=[psql, tavily])
+round 1   Argument(advocate=APPROVE, exhibits=[psql, web_search])
           Argument(advocate=DENY,    exhibits=[psql])
           Concession(advocate=REFER)
           Continuance(interrogatories=[r1-q1 -> APPROVE, r1-q2 -> DENY])
@@ -91,6 +94,14 @@ Hearing(
             name='underwriting-v3',
         ),
         case=Case(applicant='A. Okonkwo', income=182000),
+        verdicts=[
+            <LoanDecision.APPROVE: 'approve'>,
+            <LoanDecision.DENY: 'deny'>,
+            <LoanDecision.REFER: 'refer to a senior underwriter for manual review'>,
+        ],
+        max_rounds=5,
+        guidance={'judge': 'Where the record is ambiguous, deny.'},
+        procedure='p1',
         entries=[
             Entry(
                 round=1,
@@ -100,8 +111,21 @@ Hearing(
                     advocate=<LoanDecision.APPROVE: 'approve'>,
                     claim='DTI is 0.38 on documented income.',
                     exhibits=[
-                        Exhibit(source='psql', content='schedule_c_2024: 182000'),
-                        Exhibit(source='tavily', content='...'),
+                        Exhibit(
+                            source='s1',
+                            tool='psql',
+                            reference='psql(sql="SELECT net_profit FROM '
+                                      'schedule_c WHERE applicant = ...")',
+                            content='schedule_c_2024: 182000',
+                        ),
+                        Exhibit(
+                            source='s3',
+                            tool='web_search',
+                            reference='https://www.irs.gov/forms-pubs/about-schedule-c-form-1040',
+                            label='About Schedule C (Form 1040)',
+                            content='Net profit from Schedule C is reportable '
+                                    'self-employment income.',
+                        ),
                     ],
                 ),
             ),
@@ -112,7 +136,15 @@ Hearing(
                     kind='argument',
                     advocate=<LoanDecision.DENY: 'deny'>,
                     claim='Stated income unverified; DTI is 0.51 on W-2s.',
-                    exhibits=[Exhibit(source='psql', content='w2_2024: 131400')],
+                    exhibits=[
+                        Exhibit(
+                            source='s1',
+                            tool='psql',
+                            reference='psql(sql="SELECT wages FROM w2 '
+                                      'WHERE applicant = ...")',
+                            content='w2_2024: 131400',
+                        ),
+                    ],
                 ),
             ),
             Entry(
@@ -164,7 +196,13 @@ Hearing(
                     answering='r1-q2',
                     answer='Filed but unaudited; §4.2 requires verification.',
                     exhibits=[
-                        Exhibit(source='psql', content='verification_status: none'),
+                        Exhibit(
+                            source='s2',
+                            tool='psql',
+                            reference='psql(sql="SELECT verification_status '
+                                      'FROM income_docs WHERE ...")',
+                            content='verification_status: none',
+                        ),
                     ],
                 ),
             ),
@@ -176,6 +214,62 @@ Hearing(
                     verdict=<LoanDecision.DENY: 'deny'>,
                     reasoning='Documented income governs. ...',
                 ),
+            ),
+        ],
+        ledger=[
+            # APPROVE's tools returned three sources; it filed two.
+            Retrieval(
+                id='s1', round=1, advocate=<LoanDecision.APPROVE: 'approve'>,
+                tool='psql',
+                reference='psql(sql="SELECT net_profit FROM schedule_c '
+                          'WHERE applicant = ...")',
+                content='schedule_c_2024: 182000',
+            ),
+            Retrieval(
+                id='s2', round=1, advocate=<LoanDecision.APPROVE: 'approve'>,
+                tool='psql',
+                reference='psql(sql="SELECT verification_status FROM '
+                          'income_docs WHERE ...")',
+                content='verification_status: none',   # never cited by APPROVE
+            ),
+            Retrieval(
+                id='s3', round=1, advocate=<LoanDecision.APPROVE: 'approve'>,
+                tool='web_search',
+                reference='https://www.irs.gov/forms-pubs/about-schedule-c-form-1040',
+                label='About Schedule C (Form 1040)',
+                content='Net profit from Schedule C is reportable '
+                        'self-employment income.',
+            ),
+            # DENY's, numbered from s1 again — ids are per advocate.
+            Retrieval(
+                id='s1', round=1, advocate=<LoanDecision.DENY: 'deny'>,
+                tool='psql',
+                reference='psql(sql="SELECT wages FROM w2 WHERE applicant = ...")',
+                content='w2_2024: 131400',
+            ),
+            Retrieval(
+                id='s2', round=2, advocate=<LoanDecision.DENY: 'deny'>,
+                tool='psql',
+                reference='psql(sql="SELECT verification_status FROM '
+                          'income_docs WHERE ...")',
+                content='verification_status: none',
+            ),
+            # REFER conceded without calling a tool, so it has no retrievals.
+        ],
+        failures=[
+            # Why APPROVE's round-2 response cites nothing.
+            ToolFailure(
+                round=2, advocate=<LoanDecision.APPROVE: 'approve'>,
+                tool='web_search',
+                reference='web_search(query="self-employment income '
+                          'verification underwriting")',
+                detail='Timed out after 15.0 seconds.',
+            ),
+            ToolFailure(
+                round=2, advocate=<LoanDecision.APPROVE: 'approve'>,
+                tool='web_search',
+                reference='web_search(query="§4.2 filed income")',
+                detail='Timed out after 15.0 seconds.',
             ),
         ],
     ),
@@ -217,7 +311,51 @@ hearing.rounds                                       # 2 — not 5, the budget
 len(hearing.transcript)                              # 7
 hearing.outcome is hearing.transcript[-1].filing     # True — a pointer, not a copy
 hearing.usage_by_participant["judge"].input_tokens   # 20312 — the largest line
+len(hearing.transcript.ledger)                       # 5 retrieved, 4 filed
+len(hearing.transcript.failures)                     # 2 — both APPROVE, round 2
 ```
+
+**The ledger shows what the filings do not.** `APPROVE` retrieved five sources
+across the proceeding and cited four. The one it left out —
+`(APPROVE, 's2')`, the verification status — is the fact `DENY` filed in round 2
+and the judge ruled on. Reading only the entries, `APPROVE` looks like an
+advocate that argued from the evidence it had. Reading the ledger, it is an
+advocate that queried the verification status, saw `none`, and argued around it:
+
+```python
+cited = {(e.filing.advocate, x.source)
+         for e in hearing.transcript
+         for x in getattr(e.filing, "exhibits", [])}
+[(r.advocate, r.id) for r in hearing.transcript.ledger
+ if (r.advocate, r.id) not in cited]
+# [(<LoanDecision.APPROVE: 'approve'>, 's2')]
+```
+
+Nothing here calls that misconduct — an advocate is *supposed* to argue one
+side, and declining to volunteer the other side's best fact is the job. What the
+ledger changes is that a reviewer can see it happened and weigh the argument
+accordingly, instead of reading a record in which it never occurred. Note also
+that both advocates ran the same query and it is ledgered twice, once under each
+— retrievals are per advocate, because what each one saw is a separate fact.
+
+**The empty `exhibits` in APPROVE's round-2 response has an explanation, and it
+is in `failures`.** Read the entries alone and that response is an advocate with
+nothing to add. Read `failures` and it is an advocate whose two searches timed
+out. The judge ruled against it in the next entry.
+
+Nothing here says the ruling was wrong. `enbanc` does not mark this hearing
+degraded, does not warn, and does not adjust the outcome — a populated
+`failures` is not a finding. What it does is make the question askable, which is
+the whole difference between a record that explains a ruling and one that merely
+reports it.
+
+**Ids restart per advocate.** `APPROVE`'s `s1` and `DENY`'s `s1` are different
+retrievals, which is why an exhibit resolves on `(advocate, id)` and not on `id`
+alone.
+
+**`REFER` has no retrievals at all.** It conceded without calling a tool, and an
+advocate that searched nothing is distinguishable from one that searched and
+filed nothing — a distinction the record could not make before.
 
 **The concession is not a failure.** `REFER` looked at the record, found no case
 worth making, and said so. That filing is why the transcript explains a
@@ -245,7 +383,7 @@ interrogatory is needed.
 
 ```text
 round 1   Argument(advocate=APPROVE, exhibits=[psql])
-          Argument(advocate=DENY,    exhibits=[psql, tavily])
+          Argument(advocate=DENY,    exhibits=[psql, web_search])
           Concession(advocate=REFER)
           Ruling(verdict=APPROVE)
 ```
@@ -266,7 +404,11 @@ Hearing(
 
 A `Continuance` never appears. `max_rounds=5` is a ceiling, not a target.
 
-## 3. The round limit is spent
+## 3. The envelope is spent
+
+Two ways to run out, one outcome type. `Undecided.reason` says which.
+
+### The round limit
 
 Same tribunal, but built with `max_rounds=2`. The judge asks, gets answers,
 and still cannot rule.
@@ -286,11 +428,19 @@ hearing = await tribunal.hear(case)      # returns normally — nothing raises
 
 ```python
 Hearing(
-    outcome=Undecided(kind='undecided'),
+    outcome=Undecided(kind='undecided', reason='rounds'),
     transcript=Transcript(
         question='Shall the bank loan this applicant $500k?',
         statute=Statute(text='...', name='underwriting-v3'),
         case=Case(applicant='A. Okonkwo', income=182000),
+        verdicts=[
+            <LoanDecision.APPROVE: 'approve'>,
+            <LoanDecision.DENY: 'deny'>,
+            <LoanDecision.REFER: 'refer to a senior underwriter for manual review'>,
+        ],
+        max_rounds=2,
+        guidance={'judge': 'Where the record is ambiguous, deny.'},
+        procedure='p1',
         entries=[
             # ... rounds 1 and 2 as above; the last entry is:
             Entry(
@@ -328,10 +478,11 @@ hearing.outcome is hearing.transcript[-1].filing     # False — nobody filed it
 #  'Would verification alone resolve this?']
 ```
 
-**`Undecided()` has one field, the `kind` tag, and that is deliberate.** What
+**`Undecided` carries `reason` and nothing else, and that is deliberate.** What
 the judge still wanted is already in the record — the interrogatories on the
-final `Continuance` — and how much budget was spent is `hearing.rounds`.
-Copying either onto the outcome would create two places that can disagree.
+final `Continuance` — and how many rounds ran is `hearing.rounds`. Copying
+either onto the outcome would create two places that can disagree. `reason` is
+not that: nothing else in the artifact says which limit stopped the proceeding.
 
 **You still pay for it.** `hearing.usage` reports what an undecided proceeding
 cost, exactly as a decided one does — and `usage_by_participant` still names
@@ -340,6 +491,57 @@ every participant, because every one of them ran.
 **This is not an error.** It serializes, it carries a complete record of why it
 stopped, and a reviewer can pick it up. Handing a hard case back undecided is a
 finding about the case.
+
+### The budget
+
+Same tribunal again, this time with room to deliberate but not to pay for it:
+`max_rounds=5` and `budget=UsageLimits(cost_limit=Decimal("0.40"))`. Round 2
+finishes, the judge files a third `Continuance`, and the total spent has passed
+the ceiling — so round 3 is never dispatched.
+
+```text
+round 1   Argument(APPROVE), Argument(DENY), Concession(REFER)
+          Continuance(interrogatories=[r1-q1 -> APPROVE, r1-q2 -> DENY])
+
+round 2   Response(APPROVE), Response(DENY)
+          Continuance(interrogatories=[r2-q1 -> APPROVE, r2-q2 -> DENY])
+          ^ 2 of 5 deliberations. $0.41 spent of $0.40. No round 3 follows.
+```
+
+```python
+hearing = await tribunal.hear(case)      # returns normally — nothing raises
+```
+
+```python
+Hearing(
+    outcome=Undecided(kind='undecided', reason='budget'),
+    transcript=Transcript(...),          # identical in shape to the case above
+    usage_by_participant={...},
+    usage=RunUsage(requests=11, tool_calls=4, cost=Decimal('0.41'), ...),
+    rounds=2,
+)
+```
+
+```python
+hearing.rounds                 # 2 — and max_rounds was 5
+hearing.usage.cost             # Decimal('0.41') — the ceiling was 0.40
+```
+
+**The transcript is indistinguishable from the round-limit case; the outcome is
+not.** Both end on a `Continuance` nobody answered, and that is exactly why
+`reason` exists: a reviewer reading the record alone cannot tell a hard case
+from an expensive one, and `hearing.rounds < max_rounds` is an inference, not a
+statement.
+
+**It stopped after a whole round, not inside one.** The budget is checked
+between rounds, so every round in the transcript is complete and every advocate
+that was dispatched filed. That is what makes this an outcome rather than a
+`ProceedingFailed` — the tribunal reached the end of its own process, which here
+means the end of what it was allowed to spend.
+
+**It overshot, and the record says by how much.** `usage.cost` is past
+`cost_limit`, because nothing halts an advocate mid-run. The guarantee is that a
+proceeding stops within one round of its budget, not that it never crosses it.
 
 ## 4. A participant cannot be heard
 
@@ -353,7 +555,7 @@ Advocates fan out concurrently, so `APPROVE` files before `DENY`'s model call
 gives up.
 
 ```text
-round 1   Argument(advocate=APPROVE, exhibits=[psql, tavily])
+round 1   Argument(advocate=APPROVE, exhibits=[psql, web_search])
           <DENY's provider unreachable; the caller's retry transport gave up>
 ```
 
@@ -374,6 +576,14 @@ ProceedingFailed(
         question='Shall the bank loan this applicant $500k?',
         statute=Statute(text='...', name='underwriting-v3'),
         case=Case(applicant='A. Okonkwo', income=182000),
+        verdicts=[
+            <LoanDecision.APPROVE: 'approve'>,
+            <LoanDecision.DENY: 'deny'>,
+            <LoanDecision.REFER: 'refer to a senior underwriter for manual review'>,
+        ],
+        max_rounds=5,
+        guidance={'judge': 'Where the record is ambiguous, deny.'},
+        procedure='p1',
         entries=[
             Entry(
                 round=1,
@@ -383,7 +593,13 @@ ProceedingFailed(
                     advocate=<LoanDecision.APPROVE: 'approve'>,
                     claim='DTI is 0.38 on documented income.',
                     exhibits=[
-                        Exhibit(source='psql', content='schedule_c_2024: 182000'),
+                        Exhibit(
+                            source='s1',
+                            tool='psql',
+                            reference='psql(sql="SELECT net_profit FROM '
+                                      'schedule_c WHERE applicant = ...")',
+                            content='schedule_c_2024: 182000',
+                        ),
                     ],
                 ),
             ),
@@ -549,16 +765,19 @@ async with tribunal.hear_stream(case) as proceeding:
 proceeding.hearing.outcome        # Ruling(verdict=<LoanDecision.DENY: 'deny'>, ...)
 ```
 
-**The round limit** — the loop ends after the final `Continuance`, and nothing
-raises:
+**The round limit or the budget** — the loop ends after the final
+`Continuance`, and nothing raises:
 
 ```python
         # round 1: argument, argument, concession, continuance
         # round 2: response, response, continuance
-        #                              ^ last entry; max_rounds spent
+        #                              ^ last entry; the envelope is spent
 
-proceeding.hearing.outcome        # Undecided(kind='undecided')
+proceeding.hearing.outcome        # Undecided(kind='undecided', reason='rounds')
 ```
+
+A budget stop looks the same from the stream — the entries arrive, the loop
+ends after a `Continuance`, and only `reason` differs.
 
 **A failure** — the exception comes out of the `async with`, not the `async
 for`, and the partial record is still readable:
@@ -625,8 +844,8 @@ also legitimate — it carries the question, statute, and case, and needs no
 ## What is not here
 
 **A forced verdict.** No ending in this document converts "we could not decide"
-into a decision. `Undecided` is the answer to a spent round limit, and it stays
-an answer.
+into a decision. `Undecided` is the answer to a spent envelope — rounds or
+budget — and it stays an answer.
 
 **A ruling on a partial bench.** There is no example of the judge ruling after
 an advocate dropped out, because the design has none: a participant that cannot

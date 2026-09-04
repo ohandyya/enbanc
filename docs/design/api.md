@@ -1,15 +1,15 @@
 ---
 status: draft
-updated: 2026-09-02
+updated: 2026-09-04
 ---
 
 # Public API
 
 The surface being designed toward `0.1.0`. Mechanics behind it are in
-[`tribunal.md`](./tribunal.md); terms are defined in
-[`../glossary.md`](../glossary.md). This document specifies the types —
-[`outcomes.md`](./outcomes.md) shows every way a proceeding can end, with
-values in them.
+[`tribunal.md`](./tribunal.md) and [`evidence.md`](./evidence.md); terms are
+defined in [`../glossary.md`](../glossary.md). This document specifies the
+types — [`outcomes.md`](./outcomes.md) shows every way a proceeding can end,
+with values in them.
 
 > `status: draft` — none of this exists yet, and it will change. This is the
 > target, not a reference.
@@ -17,11 +17,15 @@ values in them.
 ## Shape
 
 ```python
+from decimal import Decimal
+
 from pydantic_ai.models.anthropic import AnthropicModel
+from pydantic_ai.usage import UsageLimits
 
 from enbanc import (
     Tribunal, Judge, Advocate, Statute, Case, Verdict, Ruling, Undecided,
 )
+from enbanc.tools import web_search
 
 class LoanDecision(Verdict):
     APPROVE = "approve"
@@ -39,13 +43,15 @@ tribunal = Tribunal(
     model=AnthropicModel("claude-sonnet-5"),
     judge=Judge(guidance="Where the record is ambiguous, deny."),
     advocates={
-        LoanDecision.APPROVE: Advocate(tools=[psql, tavily]),
+        LoanDecision.APPROVE: Advocate(tools=[psql, web_search(api_key=...)]),
         LoanDecision.DENY: Advocate(
             tools=[psql],
             guidance="Weigh documented income over stated income.",
         ),
     },
     max_rounds=5,
+    budget=UsageLimits(cost_limit=Decimal("2.00")),
+    max_concurrency=4,
 )
 
 hearing = await tribunal.hear(Case(applicant=..., income=...))
@@ -53,7 +59,7 @@ hearing = await tribunal.hear(Case(applicant=..., income=...))
 match hearing.outcome:
     case Ruling(verdict=verdict, reasoning=reasoning):
         verdict                     # LoanDecision.DENY
-    case Undecided():               # max_rounds spent, the judge never ruled
+    case Undecided(reason=reason):  # the rounds or the budget ran out
         ...
 
 hearing.transcript                  # every filing, in order
@@ -61,8 +67,8 @@ hearing.usage                       # tokens and cost, judge plus advocates
 hearing.usage_by_participant        # the same spend, split by who incurred it
 ```
 
-That `match` is not decoration. A proceeding either produces a ruling or spends
-`max_rounds` deliberations without reaching one, and `Outcome` is a
+That `match` is not decoration. A proceeding either produces a ruling or runs
+out of the envelope it was given without reaching one, and `Outcome` is a
 discriminated union rather than an optional so the second arm cannot be read
 past — a type checker will not let you touch `.verdict` until you have narrowed.
 
@@ -98,12 +104,16 @@ is not a type parameter: `enbanc` renders a case and records it, and reads no
 field of it. See
 [`0013`](../decisions/0013-a-case-is-a-subclassable-base.md).
 
-**`Advocate`** — assigned one verdict value, given its own read-only tools. Tools
-are per-advocate on purpose: the advocate for approval may need different
+**`Advocate`** — assigned one verdict value, given its own read-only `tools` and
+`toolsets`. Both are PydanticAI's, passed through as they are: a tool is a plain
+async function, and `enbanc` defines no tool base class and no tool decorator.
+They are per-advocate on purpose — the advocate for approval may need different
 evidence sources than the advocate for denial, and giving both the same toolbox
 would flatten a real asymmetry. Takes an optional `model`, overriding the
 tribunal's, and optional `guidance` — prose you write, which `enbanc` appends to
-the procedural prompt it owns and does not otherwise touch.
+the procedural prompt it owns and does not otherwise touch. What a tool may
+return, and how its output becomes a citable exhibit, is
+[`evidence.md`](./evidence.md).
 
 **`Judge`** — exactly one, and it has no tools. It reasons only over what
 advocates put into the record, which is what keeps the transcript a complete
@@ -113,16 +123,20 @@ there is nothing to configure there. Like an advocate, it takes an optional
 `model` and optional `guidance`.
 
 **`Tribunal`** — holds the question, statute, judge, advocates, default model,
-and round limit. Async, because every round fans out across advocates. The
-`advocates` mapping must cover every value of the verdict enum: a missing key
-and an unknown key each raise `ConfigurationError` at construction, so adding an
-enum member fails loudly instead of quietly seating a tool-less advocate nobody
-meant to create.
+and the limits a proceeding runs inside: `max_rounds`, an optional `budget`, and
+an optional `max_concurrency`. Async, because every round fans out across
+advocates. The `advocates` mapping must cover every value of the verdict enum: a
+missing key and an unknown key each raise `ConfigurationError` at construction,
+so adding an enum member fails loudly instead of quietly seating a tool-less
+advocate nobody meant to create.
 
 **`Transcript`** — the append-only record of every filing, and the audit
 artifact. Self-contained: it carries the question, the statute, and the case
 alongside the entries, so a transcript dumped to JSON is a complete account on
-its own rather than a fragment that needs the `Hearing` to be legible.
+its own rather than a fragment that needs the `Hearing` to be legible. Beside
+the entries it carries the `ledger` — every source every advocate's tools
+returned, filed or not — so the record answers *what was left out?* as well as
+*what was this decided on?*
 
 **`Hearing`** — what `hear()` returns: the outcome, the transcript, what the
 proceeding spent — in total and per participant — and how many rounds ran. A
@@ -130,9 +144,15 @@ proceeding spent — in total and per participant — and how many rounds ran. A
 it could not, `hear()` raises instead.
 
 **`Outcome`** — how the proceeding ended, as a discriminated union: a `Ruling`,
-or `Undecided` when the round limit was spent without one. Both are records, and
-both serialize, because a proceeding that could not decide is a finding about
-the case and belongs in the audit artifact.
+or `Undecided` when the rounds or the budget ran out without one. Both are
+records, and both serialize, because a proceeding that stopped inside the limits
+it was given belongs in the audit artifact whether or not it decided.
+
+**`instructions_for(participant)`** — the assembled system prompt one
+participant will run under: `enbanc`'s procedural text, the question, the statute,
+the assignment, and your `guidance`. Takes no case, because a case is not in the
+instructions, so you can read what your guidance did before spending anything.
+Raises `ConfigurationError` for a participant this tribunal does not seat.
 
 **`hear(case)`** — runs the proceeding and returns the `Hearing`.
 
@@ -203,7 +223,9 @@ positional argument, and the alternative that would have preserved one
 (`RootModel[str]`) holds exactly one field — `name` is a second one the
 transcript needs.
 
-Turning a statute into prompt text is `enbanc`'s job, not the statute's.
+Turning a statute into prompt text is `enbanc`'s job, not the statute's — it
+becomes its own instruction part, whole and unescaped, in every participant's
+system prompt ([`prompting.md`](./prompting.md#how-an-agent-is-assembled)).
 Putting rendering on the object would hand back the behavior
 [`0001`](../decisions/0001-statute-carries-no-model.md) removed. There is no
 `Statute.draft()` and there will not be: drafting needs a target representation
@@ -261,14 +283,67 @@ transcript claims was decided on, and facts that could be edited mid-hearing
 would make that account unfalsifiable.
 
 Turning a case into prompt text is `enbanc`'s job, not the case's — the same
-division `Statute` draws just above.
+division `Statute` draws just above. It renders as `model_dump_json(indent=2)`
+in the round-1 turn, which is the one generic form that survives `enbanc` reading
+no field of it ([`prompting.md`](./prompting.md#round-1-advocate)).
+
+### The governors
+
+```python
+Tribunal(
+    ...,
+    max_rounds=5,                                     # judge deliberations
+    budget=UsageLimits(cost_limit=Decimal("2.00")),   # the whole proceeding
+    max_concurrency=4,                                # advocates at once
+)
+```
+
+Three limits, and only the first is required. `max_rounds` counts deliberations
+and is what makes a proceeding terminate at all.
+
+**`budget` is PydanticAI's `UsageLimits`, scoped to the proceeding.** `enbanc`
+defines no budget type of its own, for the same reason it takes `RunUsage`
+rather than defining a usage type. What changes is the scope: PydanticAI applies
+these limits to one agent run, and `enbanc` applies them to the accumulated
+total across every participant — the same number `hearing.usage` reports. The
+fields keep their meanings, and the two that are per-request rather than
+cumulative, `per_request_input_tokens_limit` and `count_tokens_before_request`,
+have nothing to apply to at a round boundary and are ignored.
+
+**It is checked between rounds, never inside one.** Before dispatching a round,
+`enbanc` runs the limits against the total spent so far and stops if they are
+exceeded — so a proceeding that runs out of budget ends the way a proceeding
+that runs out of rounds does, on a whole round, with `Undecided(reason='budget')`
+as the outcome. The cost is that the governor is coarse: nothing halts a runaway
+mid-round, so a proceeding stops within one round of its budget rather than
+before crossing it.
+
+**`enbanc` passes no usage limit into an individual run**, which leaves
+PydanticAI's own default in place: `Agent.run` falls back to `UsageLimits()`, and
+`request_limit` defaults to 50, so each participant gets fifty model requests per
+round. That is not `enbanc`'s number and it is not configurable through
+`enbanc`; a run that exhausts it is a participant that could not be heard, and
+raises `ProceedingFailed` like any other.
+
+**`max_concurrency` is a different lever, not the same one in other units.** It
+bounds how many advocates run at once — a tribunal with twelve verdicts opens
+twelve provider connections in round 1 otherwise — and it takes PydanticAI's
+`int | ConcurrencyLimit | AbstractConcurrencyLimiter | None`. Passing a limiter
+object shares one budget of slots with your own agents; passing an int lets
+`enbanc` build that limiter. The judge is never given a slot: it runs alone, and
+the fan-out is the only place concurrency exists in a proceeding.
+
+See [`0024`](../decisions/0024-a-budget-stops-the-proceeding-between-rounds.md).
 
 ### What participants file
 
 ```python
 class Exhibit(BaseModel):
-    source: str              # the tool that produced it
-    content: str
+    source: str              # the ledger id it cites; resolves in Transcript.ledger
+    tool: str                # stamped on filing; the tool that produced it
+    reference: str           # stamped on filing; where a reviewer looks
+    content: str             # the advocate's excerpt
+    label: str | None = None # stamped on filing, when the source had one
 
 class Argument(BaseModel, Generic[VerdictT]):
     kind: Literal["argument"] = "argument"
@@ -293,6 +368,17 @@ class Response(BaseModel, Generic[VerdictT]):
     answer: str
     exhibits: list[Exhibit] = []
 ```
+
+**An exhibit's `reference` is stamped, not written.** It is the string a
+reviewer follows to check the evidence — a URL, a document key, a file path, the
+query that produced a row — and its whole value is that it can be trusted, so
+the advocate does not author it. It cites a source the tribunal ledgered from a
+tool result, and the tribunal fills `tool`, `reference`, and `label` from that
+ledger when it files. `content` is the one field the advocate writes: the
+excerpt it relies on. What a `reference` may be, and why the excerpt is not
+stamped verbatim too, is [`evidence.md`](./evidence.md); the mechanism is
+[Where ids come from](#where-ids-come-from) and
+[`0016`](../decisions/0016-exhibits-are-stamped-citations.md).
 
 **An argument has no `position` field.** The filing already names its
 `advocate`, and an advocate is assigned exactly one verdict, so the position it
@@ -380,6 +466,26 @@ fills the link from the dispatch rather than from the model. No participant
 authors an id in either direction, and a response citing a question nobody asked
 is not a state the library can reach.
 
+**An advocate's exhibits are stamped by the same move.** Its output type
+carries a private `_Exhibit` — a ledger id and the excerpt — and the tribunal
+resolves the id into the public `Exhibit` when it files:
+
+```python
+class _Exhibit(BaseModel):   # what an advocate emits
+    source: str              # a ledger id, e.g. "s2"
+    content: str
+```
+
+The parallel is exact. In both cases a model is asked only for what it knows —
+the question it wants asked, the passage it relies on — and every field whose
+correctness the record depends on is filled by the tribunal from something it
+observed. An advocate citing a source no tool returned is as unreachable a state
+as a response citing a question nobody asked, and for the same reason. The one
+difference is where an unresolvable value lands: an interrogatory id cannot be
+wrong, because the tribunal writes both ends, while a source id is the
+advocate's to get right and a bad one fails output validation. See
+[`0016`](../decisions/0016-exhibits-are-stamped-citations.md).
+
 This is the [`Entry`](#the-record) move applied one level down. `round` and
 `filed_at` are the tribunal's facts and live on an envelope; an id is the same
 kind of fact with nowhere to put an envelope, because interrogatories nest so
@@ -413,11 +519,33 @@ class Entry(BaseModel, Generic[VerdictT]):
     filed_at: datetime
     filing: Filing[VerdictT]
 
+class Retrieval(BaseModel, Generic[VerdictT]):
+    id: str                   # the ledger id; what an Exhibit.source cites
+    round: int
+    advocate: VerdictT        # whose tool call produced it
+    tool: str
+    reference: str
+    content: str              # verbatim, as the tool returned it
+    label: str | None = None
+
+class ToolFailure(BaseModel, Generic[VerdictT]):
+    round: int
+    advocate: VerdictT
+    tool: str
+    reference: str            # the call that returned nothing
+    detail: str               # what the advocate was told
+
 class Transcript(BaseModel, Generic[VerdictT]):
     question: str
     statute: Statute
     case: SerializeAsAny[Case]
+    verdicts: list[VerdictT]
+    max_rounds: int
+    guidance: dict[VerdictT | Literal["judge"], str] = {}
+    procedure: str
     entries: list[Entry[VerdictT]] = []
+    ledger: list[Retrieval[VerdictT]] = []
+    failures: list[ToolFailure[VerdictT]] = []
 
     def __iter__(self) -> Iterator[Entry[VerdictT]]: ...
     def __len__(self) -> int: ...
@@ -430,6 +558,25 @@ reason `Hearing` wraps `Ruling`: `round` and `filed_at` are things the tribunal
 knows and the filer does not. Putting `round` on `Ruling` would put a field on
 the judge's own output schema that the judge cannot fill.
 
+**`verdicts`, `max_rounds`, `guidance`, and `procedure` are the standing record
+too.** They are there for the same reason `question` and `statute` are: each one
+reaches a participant's context, and a transcript that did not hold it would make
+the invariant [`tribunal.md`](./tribunal.md#constraints-that-define-the-design)
+states false. `verdicts` names the bench an advocate was told it faced, including
+values nobody argued to. `max_rounds` is the envelope, and the judge is told where
+it stands in it. `guidance` is the caller's steer, stored in full, keyed by the
+participant it was given to and holding only those that got one — absence means
+none was given. `procedure` names the prompting surface the proceeding ran under,
+by version rather than by text, and [`prompting.md`](./prompting.md#procedure-versions)
+resolves it. See [`0025`](../decisions/0025-the-record-includes-what-steered-it.md).
+
+**`guidance`'s participant key is not the `author` field
+[above](#what-participants-file) rejects.** That rejection is about *filings*: one
+carrying `VerdictT | Literal["judge"]` would make a ruling issued by an advocate
+expressible. This is the tribunal's accounting of who was steered — the same shape
+and the same reason as `usage_by_participant` and `ProceedingFailed.participant` —
+and it enters no filing.
+
 **`Transcript.case` is `SerializeAsAny[Case]`, and has to be.** Pydantic v2
 serializes a field by its *declared* type, so a `LoanApplication` sitting in a
 plain `case: Case` field dumps as a bare `Case` and every subclass field
@@ -438,16 +585,78 @@ disappears — silently, out of the artifact whose whole job is to be complete.
 same kind of forced detail as [the generic aliases](#a-note-on-generic-aliases)
 below, and it is the price of `Case` not being a type parameter.
 
+**`ledger` is every source every tool returned, verbatim** — not only the ones
+an advocate filed. It is the second half of the audit artifact: `entries` says
+what the ruling rests on, and `ledger` says what was available to rest on. A
+reviewer checking whether an advocate argued fairly reads the retrievals no
+exhibit cites, and can do it without leaving the document or holding credentials
+to the systems the tools queried. See [`evidence.md`](./evidence.md) and
+[`0019`](../decisions/0019-the-ledger-is-part-of-the-record.md).
+
+**Suppression is found by joining, not by a flag.** `Exhibit.source` holds the
+ledger id it cites, and the join key is `(advocate, id)` — ids are numbered
+within an advocate, so `APPROVE`'s `s1` and `DENY`'s `s1` are different
+retrievals. Per-advocate numbering is deliberate: an advocate's tool calls are
+sequential, so its ids are deterministic, whereas one counter shared across
+advocates running concurrently would assign different ids on every run of the
+same proceeding.
+
+There is deliberately no `cited: bool` on `Retrieval`. Whether a round-1 source
+is ever cited is not known until the proceeding ends, so the field would be
+written on append and rewritten when a later round cites it — and a transcript
+whose rows change after they are appended is not append-only. The join is exact
+anyway, because both sides carry the same tribunal-stamped id.
+
+**`failures` is every tool call that returned nothing.** A timed-out call
+produces no source, so it produces no `Retrieval` and would otherwise appear
+nowhere — leaving an advocate that was blocked from its best source
+indistinguishable from one that did not look. One row per attempt, because
+timing out three times is a different fact from timing out once. See
+[`0022`](../decisions/0022-tool-failures-are-recorded.md).
+
+**`ToolFailure` has no `id`, and that is the point.** A `Retrieval` carries one
+so an `Exhibit.source` can name it; a failed call produced nothing and can never
+be cited. Keeping failures in their own list rather than as `Retrieval`s with an
+`outcome` flag is what keeps the ledger's rows meaning one thing: a successful
+call yields a row per source, and a failed call yields no source at all.
+
+**A populated `failures` is not a finding.** It records that a tool failed, not
+that the ruling turned on it. `enbanc` does not mark a hearing degraded, warn,
+or adjust the outcome — whether the judge should have weighed a gap is the
+reviewer's call, and the record's job is to make it askable.
+
+**`Retrieval.content` is verbatim; `Exhibit.content` is the advocate's excerpt.**
+They are different facts about the same source and both are load-bearing: the
+excerpt says what the advocate claimed mattered, the verbatim text is what it
+actually had in front of it. Reading them side by side is how a misquote is
+caught.
+
+**The ledger's size is the caller's to control.** `enbanc` stores what a tool
+returned and does not truncate it, so a tool that returns whole pages produces a
+transcript that holds whole pages. The lever is the tool: return the snippet you
+want the advocate to reason over, not the document it came from. This is the
+same discipline that keeps an advocate's context small, and it is why
+[`web_search`](./evidence.md#the-default-tool) does not request Tavily's
+`raw_content`.
+
 `Transcript` iterates over its entries and renders itself to readable proceeding
 text. That is the whole of its behavior — it holds no model and makes no calls,
 and `render()` is `enbanc` formatting its own artifact, not a statute acquiring
 opinions.
+
+**`render()` is the reviewer's viewpoint of the one renderer that also feeds the
+agents**, so what it emits is specified rather than left to implementation —
+[`prompting.md`](./prompting.md#transcriptrender) has it in full. That the two
+audiences share a renderer is what makes the context invariant checkable by
+construction: an agent's view is this view minus rows, never plus text. See
+[`0026`](../decisions/0026-one-renderer-serves-both-audiences.md).
 
 ### The result
 
 ```python
 class Undecided(BaseModel):
     kind: Literal["undecided"] = "undecided"
+    reason: Literal["rounds", "budget"]
 
 Outcome = TypeAliasType(
     "Outcome",
@@ -477,11 +686,16 @@ the same move `Ruling | Continuance` makes on the judge's output, applied to the
 result — and `Outcome` needs `TypeAliasType` for the same Pydantic reason those
 do, described in [the note below](#a-note-on-generic-aliases).
 
-**`Undecided` carries nothing.** Not the round count, which is `Hearing.rounds`;
-not the questions the judge still wanted answered, which are the interrogatories
-on the last `Continuance` in the transcript. Either would be the same
-store-it-twice mistake that kept `position` off `Argument`. It is not generic
-either, because there is no verdict in it to key on.
+**`Undecided` carries one thing: which envelope ran out.** Not the round count,
+which is `Hearing.rounds`; not the questions the judge still wanted answered,
+which are the interrogatories on the last `Continuance` in the transcript.
+Either would be the same store-it-twice mistake that kept `position` off
+`Argument`. `reason` is not that mistake — it is the one fact nothing else
+carries, and `rounds` cannot stand in for it, because a proceeding can spend its
+budget on the round it would have spent its last deliberation. It is undefaulted
+for the same reason `kind` is defaulted: `kind` has exactly one correct value and
+`reason` has two, so a default would be a guess that reads as a fact. `Undecided`
+is not generic either, because there is no verdict in it to key on.
 
 **The outcome is the final entry's filing only when it is a `Ruling`.** There
 the field is a pointer, not a copy, so callers do not walk the record backwards
@@ -499,7 +713,7 @@ Every filing any participant makes, in the order it was made. Three advocates,
 two rounds, seven entries:
 
 ```text
-round 1   Argument(advocate=APPROVE, exhibits=[psql, tavily])
+round 1   Argument(advocate=APPROVE, exhibits=[psql, web_search])
           Argument(advocate=DENY,    exhibits=[psql])
           Concession(advocate=REFER)
           Continuance(interrogatories=[r1-q1 -> APPROVE, r1-q2 -> DENY])
@@ -520,11 +734,15 @@ What is deliberately *not* in `entries`:
   standing record, not something a participant said.
 - **Individual interrogatories.** They are nested inside the `Continuance` that
   issued them, so each question appears in the record exactly once.
-- **Raw tool traffic.** An advocate queries freely and files what it chooses to
-  rely on. The judge only ever sees filings, so filings are a complete account
-  of what the ruling rests on — but not of what was searched. See the invariant
-  in [`tribunal.md`](./tribunal.md#constraints-that-define-the-design) and
-  [`0006`](../decisions/0006-the-transcript-schema.md).
+- **Retrievals.** What an advocate's tools returned is recorded, but in
+  `Transcript.ledger` rather than as entries. Nobody *filed* it — an entry is a
+  filing, and there are exactly five — so it is a sibling field, not a sixth
+  `kind`. The judge still sees only filings; the ledger is written for the
+  reviewer, not for the proceeding. See
+  [`evidence.md`](./evidence.md#the-ledger-is-part-of-the-record) and
+  [`0019`](../decisions/0019-the-ledger-is-part-of-the-record.md), which
+  supersedes the reading of
+  [`0006`](../decisions/0006-the-transcript-schema.md) that kept it out.
 
 Narrowing a filing works by `isinstance` or `match`, against the unparameterized
 class:
@@ -593,7 +811,8 @@ cases. See [`0010`](../decisions/0010-streaming-yields-the-record.md).
 
 **Ending is the same here as it is for `hear()`.** Exhaustion does not raise
 from the stream: the `async for` simply ends after the judge's last
-`Continuance`, and `proceeding.hearing.outcome` is `Undecided`. A failure does
+`Continuance`, and `proceeding.hearing.outcome` is an `Undecided` naming the
+envelope that ran out. A failure does
 raise — `ProceedingFailed` propagates out of the `async with`, and
 `proceeding.transcript` survives it, holding everything filed before the
 participant went silent. `proceeding.hearing` then re-raises that same
@@ -603,9 +822,9 @@ from.
 
 ## When something goes wrong
 
-A proceeding has two endings and one interruption. It rules, it spends its
-rounds without ruling, or a participant cannot be heard and it stops. The first
-two are outcomes and come back on a `Hearing`; the third raises.
+A proceeding has two endings and one interruption. It rules, it runs out of
+rounds or budget without ruling, or a participant cannot be heard and it stops.
+The first two are outcomes and come back on a `Hearing`; the third raises.
 [`outcomes.md`](./outcomes.md) works each one through end to end — including a
 downed provider, a raising tool, and a misconfigured tribunal.
 
@@ -626,8 +845,12 @@ class ProceedingFailed(EnbancError, Generic[VerdictT]):
 ```
 
 **No provider exception reaches you bare.** An unreachable model, an advocate
-tool that raises, and output validation that runs out of retries all surface as
-`ProceedingFailed`, with the original error as `__cause__`. `enbanc` does not
+tool that raises, a tool that keeps timing out until its retries are spent, and
+output validation that runs out of retries all surface as `ProceedingFailed`,
+with the original error as `__cause__`. A tool timeout on its own is not a
+failure — it returns a retry prompt and the advocate carries on; see
+[`evidence.md`](./evidence.md#what-tools-may-do) and
+[`0020`](../decisions/0020-tool-timeouts-ride-on-the-tool.md). `enbanc` does not
 classify them further: PydanticAI and httpx already raise specific types, and a
 second taxonomy over them would be one more thing to keep true.
 
@@ -863,7 +1086,15 @@ contract. See [`0009`](../decisions/0009-model-settings-live-on-the-model.md).
 system prompt is assembled by `enbanc`: the `Ruling | Continuance` contract, the
 rule that interrogatories are targeted rather than broadcast, the judge's
 prohibition on gathering its own evidence, the advocate's licence to concede.
-Your `guidance` is added to that, not substituted for it. A replaceable prompt
+Both prompts are written out in full in
+[`prompting.md`](./prompting.md#the-advocates-procedural-prompt), and
+`tribunal.instructions_for(participant)` returns the assembled string an agent
+will actually run under. Your `guidance` is added to that, not substituted for
+it — as the last instruction part, after a paragraph that says it may refine how
+things are weighed and may not change the process or the shape of a filing. It is
+recorded on `Transcript.guidance`, so a steered ruling does not read in the record
+as an unsteered one
+([`0025`](../decisions/0025-the-record-includes-what-steered-it.md)). A replaceable prompt
 would let a caller silently break the output schema, and the failure would
 present as a library bug. Guidance is per-agent and never inherited: the judge's
 steer and an advocate's steer contradict each other by construction, and
@@ -902,5 +1133,4 @@ list. A question that is only *sharpened* — its options narrowed, nothing
 decided — stays, rewritten in place. See rule 7 in
 [`../../CLAUDE.md`](../../CLAUDE.md).
 
-*None open.* The proceeding still has two, in
-[`tribunal.md`](./tribunal.md#open-questions).
+*None open* — here or in [`tribunal.md`](./tribunal.md#open-questions).

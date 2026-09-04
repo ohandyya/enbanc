@@ -42,6 +42,7 @@ from pydantic_ai.models.anthropic import AnthropicModel
 from enbanc import (
     Advocate, Case, Judge, Ruling, Statute, Tribunal, Undecided, Verdict,
 )
+from enbanc.tools import web_search
 
 class LoanDecision(Verdict):        # the allowed answers, one advocate each
     APPROVE = "approve"
@@ -57,7 +58,7 @@ tribunal = Tribunal(
     model=AnthropicModel("claude-sonnet-5"),
     judge=Judge(guidance="Where the record is ambiguous, deny."),
     advocates={
-        LoanDecision.APPROVE: Advocate(tools=[psql, tavily]),
+        LoanDecision.APPROVE: Advocate(tools=[psql, web_search(api_key=...)]),
         LoanDecision.DENY: Advocate(tools=[psql]),
     },
     max_rounds=5,
@@ -68,7 +69,7 @@ hearing = await tribunal.hear(Case(applicant=..., income=...))
 match hearing.outcome:              # a ruling, or no verdict at all
     case Ruling(verdict=verdict, reasoning=reasoning):
         verdict                     # LoanDecision.DENY
-    case Undecided():               # max_rounds spent, the judge never ruled
+    case Undecided():               # rounds or budget spent, no verdict
         ...
 
 hearing.transcript                  # every filing, in order
@@ -77,11 +78,34 @@ hearing.usage_by_participant        # the same spend, split by who incurred it
 ```
 
 The judge has **no tools** — it reasons only over what advocates put into the
-record. All advocate tools are **strictly read-only**.
+record. Advocate tools are **read-only**, and that is a contract you keep:
+`enbanc` ships nothing that writes and has no mutation path of its own, but it
+cannot inspect a function you pass for side effects.
 
-A tribunal that spends its rounds without reaching a verdict returns
-`Undecided`; that is a finding, and it comes back on the hearing with the full
-transcript. A tribunal that loses a participant — the provider is down, a tool
+Every exhibit in the record carries a **reference** the tribunal stamped — a
+URL, a document key, the query that produced a row — taken from what the tool
+actually returned rather than from what the model said it returned. So a
+reviewer can follow any piece of evidence back to its source, and an advocate
+cannot cite something no tool produced.
+
+The transcript also holds everything the advocates' tools returned and they
+*didn't* file, verbatim. An advocate that queries a damaging fact and argues
+around it leaves a trace: the retrieval is in the record and no exhibit cites
+it. That is the question no LLM-as-judge transcript usually answers — not
+*what did it decide on?* but *what did it leave out?*
+
+It also holds what *steered* the decision: the guidance you gave each
+participant, the verdicts the bench was deciding among, and the version of the
+procedural prompt `enbanc` ran. A ruling reached under "where the record is
+ambiguous, deny" does not read in the artifact as one reached without it.
+
+A tool is a plain async function; there is nothing to register or decorate, and
+`enbanc.tools.web_search` is built the same way yours is.
+
+A tribunal that runs out of the envelope it was given — `max_rounds`
+deliberations, or an optional token or cost `budget` — without reaching a
+verdict returns `Undecided`, naming which of the two ran out. That is a finding,
+and it comes back on the hearing with the full transcript. A tribunal that loses a participant — the provider is down, a tool
 raises — is a different thing, and raises `ProceedingFailed` with the record so
 far attached. No ruling is ever issued on a bench that lost an advocate.
 
@@ -108,16 +132,28 @@ The full design lives in [`docs/design/`](./docs/design/):
   together.
 - [**Public API**](./docs/design/api.md) — the surface being designed toward
   `0.1.0`, and what each piece carries.
+- [**Evidence**](./docs/design/evidence.md) — what a tool is, how you add your
+  own, and how what one returns becomes an exhibit a reviewer can check.
 - [**Outcomes**](./docs/design/outcomes.md) — every way a proceeding can end,
-  worked through with concrete values: a ruling, a spent round limit, a downed
-  provider, a misconfigured tribunal.
+  worked through with concrete values: a ruling, a spent round limit, a spent
+  budget, a downed provider, a misconfigured tribunal.
+- [**Prompting and rendering**](./docs/design/prompting.md) — what every
+  participant actually reads: both procedural prompts in full, how a statute,
+  case, and record become text, and what a rendered transcript looks like.
 - [**Glossary**](./docs/glossary.md) — the courtroom vocabulary. One table, one
   minute.
 
-The API is settled down to the schemas. What is still open is how the
-proceeding *behaves* — what an advocate sees, and what a budget may halt — and
-[`docs/design/tribunal.md`](./docs/design/tribunal.md#open-questions) carries
-those questions. If you have opinions, that's the place to aim them.
+Those five are settled down to the schemas and the behaviour both: what an
+advocate sees, how a proceeding stops, what every ending looks like, and the
+exact text each agent is sent. The open questions they carried are closed, each
+with an ADR in [`docs/decisions/`](./docs/decisions/) saying what was rejected
+and why. If you have opinions, that's the place to aim them.
+
+One document is still missing: [`execution.md`](./docs/design/execution.md), how
+a proceeding maps onto PydanticAI — the message history behind the transcript,
+the toolset that ledgers what an advocate's tools return, and the round loop
+itself. It is a placeholder naming what it has to settle, and it is required
+before `0.1.0` can run.
 
 ## Status
 
