@@ -254,6 +254,15 @@ makes ids deterministic: an advocate's tool calls are sequential, while one
 counter shared across advocates running concurrently would number the same
 proceeding differently on every run.
 
+**That premise is load-bearing, and something else now protects it.** An advocate
+asked two interrogatories in one round would run twice, and running those
+concurrently would make its own tool calls overlap — falsifying "an advocate's
+tool calls are sequential" from the inside. They are dispatched in order instead,
+one after the other
+([`0027`](../decisions/0027-an-advocate-answers-its-interrogatories-in-order.md)).
+Anything that later parallelises an advocate against itself has to answer this
+paragraph first.
+
 There is no `cited: bool` on `Retrieval` on purpose. Whether a round-1 source is
 ever cited is unknown until the proceeding ends, so the field would be written
 on append and rewritten when a later round cites it — and a transcript whose

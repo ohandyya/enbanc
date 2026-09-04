@@ -30,7 +30,7 @@ context is that renderer over a *filtered projection* of the transcript:
 ```python
 render(transcript, ReviewerView())                # Transcript.render()
 render(snapshot,   JudgeView(since=1))
-render(snapshot,   AdvocateView(DENY, since=1))
+render(snapshot,   AdvocateView(DENY, since=0))
 ```
 
 The `…View` suffix is not decoration: `Judge` and `Advocate` are already public
@@ -55,10 +55,33 @@ was filed* — which is `0023`'s wording made mechanical, and it is also what ma
 a concurrent round safe to render: peers filing at the same moment are not in the
 snapshot, so no ordering artifact can reach a context.
 
-**`since` is the last round the participant was shown, not the current round
-minus one.** For an advocate it is the last round in which it filed; for the
-judge it is the round its last deliberation closed. A view renders every filing
-in the snapshot from a round *after* `since`, in transcript order.
+The snapshot for every run of round *N* is the transcript as the continuance
+closed round *N*−1, **plus, for a second or later run of the same advocate, that
+advocate's own responses already filed in round *N***. Nothing else from round *N*
+is ever in it. That one addition is what
+[an advocate asked two questions](#an-advocate-asked-two-questions-answers-them-in-order)
+needs, and it is deliberately the narrowest thing that works: a peer's response
+filed concurrently stays out, so `0023` holds unchanged.
+
+**`since` is the last round whose filings this participant has been shown**, and
+a view renders every filing in the snapshot from a round *after* it, in transcript
+order. It starts at `0` — meaning nothing has been shown — and it advances **once
+per run**, not once per round.
+
+That distinction is load-bearing, and the two roles diverge because round 1 is
+argued blind:
+
+| Run | `since` | Delta |
+|---|---|---|
+| Advocate, round 1 | — | No record at all; round 1 is blind |
+| Advocate, round 2, first run | `0` | Every round-1 filing, including the continuance |
+| Advocate, round 2, second run | `1` | Its own round-2 response, just filed |
+| Judge, deliberation 1 | `0` | Every round-1 filing |
+| Judge, deliberation 2 | `1` | The round-2 responses |
+
+An advocate entering round 2 has `since=0` even though it *filed* in round 1: it
+was shown nothing there, because it argued blind. Filing and being shown are
+different events, and `since` tracks the second.
 
 **An advocate's own filing is in its delta.** It is not carved out, for two
 reasons. The projection stays a plain filter with no per-participant exception,
@@ -353,6 +376,50 @@ filing, and `0023` grants the record. *Targeted* is a duty about who must
 those terms — and seeing what the judge is asking elsewhere is what lets a
 rebuttal meet the case rather than the paraphrase of it.
 
+#### An advocate asked two questions answers them in order
+
+The judge may put more than one interrogatory to the same advocate, and the
+tribunal dispatches one run per interrogatory
+([`0015`](../decisions/0015-interrogatory-ids-are-stamped-on-filing.md)). Those
+runs are **sequential, in interrogatory-id order**, and each files its response
+before the next is dispatched. The fan-out is across *addressed advocates*; an
+advocate's own questions are a queue inside its task.
+
+So the second run's turn is small. Its `since` has advanced to the current round,
+the snapshot now holds the response it just filed, and the delta is that response
+and nothing else:
+
+```text
+## Filed since you last filed
+
+[round 2] deny responded to r1-q2:
+  Yes — the statute's ceiling is on documented income.
+  Exhibits:
+    [deny/s2] W-2, 2024
+      s3://underwriting-docs/okonkwo/w2-2024.pdf
+      wages: 131,400
+
+## Addressed to you
+
+r1-q3: Would a verified 2024 return change your answer?
+
+Round 2. Answer r1-q3 and file your response.
+```
+
+The record is not re-rendered, because the advocate's own history already carries
+it — but its **stamped** response is, for the reason
+[an advocate's own filing is always in its delta](#one-renderer-three-viewpoints):
+what it emitted was a bare id and an excerpt, and what entered the record has the
+tool and the reference beside them.
+
+Sequencing costs the round the latency of the most-questioned advocate, and buys
+three things that concurrent same-advocate runs cannot have: two answers that
+cannot contradict each other, one linear message history rather than two forks of
+it, and tool calls that stay sequential per advocate — which is the premise
+[`evidence.md`](./evidence.md#the-ledger-is-part-of-the-record) rests
+deterministic ledger ids on. See
+[`0027`](../decisions/0027-an-advocate-answers-its-interrogatories-in-order.md).
+
 ### Deliberation 1
 
 ```text
@@ -577,15 +644,8 @@ commit: the answer goes into the prose above, an ADR in
 [`../decisions/`](../decisions/) records why, and then the bullet leaves this
 list. See rule 7 in [`../../CLAUDE.md`](../../CLAUDE.md).
 
-- **Two interrogatories to one advocate, in one round.** The judge may address
-  two questions to the same advocate, and the tribunal dispatches one run per
-  interrogatory
-  ([`0015`](../decisions/0015-interrogatory-ids-are-stamped-on-filing.md)) — so
-  that advocate has two turns in the same round. Both currently render the same
-  delta and differ only in `## Addressed to you`, which means the second run
-  cannot see the first's answer and may contradict it in the same round. The
-  alternative — sequencing the two runs and putting the first response in the
-  second's delta — costs the concurrency the fan-out is built on, and reaches
-  into [`execution.md`](./execution.md). Adjacent to
-  [`degenerate-deliberations.md`](./degenerate-deliberations.md), which owns what
-  the schemas admit and no document rules on.
+*None open.* The one this document opened — what a second run of the same
+advocate sees in the same round — is answered above under
+[an advocate asked two questions](#an-advocate-asked-two-questions-answers-them-in-order),
+and [`0027`](../decisions/0027-an-advocate-answers-its-interrogatories-in-order.md)
+records why sequencing beat the alternatives.

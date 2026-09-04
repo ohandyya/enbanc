@@ -151,8 +151,11 @@ proceeding, write `Transcript.ledger`
 the model sees so ids are citable. It is the hardest single piece of code in
 the library.
 
-**3. Round orchestration and usage capture.** The task-group shape, where
-`max_concurrency`'s limiter sits, how "the first failure cancels the round"
+**3. Round orchestration and usage capture.** The task-group shape — now bounded
+by [`0027`](../decisions/0027-an-advocate-answers-its-interrogatories-in-order.md),
+which fixes it at one task per *addressed advocate* with that advocate's
+interrogatories queued sequentially inside it, rather than one task per
+interrogatory — where `max_concurrency`'s limiter sits, how "the first failure cancels the round"
 ([`0012`](../decisions/0012-a-failure-cancels-the-round.md)) is actually
 effected, at what moment `filed_at` is stamped and an entry reaches the stream,
 and how per-participant `RunUsage` accumulates across runs. That last one
