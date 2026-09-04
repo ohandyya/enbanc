@@ -81,6 +81,7 @@ full ruleset.
 | Doc | What it covers |
 |---|---|
 | [`journal/2026-09-02-values-before-schemas.md`](./journal/2026-09-02-values-before-schemas.md) | Why writing `design/outcomes.md` as concrete values caught a redundant field and an unanswerable gap that reviewing the schemas — and writing an ADR about them — did not |
+| [`journal/2026-09-04-writing-the-prompt-found-the-holes.md`](./journal/2026-09-04-writing-the-prompt-found-the-holes.md) | Why writing the procedural prompts found two unnamed exceptions to the context invariant, a self-contradicting `since` definition, and a premise a new decision would have falsified — none of which reviewing the rule had caught; the second instance of the pattern `2026-09-02` records |
 
 ## Adding a doc
 

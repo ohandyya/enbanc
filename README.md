@@ -137,20 +137,23 @@ The full design lives in [`docs/design/`](./docs/design/):
 - [**Outcomes**](./docs/design/outcomes.md) — every way a proceeding can end,
   worked through with concrete values: a ruling, a spent round limit, a spent
   budget, a downed provider, a misconfigured tribunal.
+- [**Prompting and rendering**](./docs/design/prompting.md) — what every
+  participant actually reads: both procedural prompts in full, how a statute,
+  case, and record become text, and what a rendered transcript looks like.
 - [**Glossary**](./docs/glossary.md) — the courtroom vocabulary. One table, one
   minute.
 
-Those four are settled down to the schemas and the behaviour both: what an
-advocate sees, how a proceeding stops, and what every ending looks like. The
-open questions they carried are closed, each with an ADR in
-[`docs/decisions/`](./docs/decisions/) saying what was rejected and why. If you
-have opinions, that's the place to aim them.
+Those five are settled down to the schemas and the behaviour both: what an
+advocate sees, how a proceeding stops, what every ending looks like, and the
+exact text each agent is sent. The open questions they carried are closed, each
+with an ADR in [`docs/decisions/`](./docs/decisions/) saying what was rejected
+and why. If you have opinions, that's the place to aim them.
 
-What is **not** designed yet is the library's own inside: the procedural prompts
-`enbanc` owns, how a statute, case, and record become text, and how a proceeding
-maps onto PydanticAI. [`prompting.md`](./docs/design/prompting.md) and
-[`execution.md`](./docs/design/execution.md) are placeholders naming what each
-has to settle, and both are required before `0.1.0` can run.
+One document is still missing: [`execution.md`](./docs/design/execution.md), how
+a proceeding maps onto PydanticAI — the message history behind the transcript,
+the toolset that ledgers what an advocate's tools return, and the round loop
+itself. It is a placeholder naming what it has to settle, and it is required
+before `0.1.0` can run.
 
 ## Status
 

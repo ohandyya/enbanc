@@ -11,9 +11,62 @@ at the start of the next one.
 
 Two halves, two different guarantees:
 
-- `## Current state` is **current truth**, rewritten in place every session.
-  Anything stale here is a bug.
-- `## Log` is **history**, prepended newest-first and never edited. Entries are
+- `## Current state
+
+**Phase:** Design, one document short of complete. **No `enbanc` code exists
+yet** — `src/enbanc/__init__.py` is a placeholder and `tests/` holds one
+placeholder test. The published `0.0.4` on PyPI reserves the name and nothing
+more.
+
+Settled and binding across
+[`0001`](./decisions/0001-statute-carries-no-model.md)–[`0027`](./decisions/0027-an-advocate-answers-its-interrogatories-in-order.md):
+every public type, every way a proceeding can *end*, its *behaviour*, how
+evidence becomes a checkable exhibit, and now everything a participant reads.
+[`design/api.md`](./design/api.md), [`tribunal.md`](./design/tribunal.md),
+[`evidence.md`](./design/evidence.md), [`outcomes.md`](./design/outcomes.md) and
+[`prompting.md`](./design/prompting.md) carry no open questions.
+
+`Transcript` gained four standing fields this session — `verdicts`,
+`max_rounds`, `guidance`, `procedure` — so the context invariant is back to
+[`0021`](./decisions/0021-retry-prompts-are-outside-the-invariant.md)'s form with
+retry prompts as its only exception, and
+[`prompting.md`](./design/prompting.md#the-invariant-accounted-for) carries the
+table that keeps it honest. `Tribunal.instructions_for(participant)` is the one
+public method prompting added.
+
+**Next up:** Write [`design/execution.md`](./design/execution.md), the last
+document required before code. Its three load-bearing pieces are named in the
+placeholder and two have shrunk: piece 1 now only has to settle where the
+snapshot is taken, how `since` is tracked per participant, and what happens to a
+history when [`0012`](./decisions/0012-a-failure-cancels-the-round.md) cancels a
+run — carrying a conversation itself is `message_history` plus a dict, verified
+and recorded under
+[What PydanticAI already does](./design/execution.md#what-pydanticai-already-does).
+Piece 3's task-group shape is now fixed by
+[`0027`](./decisions/0027-an-advocate-answers-its-interrogatories-in-order.md):
+one task per addressed advocate, that advocate's interrogatories queued inside
+it. Piece 2, the ledgering toolset, is untouched and is still the hardest single
+piece of code in the library.
+
+Before writing its prose, write the literal message sequence — two rounds, three
+advocates, one twice-questioned — for the reason in
+[`journal/2026-09-04-writing-the-prompt-found-the-holes.md`](./journal/2026-09-04-writing-the-prompt-found-the-holes.md).
+
+**Open questions:**
+
+- None in the five settled design docs. `execution.md` carries an *agenda*
+  rather than open questions in the rule-7 sense; it gets them once the document
+  exists to own them.
+- Whether the `0.1.0` scope line (prompting and execution in;
+  [`degenerate-deliberations.md`](./design/degenerate-deliberations.md),
+  [`testing.md`](./design/testing.md), [`packaging.md`](./design/packaging.md)
+  out) deserves an ADR, or stays recorded in the placeholders themselves.
+- `procedure` version `p1` is authored but unshipped, so its changelog row in
+  [`prompting.md`](./design/prompting.md#procedure-versions) has nothing to
+  compare against yet. The first prompt edit after `0.1.0` ships is the one that
+  tests whether the bump discipline holds.
+
+## Log` is **history**, prepended newest-first and never edited. Entries are
   true as of their date and go stale by design.
 
 The log says *what* changed and *where it stopped*. It does not say *why* —
@@ -65,6 +118,41 @@ after those.
   out) deserves an ADR, or stays recorded in the placeholders themselves.
 
 ## Log
+
+### 2026-09-04 — prompting is designed, and the invariant turns out to have had three holes
+
+**Did:** Wrote [`design/prompting.md`](./design/prompting.md) in full: one
+renderer with three viewpoints, both procedural prompts verbatim, the four turn
+templates, the ledger-id format, and what `Transcript.render()` emits. Building
+its context-traceability table found that `guidance` and `enbanc`'s own
+procedural prompt had both been reaching every agent with no transcript holding
+them — two unnamed exceptions predating
+[`0021`](./decisions/0021-retry-prompts-are-outside-the-invariant.md), which
+exists to forbid a second. Closing them put four standing fields on `Transcript`
+(`verdicts`, `max_rounds`, `guidance`, `procedure`) and propagated through
+`api.md`, `tribunal.md`, `outcomes.md`, `evidence.md` and the glossary. Then
+recorded verified PydanticAI mechanics in
+[`design/execution.md`](./design/execution.md) — `message_history`, instruction
+re-resolution, what lands in history that no rendered turn contains — as
+observations, leaving that document undesigned. Finally settled its one open
+question: an advocate asked two interrogatories answers them sequentially.
+
+**Stopped at:** Clean, and `prompting.md` carries no open questions.
+`design/execution.md` is the last required design and is still a placeholder;
+its three load-bearing pieces are unchanged, but `0027` has since fixed the
+task-group shape it must respect, and the PydanticAI findings it now carries
+remove most of what piece 1 had left to settle.
+
+**Why this way:**
+[`decisions/0025`](./decisions/0025-the-record-includes-what-steered-it.md),
+[`0026`](./decisions/0026-one-renderer-serves-both-audiences.md),
+[`0027`](./decisions/0027-an-advocate-answers-its-interrogatories-in-order.md),
+and
+[`journal/2026-09-04-writing-the-prompt-found-the-holes.md`](./journal/2026-09-04-writing-the-prompt-found-the-holes.md)
+for why all three findings arrived from the artifact rather than from reviewing
+the rule — the second instance of a pattern already recorded here.
+
+**Commits:** `7ed129b`, `9be484e`, `631c574`
 
 ### 2026-09-04 — the design docs get audited, and five placeholders
 
