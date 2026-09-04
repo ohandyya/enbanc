@@ -26,7 +26,9 @@
 
     - What are the default tools that we can build? Just web?
 
-2. After all desings are done, cut a new release, 0.0.x.
+2. Design docs/design/execution.md
+
+3. After all desings are done, cut a new release, 0.0.x.
 
 
 ## Questions
