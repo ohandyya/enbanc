@@ -11,7 +11,16 @@ at the start of the next one.
 
 Two halves, two different guarantees:
 
-- `## Current state
+- `## Current state` is **current truth**, rewritten in place every session.
+  Anything stale here is a bug.
+- `## Log` is **history**, prepended newest-first and never edited. Entries are
+  true as of their date and go stale by design.
+
+The log says *what* changed and *where it stopped*. It does not say *why* —
+that lives in [`journal/`](./journal/), linked from the entry. Neither half is a
+spec: [`design/`](./design/) is.
+
+## Current state
 
 **Phase:** Design, one document short of complete. **No `enbanc` code exists
 yet** — `src/enbanc/__init__.py` is a placeholder and `tests/` holds one
@@ -65,57 +74,6 @@ advocates, one twice-questioned — for the reason in
   [`prompting.md`](./design/prompting.md#procedure-versions) has nothing to
   compare against yet. The first prompt edit after `0.1.0` ships is the one that
   tests whether the bump discipline holds.
-
-## Log` is **history**, prepended newest-first and never edited. Entries are
-  true as of their date and go stale by design.
-
-The log says *what* changed and *where it stopped*. It does not say *why* —
-that lives in [`journal/`](./journal/), linked from the entry. Neither half is a
-spec: [`design/`](./design/) is.
-
-## Current state
-
-**Phase:** The *public surface* is designed; the *library's own internals* are
-not. **No `enbanc` code exists yet** — `src/enbanc/__init__.py` is a placeholder
-and `tests/` holds one placeholder test. The published `0.0.4` on PyPI reserves
-the name and nothing more.
-
-Settled and binding across
-[`0001`](./decisions/0001-statute-carries-no-model.md)–[`0024`](./decisions/0024-a-budget-stops-the-proceeding-between-rounds.md):
-every public type, every way a proceeding can *end*, its *behaviour*, and how
-evidence becomes a checkable exhibit. [`design/api.md`](./design/api.md),
-[`tribunal.md`](./design/tribunal.md), [`evidence.md`](./design/evidence.md) and
-[`outcomes.md`](./design/outcomes.md) carry no open questions.
-
-What that leaves out is everything `enbanc` does *inside*: the procedural
-prompts it owns, how a statute, case, and record become text, and how a
-proceeding maps onto PydanticAI. Five placeholders now stand where those
-documents go — two required for `0.1.0`,
-[`prompting.md`](./design/prompting.md) and
-[`execution.md`](./design/execution.md), and three explicitly deferred.
-
-**Next up:** Write [`design/prompting.md`](./design/prompting.md). Its agenda is
-already in the placeholder — the two procedural prompts, where `guidance`
-attaches given that `instructions` *is* PydanticAI's system prompt
-([`0003`](./decisions/0003-models-and-guidance-are-injected.md)), how the
-round-1 and round-2+ turns render, how ledger ids reach the model, and whether
-`Transcript.render()` is the same renderer that feeds the agents. That last one
-is the fork worth settling first: it decides whether
-[`tribunal.md`](./design/tribunal.md#constraints-that-define-the-design)'s
-context invariant is checkable by construction or only by review. Then
-[`design/execution.md`](./design/execution.md)'s two load-bearing pieces —
-message history against the transcript, and the ledgering toolset. Code comes
-after those.
-
-**Open questions:**
-
-- None in the four settled design docs. The two required placeholders carry
-  *agendas* — what the document must answer — rather than open questions in the
-  rule-7 sense; they become questions only once the document exists to own them.
-- Whether the `0.1.0` scope line drawn here (prompting and execution in;
-  [`degenerate-deliberations.md`](./design/degenerate-deliberations.md),
-  [`testing.md`](./design/testing.md), [`packaging.md`](./design/packaging.md)
-  out) deserves an ADR, or stays recorded in the placeholders themselves.
 
 ## Log
 
