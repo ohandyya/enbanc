@@ -34,6 +34,11 @@ full ruleset.
 | [`design/api.md`](./design/api.md) | The public surface being designed toward `0.1.0` |
 | [`design/evidence.md`](./design/evidence.md) | Tools: what one is, how you add your own, and how what it returns becomes an exhibit a reviewer can check |
 | [`design/outcomes.md`](./design/outcomes.md) | Every way a proceeding can end, worked through with concrete values: a ruling, a spent round limit, a spent budget, a downed provider, a misconfigured tribunal |
+| [`design/prompting.md`](./design/prompting.md) | **Placeholder.** How `enbanc` turns its types into text a model reads, and a proceeding back into text a human reads — the procedural prompts, the record as an advocate sees it, and `Transcript.render()`. Required for `0.1.0` |
+| [`design/execution.md`](./design/execution.md) | **Placeholder.** How a proceeding maps onto PydanticAI: message history against the transcript, the ledgering toolset, round orchestration and usage capture. Required for `0.1.0` in part |
+| [`design/degenerate-deliberations.md`](./design/degenerate-deliberations.md) | **Placeholder, left for future.** Behaviours the schemas admit and no document rules on — an empty continuance, an interrogatory to a conceded advocate. Not needed for `0.1.0` |
+| [`design/testing.md`](./design/testing.md) | **Placeholder, left for future.** How an LLM-driven library is asserted on deterministically. Not needed for `0.1.0` |
+| [`design/packaging.md`](./design/packaging.md) | **Placeholder, left for future.** Module layout, export surface, where the errors live, the Python floor. Not needed for `0.1.0` |
 
 ### Decisions — ADRs
 
