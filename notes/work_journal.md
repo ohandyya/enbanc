@@ -12,6 +12,10 @@
 
     - Persisted evidence store
 
+4. Use AI to build `API References`
+
+    - Even better: find a way to publish it.
+
 ## To Dos
 
 1. [Done] How to design tools an how to allow user to extend the tool?
