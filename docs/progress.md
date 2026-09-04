@@ -22,32 +22,98 @@ spec: [`design/`](./design/) is.
 
 ## Current state
 
-**Phase:** Design complete; **no `enbanc` code exists yet** —
-`src/enbanc/__init__.py` is a placeholder and `tests/` holds one placeholder
-test. The published `0.0.4` on PyPI reserves the name and nothing more. Settled
-and binding, across
-[`0001`](./decisions/0001-statute-carries-no-model.md)–[`0024`](./decisions/0024-a-budget-stops-the-proceeding-between-rounds.md):
-every public type, every way a proceeding can *end*, and now its *behaviour*.
-[`0023`](./decisions/0023-advocates-argue-blind-and-rebut-informed.md) settled
-what an advocate sees (blind in round 1, the record from round 2);
-[`0024`](./decisions/0024-a-budget-stops-the-proceeding-between-rounds.md)
-settled what a proceeding may spend: an optional `budget` checked between
-rounds, landing as `Undecided(reason='budget')`, plus a `max_concurrency` that
-bounds the fan-out. **`docs/design/` now describes a complete system with no
-open questions in it.**
+**Phase:** The *public surface* is designed; the *library's own internals* are
+not. **No `enbanc` code exists yet** — `src/enbanc/__init__.py` is a placeholder
+and `tests/` holds one placeholder test. The published `0.0.4` on PyPI reserves
+the name and nothing more.
 
-**Next up:** Implementation. There is no design work queued — the next commit
-that matters puts code in `src/enbanc/`, and the schemas in `design/api.md` are
-the thing to build first, since every other piece is keyed on them.
+Settled and binding across
+[`0001`](./decisions/0001-statute-carries-no-model.md)–[`0024`](./decisions/0024-a-budget-stops-the-proceeding-between-rounds.md):
+every public type, every way a proceeding can *end*, its *behaviour*, and how
+evidence becomes a checkable exhibit. [`design/api.md`](./design/api.md),
+[`tribunal.md`](./design/tribunal.md), [`evidence.md`](./design/evidence.md) and
+[`outcomes.md`](./design/outcomes.md) carry no open questions.
+
+What that leaves out is everything `enbanc` does *inside*: the procedural
+prompts it owns, how a statute, case, and record become text, and how a
+proceeding maps onto PydanticAI. Five placeholders now stand where those
+documents go — two required for `0.1.0`,
+[`prompting.md`](./design/prompting.md) and
+[`execution.md`](./design/execution.md), and three explicitly deferred.
+
+**Next up:** Write [`design/prompting.md`](./design/prompting.md). Its agenda is
+already in the placeholder — the two procedural prompts, where `guidance`
+attaches given that `instructions` *is* PydanticAI's system prompt
+([`0003`](./decisions/0003-models-and-guidance-are-injected.md)), how the
+round-1 and round-2+ turns render, how ledger ids reach the model, and whether
+`Transcript.render()` is the same renderer that feeds the agents. That last one
+is the fork worth settling first: it decides whether
+[`tribunal.md`](./design/tribunal.md#constraints-that-define-the-design)'s
+context invariant is checkable by construction or only by review. Then
+[`design/execution.md`](./design/execution.md)'s two load-bearing pieces —
+message history against the transcript, and the ledgering toolset. Code comes
+after those.
 
 **Open questions:**
 
-- None. [`design/tribunal.md`](./design/tribunal.md#open-questions) and
-  [`design/api.md`](./design/api.md#open-questions) both carry none, and
-  `0001`–`0024` record why each was closed.
-- Nothing else outstanding at the project level.
+- None in the four settled design docs. The two required placeholders carry
+  *agendas* — what the document must answer — rather than open questions in the
+  rule-7 sense; they become questions only once the document exists to own them.
+- Whether the `0.1.0` scope line drawn here (prompting and execution in;
+  [`degenerate-deliberations.md`](./design/degenerate-deliberations.md),
+  [`testing.md`](./design/testing.md), [`packaging.md`](./design/packaging.md)
+  out) deserves an ADR, or stays recorded in the placeholders themselves.
 
 ## Log
+
+### 2026-09-04 — the design docs get audited, and five placeholders
+
+**Did:** Surveyed `docs/design/` against what implementing it would actually
+require, and found the gap: the public surface is fully specified, the library's
+own internals are not designed at all. Four places in `api.md` and one ADR defer
+to a prompting document that never existed, and the ledgering toolset — the
+hardest piece of code in the library — had one paragraph. Added five
+placeholders under `docs/design/`, each naming what its design must settle
+rather than settling it: `prompting.md` and `execution.md` marked required for
+`0.1.0`; `degenerate-deliberations.md`, `testing.md` and `packaging.md` marked
+left for future. Indexed all five in `docs/README.md`, and cut the README's
+claim that the design was settled.
+
+**Stopped at:** Clean, but nothing is *designed* — all five are stubs.
+`Current state` had claimed design was complete with no design work queued,
+which was true of the schemas and false of the library; it is rewritten above.
+
+**Commits:** `29b8e63`
+
+### 2026-09-04 — evidence, and the behaviour of a proceeding
+
+**Did:** Settled how an advocate gathers evidence and what a proceeding may do,
+in nine ADRs. Added [`design/evidence.md`](./design/evidence.md): a tool is a
+plain async function, sources carry references, and the tribunal stamps every
+field an exhibit's integrity depends on
+([`0016`](./decisions/0016-exhibits-are-stamped-citations.md)). Read-only became
+a stated contract rather than a claimed guarantee
+([`0017`](./decisions/0017-read-only-is-a-contract.md)); `tavily-python` became
+a core dependency so the default tool imports on a plain install
+([`0018`](./decisions/0018-the-search-client-is-a-core-dependency.md)). The
+ledger joined the record, closing the hole `0006` had accepted
+([`0019`](./decisions/0019-the-ledger-is-part-of-the-record.md)), and tool
+timeouts, retry prompts, and tool failures each got their place
+([`0020`](./decisions/0020-tool-timeouts-ride-on-the-tool.md)–[`0022`](./decisions/0022-tool-failures-are-recorded.md)).
+Then the last two behavioural questions: an advocate argues blind and rebuts
+informed ([`0023`](./decisions/0023-advocates-argue-blind-and-rebut-informed.md)),
+and a budget stops a proceeding between rounds
+([`0024`](./decisions/0024-a-budget-stops-the-proceeding-between-rounds.md)).
+
+**Stopped at:** Clean. Logged retroactively at the next session's wrap-up —
+`Current state` was kept current through the day, but no log entry was
+prepended.
+
+**Why this way:**
+[`decisions/0016`](./decisions/0016-exhibits-are-stamped-citations.md)–[`0024`](./decisions/0024-a-budget-stops-the-proceeding-between-rounds.md).
+
+**Commits:** `6177a57`, `39b8630`, `1e474ba`, `ddf54b9`, `ea38a80`, `a44550e`,
+`10161c2`, `2586b98`
 
 ### 2026-09-02 — four ADRs, and `api.md` runs out of questions
 

@@ -135,11 +135,17 @@ The full design lives in [`docs/design/`](./docs/design/):
 - [**Glossary**](./docs/glossary.md) — the courtroom vocabulary. One table, one
   minute.
 
-The design is settled down to the schemas and the behaviour both: what an
+Those four are settled down to the schemas and the behaviour both: what an
 advocate sees, how a proceeding stops, and what every ending looks like. The
-open questions those documents carried are closed, each with an ADR in
+open questions they carried are closed, each with an ADR in
 [`docs/decisions/`](./docs/decisions/) saying what was rejected and why. If you
 have opinions, that's the place to aim them.
+
+What is **not** designed yet is the library's own inside: the procedural prompts
+`enbanc` owns, how a statute, case, and record become text, and how a proceeding
+maps onto PydanticAI. [`prompting.md`](./docs/design/prompting.md) and
+[`execution.md`](./docs/design/execution.md) are placeholders naming what each
+has to settle, and both are required before `0.1.0` can run.
 
 ## Status
 
