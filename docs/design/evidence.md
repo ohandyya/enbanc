@@ -155,10 +155,21 @@ with no adaptation at all. Returning `Source` is an upgrade, not an entry fee.
 have seen anyway, with an id attached to each source:
 
 ```text
-find_filings(applicant="A. Okonkwo") ->
-  [s1] Schedule C, 2024 — "net profit: 182,000 …"
-  [s2] W-2, 2024        — "wages: 131,400 …"
+find_filings(applicant="A. Okonkwo") returned 2 sources.
+
+[s1] Schedule C, 2024
+  s3://underwriting-docs/okonkwo/schedule-c-2024.pdf
+  net profit: 182,000 ...
+
+[s2] W-2, 2024
+  s3://underwriting-docs/okonkwo/w2-2024.pdf
+  wages: 131,400 ...
 ```
+
+The format is spec, not illustration, and
+[`prompting.md`](./prompting.md#how-ledger-ids-reach-the-model) owns it —
+including what an anonymous source looks like and why the reference is shown to
+an advocate that never writes one.
 
 **3. The advocate cites an id.** Its output type carries a **private**
 `_Exhibit` — a source id and the excerpt it relies on — exactly as the judge

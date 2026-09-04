@@ -94,6 +94,11 @@ around it leaves a trace: the retrieval is in the record and no exhibit cites
 it. That is the question no LLM-as-judge transcript usually answers — not
 *what did it decide on?* but *what did it leave out?*
 
+It also holds what *steered* the decision: the guidance you gave each
+participant, the verdicts the bench was deciding among, and the version of the
+procedural prompt `enbanc` ran. A ruling reached under "where the record is
+ambiguous, deny" does not read in the artifact as one reached without it.
+
 A tool is a plain async function; there is nothing to register or decorate, and
 `enbanc.tools.web_search` is built the same way yours is.
 

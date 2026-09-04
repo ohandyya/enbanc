@@ -14,11 +14,7 @@
 
 ## To Dos
 
-1. How to design accuracy evaluation
-
-    - What possible datasets can we use?
-
-2. [Done] How to design tools an how to allow user to extend the tool?
+1. [Done] How to design tools an how to allow user to extend the tool?
 
     - What is a good interface?
 
@@ -26,18 +22,35 @@
 
     - What are the default tools that we can build? Just web?
 
-3. After all desings are done, cut a new release, 0.0.x.
+2. After all desings are done, cut a new release, 0.0.x.
 
-4. Ask AI if we are missing any important `decisions` before we can move on to implementations.
 
 ## Questions
 
 1. How to organize implementation plan?
 
+2. In PydanticAI, how does it support multi-round agents?
+
+    - Do we need to keep track of all the histories and then resend?
+    - The answer to this wil impact the implementation of judge and advocate agent.
+
+3. How to design accuracy evaluation
+
+    - What possible datasets can we use?
+
 ## Daily Log
 
 ### Setp 4
 
+#### Prompts
+
+- What I want regarding the promping
+
+    - When user create a statue, the statue must be used as `part of the prompt` sent to both the judge and all the advocates. This is because the statue is the rulling logic.
+
+    - Each advocate need to argument baed on the assigned verdict, so this means which verdict it is advocating for should be part of the prompt for each advocate.
+
+    - the enbanc package (maybe in Tribunal) must include the prompts to ensure the tribunal ordering. For exaple, the judge needs to know that he/she is the judge and there are several advocates. The advocates need to know they are advocates and there is judge. Basically, the process defined in docs/design/tribunal.md should a knowledge that judge and advocates knows. And this should be auto-injected by the enbanc package. User should NOT write any of these.
 
 ### Sep 1
 

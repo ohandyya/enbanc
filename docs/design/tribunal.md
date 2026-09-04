@@ -103,6 +103,17 @@ record complete as to the ruling but not as to the search.
 [`0019`](../decisions/0019-the-ledger-is-part-of-the-record.md) removes that
 exception: what a tool returns is recorded verbatim on `Transcript.ledger`.
 
+Two further exceptions went unnamed until
+[`prompting.md`](./prompting.md#the-invariant-accounted-for) was written. Your
+`guidance` and `enbanc`'s own procedural prompt both reach an agent's context and
+neither was in any transcript — and guidance is the one of the two that can decide
+a proceeding. Both are closed rather than named:
+[`0025`](../decisions/0025-the-record-includes-what-steered-it.md) puts the steer
+on `Transcript.guidance` in full and the prompting surface on
+`Transcript.procedure` by version, alongside `verdicts` and `max_rounds` for the
+two other facts a participant is told. That document's table traces every element
+of every context to the field that holds it.
+
 The one exception left is procedural. When a tool times out or an advocate cites
 a ledger id that does not resolve, the library puts a retry prompt into that
 agent's history — `Timed out after 15.0 seconds.` — and no transcript holds it.
@@ -119,6 +130,16 @@ peer filing, because none exists yet: the round fans out concurrently. From
 round 2 it sees the record as it stood when the continuance was filed, alongside
 the interrogatory addressed to it. Filings only, in both directions — no
 advocate reads another's retrievals, and the ledger stays the reviewer's.
+
+An advocate is told **which verdicts the tribunal is deciding among**, from round
+1. That is the bench it faces, not a peer's argument; without it an advocate
+argues against an opposite it invented, and `Transcript.verdicts` is what keeps
+the fact in the record. And from round 2 it reads the **whole** continuance,
+including the questions put to its peers. *Targeted* is a duty about who must
+answer — the procedural prompt says so in those terms — not a rule about who may
+read, and seeing what the judge is asking elsewhere is what lets a rebuttal meet
+the case rather than a paraphrase of it. Both are rendered by
+[`prompting.md`](./prompting.md#the-turns).
 
 Each half is for something different. Round 1 is where the transcript records
 the strongest *independent* case for every verdict; peer text in context would
@@ -206,6 +227,18 @@ declared, so reaching either is an ordinary end rather than a failure: the
 outcome is `Undecided`, and its `reason` says whether the rounds or the money
 ran out. A reviewer must never have to guess whether a hard case was hard or
 merely expensive.
+
+**The judge is told which deliberation this is and how many the proceeding
+allows, and is told nothing about the budget.** Both halves are deliberate. The
+round count is two facts the record already holds — the round from `entries`, the
+limit from `Transcript.max_rounds` — so disclosing it opens no hole in the
+invariant, and a judge blind to it spends its last deliberation asking a question
+nobody will answer. Spend is not a standing fact: it is measured between rounds,
+no transcript carries it, and a judge that knew money was short would rule for a
+reason the record could never show. The cost of disclosing the first half — a
+final deliberation that is systematically different from the others, with nothing
+marking which one it was — is stated in
+[`0025`](../decisions/0025-the-record-includes-what-steered-it.md).
 
 Checking between rounds rather than mid-run is what makes that true. A budget
 enforced inside an advocate's run would stop with a round half-filed and nothing

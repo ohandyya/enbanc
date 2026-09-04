@@ -17,7 +17,7 @@ table is the whole tax.
 | **Advocate** | An agent assigned one verdict value, with its own read-only tools. Its job is to convince the judge the answer is *X* — or to concede. |
 | **Judge** | The single agent that rules. It has no tools and reasons only over the record the advocates build. Concrete and `enbanc`-owned, not an interface you implement. |
 | **Participant** | Any agent that runs in a proceeding: each advocate, plus the judge. It is the unit filings are made by and spend is attributed to, keyed by the advocate's verdict value or the literal `"judge"` — which is reserved, so a verdict may not use it. |
-| **Guidance** | Optional per-agent steer — "ambiguity favors denial" — added to the procedural prompt `enbanc` writes for that role. Human-authored, and never a replacement for it. |
+| **Guidance** | Optional per-agent steer — "ambiguity favors denial" — added to the procedural prompt `enbanc` writes for that role, as its last part. Human-authored, never a replacement for it, and recorded on the transcript so a steered ruling does not read as an unsteered one. |
 | **Round** | One exchange: the advocates' filings, plus the judge's deliberation that closes it. `max_rounds` counts deliberations. |
 | **Filing** | Anything a participant enters into the record: an argument, a concession, a response, a continuance, or a ruling. |
 | **Argument** | An advocate's round-1 filing: a claim and its supporting exhibits, made blind — no peer's filing is in view. |
@@ -34,11 +34,12 @@ table is the whole tax.
 | **Ruling** | The judge's decision: a verdict plus reasoning. Terminal. |
 | **Continuance** | The judge's "not yet" — carries the interrogatories for the next round. |
 | **Entry** | One filing plus the tribunal's record of it: which round it belongs to and when it was filed. |
-| **Transcript** | Append-only record of every filing, in order, plus the ledger of everything the advocates' tools returned and the calls that returned nothing, together with the question, statute, and case it was decided under. This is your audit artifact. |
+| **Transcript** | Append-only record of every filing, in order, plus the ledger of everything the advocates' tools returned and the calls that returned nothing, together with the standing record it was decided under — the question, the statute, the case, the bench, the round limit, the guidance each participant was given, and the procedure that ran. This is your audit artifact. |
 | **Hearing** | What `hear()` returns: the outcome, the transcript, the round count, and what the proceeding spent — broken down per participant, with the aggregate as that breakdown's sum. It exists only when the tribunal ran to the end of its own process. |
 | **Outcome** | How a proceeding ended: a `Ruling`, or `Undecided`. A discriminated union, so a caller cannot read a verdict without first acknowledging there might not be one. |
 | **Undecided** | The proceeding ran out of the envelope it was given — `max_rounds` deliberations, or the budget — and reached no verdict. Recorded and serializable, not a failure, and it names which of the two ran out. |
 | **Budget** | An optional ceiling on what a whole proceeding may spend, given as PydanticAI's `UsageLimits`. Checked between rounds against the running total, never inside a round. |
+| **Procedure** | The prompting surface a proceeding ran under, named by version on `Transcript.procedure` — both procedural prompts, the turn templates, and the render format. `enbanc` bumps it when that text changes and not when the package does. |
 | **Proceeding** | A hearing while it is still going: the live handle `hear_stream()` hands back. Iterate it to receive each entry as it is filed; when it ends it carries the same `Hearing` `hear()` would have returned. |
 
 ## Judge output shape

@@ -148,6 +148,12 @@ or `Undecided` when the rounds or the budget ran out without one. Both are
 records, and both serialize, because a proceeding that stopped inside the limits
 it was given belongs in the audit artifact whether or not it decided.
 
+**`instructions_for(participant)`** — the assembled system prompt one
+participant will run under: `enbanc`'s procedural text, the question, the statute,
+the assignment, and your `guidance`. Takes no case, because a case is not in the
+instructions, so you can read what your guidance did before spending anything.
+Raises `ConfigurationError` for a participant this tribunal does not seat.
+
 **`hear(case)`** — runs the proceeding and returns the `Hearing`.
 
 **`hear_stream(case)`** — the same proceeding, watched as it happens: an async
@@ -217,7 +223,9 @@ positional argument, and the alternative that would have preserved one
 (`RootModel[str]`) holds exactly one field — `name` is a second one the
 transcript needs.
 
-Turning a statute into prompt text is `enbanc`'s job, not the statute's.
+Turning a statute into prompt text is `enbanc`'s job, not the statute's — it
+becomes its own instruction part, whole and unescaped, in every participant's
+system prompt ([`prompting.md`](./prompting.md#how-an-agent-is-assembled)).
 Putting rendering on the object would hand back the behavior
 [`0001`](../decisions/0001-statute-carries-no-model.md) removed. There is no
 `Statute.draft()` and there will not be: drafting needs a target representation
@@ -275,7 +283,9 @@ transcript claims was decided on, and facts that could be edited mid-hearing
 would make that account unfalsifiable.
 
 Turning a case into prompt text is `enbanc`'s job, not the case's — the same
-division `Statute` draws just above.
+division `Statute` draws just above. It renders as `model_dump_json(indent=2)`
+in the round-1 turn, which is the one generic form that survives `enbanc` reading
+no field of it ([`prompting.md`](./prompting.md#round-1-advocate)).
 
 ### The governors
 
@@ -529,6 +539,10 @@ class Transcript(BaseModel, Generic[VerdictT]):
     question: str
     statute: Statute
     case: SerializeAsAny[Case]
+    verdicts: list[VerdictT]
+    max_rounds: int
+    guidance: dict[VerdictT | Literal["judge"], str] = {}
+    procedure: str
     entries: list[Entry[VerdictT]] = []
     ledger: list[Retrieval[VerdictT]] = []
     failures: list[ToolFailure[VerdictT]] = []
@@ -543,6 +557,25 @@ class Transcript(BaseModel, Generic[VerdictT]):
 reason `Hearing` wraps `Ruling`: `round` and `filed_at` are things the tribunal
 knows and the filer does not. Putting `round` on `Ruling` would put a field on
 the judge's own output schema that the judge cannot fill.
+
+**`verdicts`, `max_rounds`, `guidance`, and `procedure` are the standing record
+too.** They are there for the same reason `question` and `statute` are: each one
+reaches a participant's context, and a transcript that did not hold it would make
+the invariant [`tribunal.md`](./tribunal.md#constraints-that-define-the-design)
+states false. `verdicts` names the bench an advocate was told it faced, including
+values nobody argued to. `max_rounds` is the envelope, and the judge is told where
+it stands in it. `guidance` is the caller's steer, stored in full, keyed by the
+participant it was given to and holding only those that got one — absence means
+none was given. `procedure` names the prompting surface the proceeding ran under,
+by version rather than by text, and [`prompting.md`](./prompting.md#procedure-versions)
+resolves it. See [`0025`](../decisions/0025-the-record-includes-what-steered-it.md).
+
+**`guidance`'s participant key is not the `author` field
+[above](#what-participants-file) rejects.** That rejection is about *filings*: one
+carrying `VerdictT | Literal["judge"]` would make a ruling issued by an advocate
+expressible. This is the tribunal's accounting of who was steered — the same shape
+and the same reason as `usage_by_participant` and `ProceedingFailed.participant` —
+and it enters no filing.
 
 **`Transcript.case` is `SerializeAsAny[Case]`, and has to be.** Pydantic v2
 serializes a field by its *declared* type, so a `LoanApplication` sitting in a
@@ -610,6 +643,13 @@ same discipline that keeps an advocate's context small, and it is why
 text. That is the whole of its behavior — it holds no model and makes no calls,
 and `render()` is `enbanc` formatting its own artifact, not a statute acquiring
 opinions.
+
+**`render()` is the reviewer's viewpoint of the one renderer that also feeds the
+agents**, so what it emits is specified rather than left to implementation —
+[`prompting.md`](./prompting.md#transcriptrender) has it in full. That the two
+audiences share a renderer is what makes the context invariant checkable by
+construction: an agent's view is this view minus rows, never plus text. See
+[`0026`](../decisions/0026-one-renderer-serves-both-audiences.md).
 
 ### The result
 
@@ -1046,7 +1086,15 @@ contract. See [`0009`](../decisions/0009-model-settings-live-on-the-model.md).
 system prompt is assembled by `enbanc`: the `Ruling | Continuance` contract, the
 rule that interrogatories are targeted rather than broadcast, the judge's
 prohibition on gathering its own evidence, the advocate's licence to concede.
-Your `guidance` is added to that, not substituted for it. A replaceable prompt
+Both prompts are written out in full in
+[`prompting.md`](./prompting.md#the-advocates-procedural-prompt), and
+`tribunal.instructions_for(participant)` returns the assembled string an agent
+will actually run under. Your `guidance` is added to that, not substituted for
+it — as the last instruction part, after a paragraph that says it may refine how
+things are weighed and may not change the process or the shape of a filing. It is
+recorded on `Transcript.guidance`, so a steered ruling does not read in the record
+as an unsteered one
+([`0025`](../decisions/0025-the-record-includes-what-steered-it.md)). A replaceable prompt
 would let a caller silently break the output schema, and the failure would
 present as a library bug. Guidance is per-agent and never inherited: the judge's
 steer and an advocate's steer contradict each other by construction, and

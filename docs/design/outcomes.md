@@ -94,6 +94,14 @@ Hearing(
             name='underwriting-v3',
         ),
         case=Case(applicant='A. Okonkwo', income=182000),
+        verdicts=[
+            <LoanDecision.APPROVE: 'approve'>,
+            <LoanDecision.DENY: 'deny'>,
+            <LoanDecision.REFER: 'refer to a senior underwriter for manual review'>,
+        ],
+        max_rounds=5,
+        guidance={'judge': 'Where the record is ambiguous, deny.'},
+        procedure='p1',
         entries=[
             Entry(
                 round=1,
@@ -425,6 +433,14 @@ Hearing(
         question='Shall the bank loan this applicant $500k?',
         statute=Statute(text='...', name='underwriting-v3'),
         case=Case(applicant='A. Okonkwo', income=182000),
+        verdicts=[
+            <LoanDecision.APPROVE: 'approve'>,
+            <LoanDecision.DENY: 'deny'>,
+            <LoanDecision.REFER: 'refer to a senior underwriter for manual review'>,
+        ],
+        max_rounds=2,
+        guidance={'judge': 'Where the record is ambiguous, deny.'},
+        procedure='p1',
         entries=[
             # ... rounds 1 and 2 as above; the last entry is:
             Entry(
@@ -560,6 +576,14 @@ ProceedingFailed(
         question='Shall the bank loan this applicant $500k?',
         statute=Statute(text='...', name='underwriting-v3'),
         case=Case(applicant='A. Okonkwo', income=182000),
+        verdicts=[
+            <LoanDecision.APPROVE: 'approve'>,
+            <LoanDecision.DENY: 'deny'>,
+            <LoanDecision.REFER: 'refer to a senior underwriter for manual review'>,
+        ],
+        max_rounds=5,
+        guidance={'judge': 'Where the record is ambiguous, deny.'},
+        procedure='p1',
         entries=[
             Entry(
                 round=1,

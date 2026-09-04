@@ -20,13 +20,20 @@ design doc — three pieces are design, and two of those are load-bearing.
 [`tribunal.md`](./tribunal.md#constraints-that-define-the-design) states that
 each agent carries its own conversation across rounds and that the history "is
 a representation of the transcript — never a second channel". That is the
-invariant the audit claim rests on, and it has no mechanism yet. The concrete
-question: in round 2 an advocate already holds its own round-1 messages *and*
-needs the peer record that
-[`0023`](../decisions/0023-advocates-argue-blind-and-rebut-informed.md) grants
-it — so what exactly is appended, what is re-sent, and what keeps the two
-representations from disagreeing? Getting this wrong breaks the guarantee
-quietly, which is why it is designed rather than discovered.
+invariant the audit claim rests on.
+
+[`prompting.md`](./prompting.md) has since settled **what** is sent: each turn
+carries only the filings a participant has not been shown, rendered from a
+snapshot of the transcript taken at dispatch, and every agent view is a filtered
+projection of the reviewer's
+([`0026`](../decisions/0026-one-renderer-serves-both-audiences.md)). What is left
+here is **how**: where the snapshot is taken, how `since` is tracked per
+participant across rounds, whether history is passed as PydanticAI
+`message_history` or rebuilt, and what happens to an agent's history when a run
+is cancelled mid-round
+([`0012`](../decisions/0012-a-failure-cancels-the-round.md)). Getting this wrong
+breaks the guarantee quietly, which is why it is designed rather than
+discovered.
 
 **2. The ledgering toolset.**
 [`evidence.md`](./evidence.md#how-a-source-becomes-an-exhibit) gives it one
