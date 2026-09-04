@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-09-02
+updated: 2026-09-04
 ---
 
 # Progress
@@ -29,26 +29,29 @@ name and nothing more. Settled and binding: every public type, every way a
 proceeding can *end*, and now every question `design/api.md` was carrying
 ([`0001`](./decisions/0001-statute-carries-no-model.md) through
 [`0015`](./decisions/0015-interrogatory-ids-are-stamped-on-filing.md)). The
-schemas are done. What remains unsettled is the *behaviour* of the proceeding
-itself — what advocates see, and what a budget may halt — and both live in
-`design/tribunal.md`.
+schemas are done, and as of
+[`0023`](./decisions/0023-advocates-argue-blind-and-rebut-informed.md) so is the
+*behaviour* of the proceeding: an advocate argues blind in round 1 and reads the
+record from round 2. What remains unsettled is only what a proceeding may
+*spend*.
 
-**Next up:** Settle **advocate isolation** in
-[`design/tribunal.md`](./design/tribunal.md#open-questions) — in round 1, does
-an advocate see its peers' arguments, or only the case and statute? It is the
-next one to take because it is the last open question that changes what the
-system *produces* rather than the shape of a type: isolation yields independent
-arguments, visibility yields genuine rebuttal, and a transcript reads
-differently under each. Nothing in the settled schemas forces the answer, which
-is why it has outlasted the others. Per rule 7, three moves in one commit:
-prose into `tribunal.md`, an ADR, then the bullet goes.
+**Next up:** Settle **cost control** in
+[`design/tribunal.md`](./design/tribunal.md#open-questions) — whether
+`max_rounds` is the only governor or a token budget can halt a proceeding
+mid-round, where a budget stop lands under
+[`0011`](./decisions/0011-exhaustion-is-an-outcome-failure-is-an-error.md)
+(outcome or error), and whether fan-out width is the caller's to bound. It is
+the last open question, and unlike the ones before it the likely answer is a
+pass-through of PydanticAI's `UsageLimits` rather than something to invent. Per
+rule 7, three moves in one commit: prose into `tribunal.md`, an ADR, then the
+bullet goes.
 
 **Open questions:**
 
-- [`design/tribunal.md`](./design/tribunal.md#open-questions) owns both that
-  remain: advocate isolation, and cost control — sharpened, with `0011` naming
-  where a budget stop lands. [`design/api.md`](./design/api.md#open-questions)
-  now carries none.
+- [`design/tribunal.md`](./design/tribunal.md#open-questions) owns the one that
+  remains: cost control — sharpened, with `0011` naming where a budget stop
+  lands and `0020` re-filing fan-out width into it.
+  [`design/api.md`](./design/api.md#open-questions) carries none.
 - Nothing else outstanding at the project level.
 
 ## Log

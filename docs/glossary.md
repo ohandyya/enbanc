@@ -20,8 +20,8 @@ table is the whole tax.
 | **Guidance** | Optional per-agent steer — "ambiguity favors denial" — added to the procedural prompt `enbanc` writes for that role. Human-authored, and never a replacement for it. |
 | **Round** | One exchange: the advocates' filings, plus the judge's deliberation that closes it. `max_rounds` counts deliberations. |
 | **Filing** | Anything a participant enters into the record: an argument, a concession, a response, a continuance, or a ruling. |
-| **Argument** | An advocate's round-1 filing: a claim and its supporting exhibits. |
-| **Concession** | An advocate stating no reasonable case exists for its assigned verdict. A first-class outcome, not a failure. |
+| **Argument** | An advocate's round-1 filing: a claim and its supporting exhibits, made blind — no peer's filing is in view. |
+| **Concession** | An advocate stating no reasonable case exists for its assigned verdict. A first-class outcome, not a failure, and a round-1 filing. |
 | **Tool** | A plain async function an advocate may call to gather evidence. Read-only, per-advocate, and PydanticAI's own — `enbanc` defines no tool base class and no tool decorator. |
 | **Source** | One piece of evidence a tool found, together with the reference that locates it. What tools *return*; most never become exhibits. |
 | **Reference** | The string that says where a piece of evidence lives — a URL, a document key, a file path, the query that produced a row. Each tool defines what a locator means for it; `enbanc` never parses one. |
@@ -30,7 +30,7 @@ table is the whole tax.
 | **Ledger** | Every retrieval in a proceeding, on `Transcript.ledger`. Where `entries` say what the ruling rests on, the ledger says what was available to rest on. |
 | **Tool failure** | A tool call that returned nothing — it timed out. Recorded on `Transcript.failures` so an advocate blocked from a source is distinguishable from one that never looked. It carries no id, because nothing came back to cite. |
 | **Interrogatory** | A targeted question from the judge to a specific advocate, issued when it cannot yet rule. Carries an id naming the round it was issued in, stamped by the tribunal when the continuance is filed. |
-| **Response** | An advocate's answer to one interrogatory, entering new exhibits as needed. It cites that interrogatory's id, which the tribunal stamps from the dispatch — no participant writes an id. |
+| **Response** | An advocate's answer to one interrogatory, entering new exhibits as needed and written with the record to date in view. It cites that interrogatory's id, which the tribunal stamps from the dispatch — no participant writes an id. |
 | **Ruling** | The judge's decision: a verdict plus reasoning. Terminal. |
 | **Continuance** | The judge's "not yet" — carries the interrogatories for the next round. |
 | **Entry** | One filing plus the tribunal's record of it: which round it belongs to and when it was filed. |

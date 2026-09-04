@@ -31,16 +31,18 @@ reasoning and the evidence that produced it, in a form a reviewer can audit.
 
 **Round 1 — argument.** One advocate is instantiated per verdict value. Each
 argues freely for its assigned verdict, filing an *argument*: a claim and the
-exhibits supporting it, gathered through its own tools. An advocate that finds
-no reasonable case for its verdict **concedes**.
+exhibits supporting it, gathered through its own tools. It argues **blind** —
+the round is a concurrent fan-out and no peer's filing is in view. An advocate
+that finds no reasonable case for its verdict **concedes**.
 
 **Deliberation.** The judge reads the record and either rules or issues a
 *continuance* carrying **interrogatories**: targeted questions to a chosen
 subset of advocates, not a broadcast.
 
 **Round 2+ — interrogation.** Each addressed advocate files a *response*
-answering one interrogatory by id, entering new exhibits as needed. Then the
-judge deliberates again. Repeat.
+answering one interrogatory by id, entering new exhibits as needed — now with
+the record as it stood when the continuance was filed in view, so it rebuts what
+its peers actually filed. Then the judge deliberates again. Repeat.
 
 Interrogatory ids are the tribunal's, not a participant's. The judge emits the
 question; the tribunal stamps `r{round}-q{n}` on it when the continuance is
@@ -109,6 +111,27 @@ nothing another participant said, so it cannot bear on the ruling, and whatever
 the agent files in response is in the record. See
 [`0021`](../decisions/0021-retry-prompts-are-outside-the-invariant.md).
 
+**Advocates argue blind and rebut informed.** In round 1 an advocate sees the
+question, the statute, the case, its assigned verdict and its guidance — and no
+peer filing, because none exists yet: the round fans out concurrently. From
+round 2 it sees the record as it stood when the continuance was filed, alongside
+the interrogatory addressed to it. Filings only, in both directions — no
+advocate reads another's retrievals, and the ledger stays the reviewer's.
+
+Each half is for something different. Round 1 is where the transcript records
+the strongest *independent* case for every verdict; peer text in context would
+anchor a model onto its opponent's framing and turn a concession into a reaction
+to rhetoric rather than a finding about the facts. Rounds 2+ are where
+confrontation belongs, and the judge already controls it — it chooses who is
+asked and what. Letting the record supply what was *said* is what keeps a
+tool-less judge from becoming an evidence-summarizer, restating exhibits it
+cannot re-fetch.
+
+The ordering is this way round because contamination only runs one way: an
+isolated round 1 can have rebuttal added to it later, and a contaminated one can
+never be recovered. See
+[`0023`](../decisions/0023-advocates-argue-blind-and-rebut-informed.md).
+
 **The record is complete as to the search as well as the ruling.** `entries` say
 what the ruling rests on; the ledger says what was available to rest on. An
 advocate that pulls damaging evidence and declines to file it leaves a trace —
@@ -146,7 +169,9 @@ the first two would show only the middle failing.
 **Concession is a first-class outcome, not a failure.** An advocate that
 concedes has done its job well. Treating concession as an error would pressure
 advocates into manufacturing arguments for indefensible positions — exactly the
-failure mode the adversarial structure exists to prevent.
+failure mode the adversarial structure exists to prevent. It is a round-1
+filing: an advocate persuaded by the record it reads in a later round says so in
+its response, which is what the interrogatory asked for.
 
 **An advocate can be degraded without being lost, and the record says so.** A
 tool that raises ends the proceeding under the rule below; a tool that times out
@@ -189,10 +214,7 @@ list. A question that is only *sharpened* — its options narrowed, nothing
 decided — stays, rewritten in place. See rule 7 in
 [`../../CLAUDE.md`](../../CLAUDE.md).
 
-- **Advocate isolation.** In round 1, does an advocate see its peers' arguments,
-  or only the case and statute? Isolation produces independent arguments;
-  visibility produces genuine rebuttal. This changes the character of the output.
-- **Cost control.** Rounds multiply tokens by the advocate count. Visibility is
+- **Cost control.** Rounds multiply tokens by the advocate count. Reporting is
   settled — `hearing.usage` reports what a proceeding spent — but the governor
   is not: whether `max_rounds` is the only one, or a budget can halt a
   proceeding mid-round. PydanticAI already ships `UsageLimits` and
