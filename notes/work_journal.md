@@ -28,6 +28,10 @@
 
 3. After all desings are done, cut a new release, 0.0.x.
 
+## Questions
+
+1. How to organize implementation plan?
+
 ## Daily Log
 
 ### Sep 1
