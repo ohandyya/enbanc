@@ -150,6 +150,9 @@ proceeding, write `Transcript.ledger`
 ([`0022`](../decisions/0022-tool-failures-are-recorded.md)), and rewrite what
 the model sees so ids are citable. It is the hardest single piece of code in
 the library.
+  - Note
+    - In `docs/design/evidence.md`, we also allow user to pass in `Tool(...)` or any tool_set instance. This is useful to embed other control such as timeout.
+      So both, either plan function or pydanticai Tool or Toolset, must be supported.
 
 **3. Round orchestration and usage capture.** The task-group shape — now bounded
 by [`0027`](../decisions/0027-an-advocate-answers-its-interrogatories-in-order.md),
