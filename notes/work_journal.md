@@ -41,6 +41,11 @@
 
 ## Daily Log
 
+### Sep 5
+
+#### Execution
+
+
 ### Setp 4
 
 #### Prompts
