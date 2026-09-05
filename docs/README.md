@@ -85,7 +85,7 @@ full ruleset.
 |---|---|
 | [`journal/2026-09-02-values-before-schemas.md`](./journal/2026-09-02-values-before-schemas.md) | Why writing `design/outcomes.md` as concrete values caught a redundant field and an unanswerable gap that reviewing the schemas — and writing an ADR about them — did not |
 | [`journal/2026-09-04-writing-the-prompt-found-the-holes.md`](./journal/2026-09-04-writing-the-prompt-found-the-holes.md) | Why writing the procedural prompts found two unnamed exceptions to the context invariant, a self-contradicting `since` definition, and a premise a new decision would have falsified — none of which reviewing the rule had caught; the second instance of the pattern `2026-09-02` records |
-| [`journal/2026-09-05-the-probe-found-the-holes.md`](./journal/2026-09-05-the-probe-found-the-holes.md) | Why writing `execution.md` against a running dependency found five defects in *accepted* documents — a budget enforcing a limit nobody set, a retry default that made a worked example unreachable, a promise that under-described the mechanism, a missing interrogatory, and an id format nothing explained; the third instance of the pattern, and the first where the artifact was code |
+| [`journal/2026-09-05-the-probe-found-the-holes.md`](./journal/2026-09-05-the-probe-found-the-holes.md) | Why running `pydantic-ai` found five defects in *accepted* documents that reading it had not — a budget enforcing a limit nobody set, a retry default that made a worked example unreachable, a promise that under-described its own mechanism, a missing interrogatory, and an id format nothing explained; the third instance of the pattern, and the first where the artifact was code |
 
 ## Adding a doc
 

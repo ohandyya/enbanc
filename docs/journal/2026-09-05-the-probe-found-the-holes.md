@@ -3,7 +3,7 @@ status: current
 updated: 2026-09-05
 ---
 
-# 2026-09-05 — the probe found the holes
+# Running the dependency found what reading it did not
 
 `docs/progress.md` carried an instruction from the previous session: *before
 writing its prose, write the literal message sequence — two rounds, three
@@ -16,7 +16,7 @@ recorded.
 This is the third instance, and the first where the artifact was **code** rather
 than prose. That difference is what this entry is about.
 
-## What happened
+## What the probes caught
 
 `execution.md` is a document about a dependency. Every load-bearing sentence in
 it is a claim about what `pydantic-ai 2.36.0` does, and the placeholder already
@@ -43,7 +43,7 @@ present as *correct-looking audit artifacts*. A hearing stopped by an unasked-fo
 request cap does not look broken. It looks like a proceeding that ran out of
 money.
 
-## Why the docs could not have caught them
+## Why executing finds what reading does not
 
 The four settled documents are internally consistent. They cross-reference each
 other correctly, their worked examples agree, and the reasoning in the ADRs is
@@ -93,7 +93,7 @@ the general handler, or a cancelled sibling wins the race and the exception name
 the wrong participant — is the sort of thing that would have been a bug rather
 than a paragraph if the pattern had gone unwritten.
 
-## The thing worth not repeating
+## What to do with this
 
 The five probes are throwaway scripts in a scratch directory, and every one of
 them asserts a sentence `execution.md` now states as fact. `execution.md` says so

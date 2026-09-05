@@ -128,39 +128,30 @@ advocates, one twice-questioned — for the reason in
 
 ## Log
 
-### 2026-09-05 — execution is designed, and running the dependency found five defects
+### 2026-09-05 — execution is designed, and the dependency is verified rather than read
 
 **Did:** Wrote [`design/execution.md`](./design/execution.md), the last document
-required before code. Followed the previous session's instruction to write the
-literal message sequence first — eight runs across four agents, with the
-`since`/snapshot table — and verified every claim about `pydantic-ai 2.36.0` by
-running it rather than reading it. That found **five defects in already-settled
-documents**, one of them in an accepted ADR: `0024`'s budget check silently
-enforced `UsageLimits`' defaulted `request_limit=50` at proceeding scope;
-`Agent(retries=…)` is two independent budgets that three documents described as
-one, and its default of `1` made `outcomes.md` §1's two timeouts unreachable;
-`api.md`'s "no key at all" on a failure was false about the mechanism and
-pessimistic; and `prompting.md`'s rendered continuance was missing the `r1-q3` the
-subsection below it uses. Two findings went the other way — the ledgering toolset
-is a `WrapperToolset` with one method, and `0012`'s singular `participant` is
-structural rather than chosen. All five defects were fixed in the same commit
-under rule 2, across `api.md`, `outcomes.md`, `evidence.md`, `prompting.md` and
-`tribunal.md`, with three ADRs
-([`0028`](./decisions/0028-usage-accumulates-per-participant.md)–[`0030`](./decisions/0030-the-retry-budgets.md))
-and one new `ConfigurationError` case.
+required before code — the proceeding written out as literal messages, then the
+three pieces that read off it. Every claim it makes about `pydantic-ai 2.36.0`
+was established by running the library, which turned up five defects in
+already-settled documents (one in an accepted ADR) and two findings that made the
+design smaller. All five were fixed in the same commit under rule 2, with three
+ADRs and a fourth `ConfigurationError` case.
 
-**Stopped at:** Clean. `docs/design/` carries no open questions in any of its six
-documents for the first time. The five probe scripts that established the
-dependency claims are still throwaway scratch files and should become tests.
+**Stopped at:** Clean, and `docs/design/` carries no open questions in any of its
+six documents for the first time. The five probe scripts behind
+`execution.md`'s dependency claims are still throwaway scratch files under
+`/private/tmp/…/scratchpad/`; they belong in `tests/` before a `pydantic-ai`
+bump can falsify the document silently.
 
 **Why this way:**
+[`journal/2026-09-05-the-probe-found-the-holes.md`](./journal/2026-09-05-the-probe-found-the-holes.md)
+for what the probes caught and why review could not,
 [`decisions/0028`](./decisions/0028-usage-accumulates-per-participant.md),
 [`0029`](./decisions/0029-a-budgets-request-limit-must-be-chosen.md),
-[`0030`](./decisions/0030-the-retry-budgets.md), and
-[`journal/2026-09-05-the-probe-found-the-holes.md`](./journal/2026-09-05-the-probe-found-the-holes.md)
-for why executing the design caught what reviewing it could not — the third
-instance of a pattern this log already records twice, and the first where the
-artifact was code.
+[`0030`](./decisions/0030-the-retry-budgets.md).
+
+**Commits:** `03532f3`
 
 ### 2026-09-04 — prompting is designed, and the invariant turns out to have had three holes
 
