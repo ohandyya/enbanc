@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-09-04
+updated: 2026-09-05
 ---
 
 # Documentation
@@ -35,7 +35,7 @@ full ruleset.
 | [`design/evidence.md`](./design/evidence.md) | Tools: what one is, how you add your own, and how what it returns becomes an exhibit a reviewer can check |
 | [`design/outcomes.md`](./design/outcomes.md) | Every way a proceeding can end, worked through with concrete values: a ruling, a spent round limit, a spent budget, a downed provider, a misconfigured tribunal |
 | [`design/prompting.md`](./design/prompting.md) | How `enbanc` turns its types into text a model reads, and a proceeding back into text a human reads: the two procedural prompts in full, how an agent's instructions are assembled, the four turn templates, how ledger ids reach the model, and what `Transcript.render()` produces |
-| [`design/execution.md`](./design/execution.md) | **Placeholder.** How a proceeding maps onto PydanticAI: message history against the transcript, the ledgering toolset, round orchestration and usage capture. Carries verified findings about what PydanticAI already does, which are observations rather than design. Required for `0.1.0` in part |
+| [`design/execution.md`](./design/execution.md) | How a proceeding maps onto PydanticAI: verified findings about what the framework already does, the whole proceeding written out as literal messages, then the three pieces — message history against the transcript, the ledgering toolset, and round orchestration with the filing clerk, the failure pattern, and usage capture |
 | [`design/degenerate-deliberations.md`](./design/degenerate-deliberations.md) | **Placeholder, left for future.** Behaviours the schemas admit and no document rules on — an empty continuance, an interrogatory to a conceded advocate. Not needed for `0.1.0` |
 | [`design/testing.md`](./design/testing.md) | **Placeholder, left for future.** How an LLM-driven library is asserted on deterministically. Not needed for `0.1.0` |
 | [`design/packaging.md`](./design/packaging.md) | **Placeholder, left for future.** Module layout, export surface, where the errors live, the Python floor. Not needed for `0.1.0` |
@@ -71,6 +71,9 @@ full ruleset.
 | [`decisions/0025-the-record-includes-what-steered-it.md`](./decisions/0025-the-record-includes-what-steered-it.md) | Why `guidance`, the prompting surface, the verdict set, and the round limit become standing `Transcript` fields — closing two exceptions to the context invariant that predate `0021` — why the judge is told which deliberation this is and never what the budget has left, and why the procedural prompt is recorded by version rather than by text |
 | [`decisions/0026-one-renderer-serves-both-audiences.md`](./decisions/0026-one-renderer-serves-both-audiences.md) | Why one renderer feeds the agents and the reviewer, why every agent viewpoint is a strict subset of the reviewer's rather than a separately tuned format, why a view is taken against a snapshot, and what that costs the readability of `Transcript.render()` |
 | [`decisions/0027-an-advocate-answers-its-interrogatories-in-order.md`](./decisions/0027-an-advocate-answers-its-interrogatories-in-order.md) | Why an advocate asked two questions answers them sequentially rather than in two concurrent runs — a forked message history and nondeterministic ledger ids, not just self-contradiction — why the cross-advocate fan-out is untouched and `0023`'s objection to sequencing does not reach it, and why answering every question in one run was rejected |
+| [`decisions/0028-usage-accumulates-per-participant.md`](./decisions/0028-usage-accumulates-per-participant.md) | Why `enbanc` mints one `RunUsage` per participant and passes it into every run rather than reading a figure off each result, why that lets a `ProceedingFailed` name every participant that was dispatched — so absence means *never dispatched* rather than *did not report* — and why the total is still a floor |
+| [`decisions/0029-a-budgets-request-limit-must-be-chosen.md`](./decisions/0029-a-budgets-request-limit-must-be-chosen.md) | Why a `budget` whose `request_limit` is still `UsageLimits`' default of 50 is a `ConfigurationError` rather than a field `enbanc` honours or ignores, why the field is worth keeping when `cost_limit` silently enforces nothing on an unpriceable model, and why this adds a guard to `0024` rather than changing its mechanism |
+| [`decisions/0030-the-retry-budgets.md`](./decisions/0030-the-retry-budgets.md) | Why `Agent(retries=...)` is two independent budgets rather than the one three documents described, what numbers `enbanc` sets and why `outcomes.md` §1 is what pins them, and why a tool's `max_retries` rides on the `Tool` beside its timeout while the output budget stays the library's |
 
 ### Guides — user-facing how-to
 
@@ -82,6 +85,7 @@ full ruleset.
 |---|---|
 | [`journal/2026-09-02-values-before-schemas.md`](./journal/2026-09-02-values-before-schemas.md) | Why writing `design/outcomes.md` as concrete values caught a redundant field and an unanswerable gap that reviewing the schemas — and writing an ADR about them — did not |
 | [`journal/2026-09-04-writing-the-prompt-found-the-holes.md`](./journal/2026-09-04-writing-the-prompt-found-the-holes.md) | Why writing the procedural prompts found two unnamed exceptions to the context invariant, a self-contradicting `since` definition, and a premise a new decision would have falsified — none of which reviewing the rule had caught; the second instance of the pattern `2026-09-02` records |
+| [`journal/2026-09-05-the-probe-found-the-holes.md`](./journal/2026-09-05-the-probe-found-the-holes.md) | Why writing `execution.md` against a running dependency found five defects in *accepted* documents — a budget enforcing a limit nobody set, a retry default that made a worked example unreachable, a promise that under-described the mechanism, a missing interrogatory, and an id format nothing explained; the third instance of the pattern, and the first where the artifact was code |
 
 ## Adding a doc
 

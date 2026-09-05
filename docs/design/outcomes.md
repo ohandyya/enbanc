@@ -1,6 +1,6 @@
 ---
 status: draft
-updated: 2026-09-04
+updated: 2026-09-05
 ---
 
 # Every way a proceeding ends
@@ -343,6 +343,13 @@ is in `failures`.** Read the entries alone and that response is an advocate with
 nothing to add. Read `failures` and it is an advocate whose two searches timed
 out. The judge ruled against it in the next entry.
 
+**Two timeouts on one tool, and the advocate is still heard.** That is the
+`tools` retry budget doing its job: `enbanc` sets it to 3, per tool name, so a
+flapping search API degrades an advocate rather than ending the proceeding
+([`0030`](../decisions/0030-the-retry-budgets.md)). At PydanticAI's default of 1
+this example would not exist — the second timeout would raise, and the record
+below would be a `ProceedingFailed` instead of a ruling.
+
 Nothing here says the ruling was wrong. `enbanc` does not mark this hearing
 degraded, does not warn, and does not adjust the outcome — a populated
 `failures` is not a finding. What it does is make the question askable, which is
@@ -495,9 +502,12 @@ finding about the case.
 ### The budget
 
 Same tribunal again, this time with room to deliberate but not to pay for it:
-`max_rounds=5` and `budget=UsageLimits(cost_limit=Decimal("0.40"))`. Round 2
+`max_rounds=5` and
+`budget=UsageLimits(cost_limit=Decimal("0.40"), request_limit=None)`. Round 2
 finishes, the judge files a third `Continuance`, and the total spent has passed
-the ceiling — so round 3 is never dispatched.
+the ceiling — so round 3 is never dispatched. (`request_limit` is spelled out
+because an inherited one is a `ConfigurationError`; see
+[§5](#a-budget-with-an-inherited-request_limit).)
 
 ```text
 round 1   Argument(APPROVE), Argument(DENY), Concession(REFER)
@@ -606,11 +616,18 @@ ProceedingFailed(
         ],
     ),
     usage_by_participant={
-        <LoanDecision.APPROVE: 'approve'>: RunUsage(
+        <LoanDecision.APPROVE: 'approve'>: RunUsage(   # filed before the failure
             requests=2, tool_calls=1, input_tokens=7020, output_tokens=410,
         ),
+        <LoanDecision.DENY: 'deny'>: RunUsage(         # died mid-run; kept what it spent
+            requests=1, tool_calls=0, input_tokens=3480, output_tokens=0,
+        ),
+        <LoanDecision.REFER: 'refer to a senior ...'>: RunUsage(   # cancelled where it stood
+            requests=1, tool_calls=1, input_tokens=3510, output_tokens=190,
+        ),
+        # no 'judge' key — the deliberation was never dispatched
     },
-    usage=RunUsage(requests=2, tool_calls=1, input_tokens=7020, output_tokens=410),
+    usage=RunUsage(requests=4, tool_calls=2, input_tokens=14010, output_tokens=600),
 )
 ```
 
@@ -628,12 +645,19 @@ enbanc.ProceedingFailed: advocate 'deny' could not be heard in round 1
 `Hearing` to mistake for one. `APPROVE`'s argument survives on
 `e.transcript` because it had already filed.
 
-**`REFER` and `DENY` are absent from `usage_by_participant` too**, and that is
-the one place the mapping is allowed to be incomplete. `DENY`'s run died before
-it could report what it had spent; `REFER`'s was cancelled where it stood. A
-missing key here means "did not report", never "spent nothing" — which is why
-this usage is a floor and the aggregate above understates the real bill. On a
-`Hearing` there is no such gap: every participant has an entry.
+**`REFER` and `DENY` are both in `usage_by_participant`**, holding what they had
+spent when the proceeding stopped. `enbanc` accumulates into one `RunUsage` per
+participant rather than reading a figure off each result, so a run that died in a
+provider call and a run that was cancelled where it stood both leave their spend
+behind ([`0028`](../decisions/0028-usage-accumulates-per-participant.md)). The
+`'judge'` key is the only one missing, and it means what absence now means:
+**never dispatched**. The transcript says the same thing from the other side —
+there is no `Continuance`.
+
+The total is still a floor rather than a bill. Cancellation is client-side and
+does not un-bill tokens a provider has already generated, so `REFER` may have cost
+more than its row says. On a `Hearing` there is no missing key at all, because
+every participant ran to completion.
 
 **`REFER` is absent from the record**, because it had not filed yet. The first
 failure cancels the round: `REFER`'s run is stopped where it stood, and nothing
@@ -652,15 +676,16 @@ ProceedingFailed(
     participant='judge',
     round=1,
     transcript=Transcript(..., entries=[...]),      # 3 entries, no Continuance
-    usage_by_participant={...},                     # 3 advocates; no 'judge' key
-    usage=RunUsage(requests=6, tool_calls=3, input_tokens=19400, ...),
+    usage_by_participant={...},                     # 3 advocates, plus 'judge'
+    usage=RunUsage(requests=7, tool_calls=3, input_tokens=24100, ...),
 )
 ```
 
-`participant` is `'judge'`, the one non-verdict value it can take — and the key
-it would have held in `usage_by_participant` is missing, because the run that
-failed never reported. All three advocates are there: they filed before the
-deliberation was attempted.
+`participant` is `'judge'`, the one non-verdict value it can take. All four keys
+are present: the three advocates filed before the deliberation was attempted, and
+the judge's own row holds what its failed run spent before the provider gave up.
+A judge that was never *dispatched* — because an advocate failed first, as in the
+case above — has no key at all, and that is the difference absence now marks.
 
 ### An advocate's tool raises
 
@@ -673,7 +698,8 @@ ProceedingFailed(
     round=2,
     transcript=Transcript(..., entries=[...]),      # 5 entries: round 1 complete,
                                                     # plus APPROVE's response
-    usage_by_participant={...},                     # DENY's covers round 1 only
+    usage_by_participant={...},                     # all four; DENY's covers round 1
+                                                    # plus its partial round 2
     usage=RunUsage(requests=9, tool_calls=4, ...),
 )
 # e.__cause__ is psycopg.OperationalError('connection refused')
@@ -747,6 +773,43 @@ Left alone, that advocate's spend and the judge's would land in one entry of
 `hearing.usage_by_participant` with no sign that two participants had merged —
 in the artifact whose whole job is attributing spend. Renaming the member is the
 fix. See [`0014`](../decisions/0014-usage-is-broken-down-per-participant.md).
+
+### A budget with an inherited `request_limit`
+
+The third construction-time check, and the same shape as the second: a
+configuration that looks ordinary and means something the caller did not write.
+
+```python
+tribunal = Tribunal(
+    ...,
+    max_rounds=5,
+    budget=UsageLimits(cost_limit=Decimal("2.00")),   # this is what raises
+)
+```
+
+```text
+enbanc.ConfigurationError: budget.request_limit is 50, which is UsageLimits' own
+per-run default rather than a proceeding-wide figure you chose. Pass
+request_limit=None for no cap, or an explicit number.
+```
+
+`UsageLimits` defaults `request_limit` to `50`, so that object carries a
+fifty-request ceiling nobody typed. Applied to a whole proceeding rather than to
+one run it would stop this tribunal after about five rounds and record
+`Undecided(reason='budget')` for a hearing that had spent thirty cents of its two
+dollars — the audit artifact stating that the money ran out when it had not.
+
+Either spelling is accepted:
+
+```python
+budget=UsageLimits(cost_limit=Decimal("2.00"), request_limit=None)   # no cap
+budget=UsageLimits(cost_limit=Decimal("2.00"), request_limit=400)    # a real ceiling
+```
+
+Note this is **not** the same fifty as the per-run default in
+[`api.md`](./api.md#the-governors), which bounds one participant's run and is
+untouched. See
+[`0029`](../decisions/0029-a-budgets-request-limit-must-be-chosen.md).
 
 ## 6. The same endings, watched live
 

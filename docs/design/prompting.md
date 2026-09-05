@@ -1,6 +1,6 @@
 ---
 status: draft
-updated: 2026-09-04
+updated: 2026-09-05
 ---
 
 # Prompting and rendering
@@ -255,6 +255,12 @@ same advocate, and you need not address every advocate. Do not put the same
 question to everyone: an interrogatory is targeted, and an advocate answers only
 what is addressed to it.
 
+The tribunal gives each of your questions an id when it files your continuance,
+numbering them in the order you wrote them: the first question you issue in round
+1 is r1-q1, the second r1-q2, and so on. You do not write these. When a response
+comes back to you answering r1-q2, it is answering the second question you asked
+that round.
+
 Rule when the record decides the question. Continue when it does not, and ask
 for what is missing. Do not continue in order to re-test an advocate that has
 already answered, and do not rule on a record you would not be willing to have
@@ -352,6 +358,7 @@ The record delta, the whole continuance, and the one question this run answers.
   r1-q1 -> approve: Does the W-2 reconcile with the Schedule C figure?
   r1-q2 -> deny: Is stated income disqualifying when documented income is on
     file?
+  r1-q3 -> deny: Would a verified 2024 return change your answer?
 
 ## Addressed to you
 
@@ -374,7 +381,19 @@ a citation, which is the point.
 filing, and `0023` grants the record. *Targeted* is a duty about who must
 **answer**, not a rule about who may **read** — the procedural prompt says so in
 those terms — and seeing what the judge is asking elsewhere is what lets a
-rebuttal meet the case rather than the paraphrase of it.
+rebuttal meet the case rather than the paraphrase of it. Two of the three
+questions here go to `deny`, which is the case
+[below](#an-advocate-asked-two-questions-answers-them-in-order) works through.
+
+**The judge is the one participant that never reads these ids in the record.** It
+emitted the questions with no ids on them
+([`0015`](../decisions/0015-interrogatory-ids-are-stamped-on-filing.md)), and its
+own history holds them that way, so at the next deliberation it resolves
+`responded to r1-q2` against the order it issued them in. That is why its
+procedural prompt describes the scheme where an advocate's describes `[s1]`:
+`enbanc` pays one sentence in a cached prefix rather than re-rendering the
+continuance every round. The full sequence is in
+[`execution.md`](./execution.md#the-judges-history--two-runs-six-messages).
 
 #### An advocate asked two questions answers them in order
 

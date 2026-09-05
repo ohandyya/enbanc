@@ -39,12 +39,20 @@
 
     - What possible datasets can we use?
 
+3. How to trimp the dependencies
+
+    - We `enbanc` to receive maximum adoption. So, we watn to reduce the dependencies.
+
+    - For pydantic-ai, can we use just the core?
+    - For tavily, I want it to be optional. If `tavily` is not installed, it shall raise an exception when user tries to use the tavily tool. But if user did not use the tavily tool, it should continue to work. Can we do this in the form of optional package?
+
 ## Daily Log
 
 ### Sep 5
 
 #### Execution
 
+- We still want user to set a `global budget` similar to ` budget=UsageLimits(cost_limit=Decimal("2.00"))`. The execution must support that.
 
 ### Setp 4
 

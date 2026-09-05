@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-09-04
+updated: 2026-09-05
 ---
 
 # Progress
@@ -11,9 +11,60 @@ at the start of the next one.
 
 Two halves, two different guarantees:
 
-- `## Current state` is **current truth**, rewritten in place every session.
-  Anything stale here is a bug.
-- `## Log` is **history**, prepended newest-first and never edited. Entries are
+- `## Current state
+
+**Phase:** Design complete. **No `enbanc` code exists yet** —
+`src/enbanc/__init__.py` is a placeholder and `tests/` holds one placeholder
+test. The published `0.0.4` on PyPI reserves the name and nothing more.
+
+Settled and binding across
+[`0001`](./decisions/0001-statute-carries-no-model.md)–[`0030`](./decisions/0030-the-retry-budgets.md).
+All six design documents under [`design/`](./design/) carry **no open
+questions**: every public type, every way a proceeding can *end*, its
+*behaviour*, how evidence becomes a checkable exhibit, everything a participant
+reads, and now how the whole thing maps onto PydanticAI.
+
+[`design/execution.md`](./design/execution.md) was written this session and was
+the last document required before code. It carries the proceeding written out as
+literal messages — eight runs across four agents, three advocates, two rounds,
+one advocate twice-questioned — and the three pieces that read off it: message
+history against the transcript, the ledgering toolset, and round orchestration.
+
+**Next up:** Write code. `design/` is the spec and it is complete; the three
+documents deliberately left for future
+([`degenerate-deliberations.md`](./design/degenerate-deliberations.md),
+[`testing.md`](./design/testing.md),
+[`packaging.md`](./design/packaging.md)) are not needed for `0.1.0`.
+
+Two things the next session should carry:
+
+- **The five probes are not tests yet.** `execution.md` asserts six claims about
+  `pydantic-ai 2.36.0` — the ledgering interception point, in-place usage
+  accumulation, the two retry budgets, output-tool shape, `max_concurrency`'s
+  scope, and the task-group failure pattern. Each was verified by a throwaway
+  script in a scratch directory. They belong in `tests/` the moment it holds
+  anything real, or a version bump falsifies the document silently. See
+  [`journal/2026-09-05-the-probe-found-the-holes.md`](./journal/2026-09-05-the-probe-found-the-holes.md).
+- **Piece 2 is small and piece 3 is not.** The ledgering toolset — called "the
+  hardest single piece of code in the library" until this session — is a
+  `WrapperToolset` with `call_tool` overridden. Round orchestration is now the
+  largest piece: the filing clerk, the task group, the snapshot construction,
+  and the round loop.
+
+**Open questions:**
+
+- None, anywhere in [`design/`](./design/). This is the first session that has
+  been true.
+- Whether the `0.1.0` scope line (the three future documents out) deserves an
+  ADR, or stays recorded in the placeholders themselves.
+- `procedure` version `p1` is authored but unshipped, so its changelog row in
+  [`prompting.md`](./design/prompting.md#procedure-versions) has nothing to
+  compare against yet. Its text moved this session — the judge's procedural
+  prompt gained a sentence on the interrogatory id scheme — which needed no bump
+  only because nothing has shipped under `p1`. The first prompt edit after
+  `0.1.0` ships is the one that tests whether the bump discipline holds.
+
+## Log` is **history**, prepended newest-first and never edited. Entries are
   true as of their date and go stale by design.
 
 The log says *what* changed and *where it stopped*. It does not say *why* —
@@ -76,6 +127,40 @@ advocates, one twice-questioned — for the reason in
   tests whether the bump discipline holds.
 
 ## Log
+
+### 2026-09-05 — execution is designed, and running the dependency found five defects
+
+**Did:** Wrote [`design/execution.md`](./design/execution.md), the last document
+required before code. Followed the previous session's instruction to write the
+literal message sequence first — eight runs across four agents, with the
+`since`/snapshot table — and verified every claim about `pydantic-ai 2.36.0` by
+running it rather than reading it. That found **five defects in already-settled
+documents**, one of them in an accepted ADR: `0024`'s budget check silently
+enforced `UsageLimits`' defaulted `request_limit=50` at proceeding scope;
+`Agent(retries=…)` is two independent budgets that three documents described as
+one, and its default of `1` made `outcomes.md` §1's two timeouts unreachable;
+`api.md`'s "no key at all" on a failure was false about the mechanism and
+pessimistic; and `prompting.md`'s rendered continuance was missing the `r1-q3` the
+subsection below it uses. Two findings went the other way — the ledgering toolset
+is a `WrapperToolset` with one method, and `0012`'s singular `participant` is
+structural rather than chosen. All five defects were fixed in the same commit
+under rule 2, across `api.md`, `outcomes.md`, `evidence.md`, `prompting.md` and
+`tribunal.md`, with three ADRs
+([`0028`](./decisions/0028-usage-accumulates-per-participant.md)–[`0030`](./decisions/0030-the-retry-budgets.md))
+and one new `ConfigurationError` case.
+
+**Stopped at:** Clean. `docs/design/` carries no open questions in any of its six
+documents for the first time. The five probe scripts that established the
+dependency claims are still throwaway scratch files and should become tests.
+
+**Why this way:**
+[`decisions/0028`](./decisions/0028-usage-accumulates-per-participant.md),
+[`0029`](./decisions/0029-a-budgets-request-limit-must-be-chosen.md),
+[`0030`](./decisions/0030-the-retry-budgets.md), and
+[`journal/2026-09-05-the-probe-found-the-holes.md`](./journal/2026-09-05-the-probe-found-the-holes.md)
+for why executing the design caught what reviewing it could not — the third
+instance of a pattern this log already records twice, and the first where the
+artifact was code.
 
 ### 2026-09-04 — prompting is designed, and the invariant turns out to have had three holes
 
