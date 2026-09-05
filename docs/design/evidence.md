@@ -1,6 +1,6 @@
 ---
 status: draft
-updated: 2026-09-04
+updated: 2026-09-05
 ---
 
 # Evidence
@@ -337,13 +337,19 @@ reviewer's call; the record's job is to make it askable.
 
 An advocate that cites an id the ledger does not hold has invented a citation,
 which is the failure this whole mechanism exists to prevent. The `_Exhibit` is
-rejected by an output validator; PydanticAI retries against the library's own
-`Agent(retries=...)` budget, and a budget that runs out surfaces as
+rejected by an output validator; PydanticAI retries against the library's
+**`output`** retry budget, and a budget that runs out surfaces as
 `ProceedingFailed` — the path
 [`api.md`](./api.md#when-something-goes-wrong) already documents for output that
 will not validate. Nothing is silently dropped: an exhibit that cannot be
 resolved never reaches the transcript, and neither does a ruling that rests on
 one.
+
+**That budget is not the one a timed-out tool spends.** `Agent(retries=...)`
+carries two — `output` for validation and `tools` for tool calls — and they are
+independent, so an advocate whose search tool is flapping still has its full
+citation budget, and an advocate inventing citations cannot be masked by a healthy
+tool. See [`0030`](../decisions/0030-the-retry-budgets.md).
 
 ## Adding your own tool
 
@@ -540,7 +546,7 @@ from pydantic_ai import Tool
 
 Advocate(
     tools=[
-        Tool(web_search(api_key=...), timeout=15.0),   # third-party HTTP
+        Tool(web_search(api_key=...), timeout=15.0, max_retries=5),  # flaky third-party HTTP
         Tool(find_filings, timeout=30.0),              # S3 plus OCR, legitimately slow
         Tool(dti_for, timeout=5.0),                    # a local warehouse
         parse_statute_dates,                           # pure CPU; nothing to bound
@@ -553,12 +559,25 @@ number belongs to the system behind it, which is why there is no tribunal-wide
 or per-advocate default to inherit. A warehouse query and an OCR pipeline do not
 want the same bound.
 
+**`max_retries` rides on the same object, for the same reason.** How many times a
+tool may fail before the advocate is treated as unheard belongs to the system
+behind it as much as the timeout does — a third-party search API that flaps is a
+different proposition from a warehouse that does not. `enbanc`'s default of 3
+applies to every tool that does not say otherwise.
+
 **A timeout is not fatal.** PydanticAI cancels the call and tells the model
-`Timed out after 15.0 seconds.`, counting against the library's
-`Agent(retries=...)` budget. The advocate can narrow the query, reach for
+`Timed out after 15.0 seconds.`, counting against the library's **`tools`** retry
+budget, which `enbanc` sets to 3. The advocate can narrow the query, reach for
 another tool, or file what it has. Only an exhausted budget raises, and that
 surfaces as `ProceedingFailed`. The ladder is **timeout → the advocate adapts →
 retries spent → the proceeding fails**, and only the last rung ends anything.
+
+**The budget is per tool, not per run.** Three failures of `web_search` are a
+different count from three failures of `find_filings`, so reaching for another
+tool costs nothing from the first one's budget — which is what makes the middle
+rung a real move. Raise it for a source you know is flaky with
+`Tool(fn, max_retries=...)`, on the same object the timeout rides on
+([`0030`](../decisions/0030-the-retry-budgets.md)).
 Each timed-out call is recorded on
 [`Transcript.failures`](#a-call-that-returned-nothing-is-recorded-too), so an
 advocate that adapted around a dead tool does not read afterwards as one that

@@ -1,6 +1,6 @@
 ---
 status: draft
-updated: 2026-09-04
+updated: 2026-09-05
 ---
 
 # The tribunal
@@ -255,6 +255,15 @@ however much it is allowed to spend. `enbanc` passes no usage limit into an
 individual run, so PydanticAI's own default is the only per-run bound, and a run
 that exhausts it is a participant that could not be heard. See
 [`0024`](../decisions/0024-a-budget-stops-the-proceeding-between-rounds.md).
+
+**Every limit in a budget is one the caller wrote.** `UsageLimits` defaults
+`request_limit` to 50, so an unexamined `UsageLimits(cost_limit=...)` would carry
+a request ceiling nobody chose — and a proceeding stopped by it would record that
+the money ran out when it had not. `Tribunal(...)` refuses that object at
+construction rather than acting on it, which is the same treatment a verdict
+valued `"judge"` gets and for the same reason: a record that misstates why a
+proceeding stopped is worse than one that never existed. See
+[`0029`](../decisions/0029-a-budgets-request-limit-must-be-chosen.md).
 
 **Ruling and continuance are a discriminated union, not a flag.** The judge
 returns either a `Ruling` (verdict + reasoning, terminal) or a `Continuance`

@@ -26,25 +26,39 @@
 
     - What are the default tools that we can build? Just web?
 
-2. Design docs/design/execution.md
+2. [Done] Design docs/design/execution.md
 
-3. After all desings are done, cut a new release, 0.0.x.
+3. Design docs/design/testing.md
+
+4. Design docs/design/packaging.md
+
+    - How to trim the dependencies
+
+        - We `enbanc` to receive maximum adoption. So, we watn to reduce the dependencies.
+
+        - For pydantic-ai, can we use just the core?
+        - For tavily, I want it to be optional. If `tavily` is not installed, it shall raise an exception when user tries to use the tavily tool. But if user did not use the tavily tool, it should continue to work. Can we do this in the form of optional package?
+
+5. Design docs/design/degenerate-deliberations.md
+
+6. After all desings are done, cut a new release, 0.0.x.
 
 
 ## Questions
 
 1. How to organize implementation plan?
 
-2. In PydanticAI, how does it support multi-round agents?
-
-    - Do we need to keep track of all the histories and then resend?
-    - The answer to this wil impact the implementation of judge and advocate agent.
-
-3. How to design accuracy evaluation
+2. How to design accuracy evaluation
 
     - What possible datasets can we use?
 
 ## Daily Log
+
+### Sep 5
+
+#### Execution
+
+- We still want user to set a `global budget` similar to ` budget=UsageLimits(cost_limit=Decimal("2.00"))`. The execution must support that.
 
 ### Setp 4
 

@@ -1,6 +1,6 @@
 ---
 status: draft
-updated: 2026-09-04
+updated: 2026-09-05
 ---
 
 # Public API
@@ -305,10 +305,30 @@ and is what makes a proceeding terminate at all.
 defines no budget type of its own, for the same reason it takes `RunUsage`
 rather than defining a usage type. What changes is the scope: PydanticAI applies
 these limits to one agent run, and `enbanc` applies them to the accumulated
-total across every participant — the same number `hearing.usage` reports. The
-fields keep their meanings, and the two that are per-request rather than
-cumulative, `per_request_input_tokens_limit` and `count_tokens_before_request`,
-have nothing to apply to at a round boundary and are ignored.
+total across every participant — the same number `hearing.usage` reports. Every
+cumulative field governs the proceeding: `cost_limit`, `request_limit`,
+`tool_calls_limit`, `input_tokens_limit`, `output_tokens_limit`, and
+`total_tokens_limit`. The two that are per-request rather than cumulative,
+`per_request_input_tokens_limit` and `count_tokens_before_request`, have nothing
+to apply to at a round boundary and are ignored.
+
+**`request_limit` must be chosen, and `Tribunal(...)` insists.** `UsageLimits`
+defaults that field to `50`, so `UsageLimits(cost_limit=Decimal("2.00"))` carries
+a fifty-request ceiling you did not write — and applied to a whole proceeding
+rather than to one run, it would stop a cheap hearing after five rounds and
+record `Undecided(reason='budget')` for it. So a `budget` whose `request_limit` is
+still that default is a `ConfigurationError`:
+
+```python
+budget=UsageLimits(cost_limit=Decimal("2.00"), request_limit=None)   # no cap
+budget=UsageLimits(cost_limit=Decimal("2.00"), request_limit=400)    # a real ceiling
+```
+
+The field is kept rather than ignored because `cost_limit` can silently enforce
+nothing: `cost is None` means unpriceable ([below](#usage)), and for an unpriced
+or self-hosted model a request or token ceiling is the only governor that still
+works. `enbanc` warns once per proceeding when a `cost_limit` cannot be priced.
+See [`0029`](../decisions/0029-a-budgets-request-limit-must-be-chosen.md).
 
 **It is checked between rounds, never inside one.** Before dispatching a round,
 `enbanc` runs the limits against the total spent so far and stops if they are
@@ -324,6 +344,11 @@ PydanticAI's own default in place: `Agent.run` falls back to `UsageLimits()`, an
 round. That is not `enbanc`'s number and it is not configurable through
 `enbanc`; a run that exhausts it is a participant that could not be heard, and
 raises `ProceedingFailed` like any other.
+
+This fifty and a `budget`'s `request_limit` are **different numbers at different
+scopes** — one bounds a single participant's run, the other bounds the whole
+proceeding — and they are equal only because they come from the same dataclass
+default. That is why the second may not be inherited.
 
 **`max_concurrency` is a different lever, not the same one in other units.** It
 bounds how many advocates run at once — a tribunal with twelve verdicts opens
@@ -887,23 +912,47 @@ the fan-out, so there is never a set of simultaneous ones. See
 httpx client inside the `Model` you inject
 ([`0009`](../decisions/0009-model-settings-live-on-the-model.md)), so an error
 that reaches `enbanc` is one your policy already gave up on; a retry loop here
-would sit silently above the one you configured. The library's own budget —
-`Agent(retries=...)`, guarding the `Ruling | Continuance` contract — is spent
-before `ProceedingFailed` is raised.
+would sit silently above the one you configured. The library's own budgets are
+spent before `ProceedingFailed` is raised — and there are **two** of them, which
+`Agent(retries=...)` keeps apart: `output` guards the `Ruling | Continuance`
+contract and an exhibit's citation, while `tools` absorbs a timed-out tool and is
+counted per tool name. Neither can exhaust the other, so an advocate with a
+flapping search tool still has its full citation budget. `enbanc` sets
+`{'tools': 3, 'output': 2}`; the `tools` half is overridable per tool with
+`Tool(fn, max_retries=...)`, beside the timeout
+([`evidence.md`](./evidence.md#what-tools-may-do),
+[`0030`](../decisions/0030-the-retry-budgets.md)).
 
-**`usage` on a failure is best-effort.** It sums the runs that completed. A run
-that died mid-flight may not report what it spent, so a failure's usage is a
-floor rather than a total. The breakdown inherits that: a participant whose run
-was cancelled or died before reporting has **no key at all**, so
-`usage_by_participant` on a failure is not guaranteed to name every participant
-the way it is on a `Hearing`. Absence there means "did not report", never
-"spent nothing".
+**`usage` on a failure is a floor, and the breakdown still names everyone who
+ran.** `enbanc` accumulates into one `RunUsage` per participant rather than
+reading a figure off each result, so a run that was cancelled mid-flight or died
+in a provider call still leaves what it had spent
+([`0028`](../decisions/0028-usage-accumulates-per-participant.md)). Every
+participant that was **dispatched** therefore has a key on a `ProceedingFailed`,
+and **absence means "never dispatched"** — a judge with no key never deliberated,
+which is the same thing the missing `Continuance` in the transcript says.
+
+The total is still a floor rather than an exact bill, for a reason no accumulator
+can fix: cancellation is client-side and does not un-bill tokens a provider has
+already generated. And a participant dispatched into a round cancelled before its
+first request holds a `RunUsage` of zeroes — which reads like "spent nothing" and
+means "got nowhere". On a `Hearing` there is no such row, because every
+participant there ran to completion.
 
 **`ConfigurationError` is not a proceeding failure** and carries no transcript,
-because nothing ran. It is what `Tribunal(...)` raises when the `advocates`
-mapping misses a verdict, names one that does not exist, or when a verdict's
-value is the reserved string `"judge"` — see
-[Per participant](#per-participant).
+because nothing ran. It is what `Tribunal(...)` raises in four cases: the
+`advocates` mapping misses a verdict, it names one that does not exist, a
+verdict's value is the reserved string `"judge"` (see
+[Per participant](#per-participant)), or a `budget` arrives with its
+`request_limit` still at `UsageLimits`' own default of `50` (see
+[The governors](#the-governors)).
+
+The last two are the same move. Each is a configuration that looks ordinary and
+means something the caller did not write — one collapsing two participants into a
+single usage entry, the other capping a proceeding at fifty requests in the name
+of a cost limit — and each would produce a record that misstates what happened.
+A loud construction error is cheaper than any amount of documentation read after
+the fact.
 
 **`participant` is not the `author` field this document rejects.** That
 rejection — [above](#what-participants-file) — is about the *record*: a filing
