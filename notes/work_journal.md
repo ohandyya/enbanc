@@ -35,12 +35,7 @@
 
 1. How to organize implementation plan?
 
-2. In PydanticAI, how does it support multi-round agents?
-
-    - Do we need to keep track of all the histories and then resend?
-    - The answer to this wil impact the implementation of judge and advocate agent.
-
-3. How to design accuracy evaluation
+2. How to design accuracy evaluation
 
     - What possible datasets can we use?
 
