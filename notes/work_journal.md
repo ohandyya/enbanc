@@ -54,6 +54,14 @@
 
 ## Daily Log
 
+### Sep 9
+
+#### To Dos
+
+1. [Done] Remove ANTHROPIC_API_KEY
+2. [Done] Ask AI how does block network work
+3. Re-thinkg the decision of `running integration and e2e in CI`
+
 ### Sep 5
 
 #### Execution

@@ -50,7 +50,7 @@ tribunal = Tribunal(
         ),
     },
     max_rounds=5,
-    budget=UsageLimits(cost_limit=Decimal("2.00")),
+    budget=UsageLimits(cost_limit=Decimal("2.00"), request_limit=None),
     max_concurrency=4,
 )
 
@@ -293,7 +293,10 @@ no field of it ([`prompting.md`](./prompting.md#round-1-advocate)).
 Tribunal(
     ...,
     max_rounds=5,                                     # judge deliberations
-    budget=UsageLimits(cost_limit=Decimal("2.00")),   # the whole proceeding
+    budget=UsageLimits(                               # the whole proceeding
+        cost_limit=Decimal("2.00"),
+        request_limit=None,                           # required — see below
+    ),
     max_concurrency=4,                                # advocates at once
 )
 ```
