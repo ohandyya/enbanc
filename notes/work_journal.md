@@ -28,7 +28,7 @@
 
 2. [Done] Design docs/design/execution.md
 
-3. Design docs/design/testing.md
+3. [Done] Design docs/design/testing.md
 
 4. Design docs/design/packaging.md
 
@@ -41,14 +41,16 @@
 
 5. Design docs/design/degenerate-deliberations.md
 
-6. After all desings are done, cut a new release, 0.0.x.
+6. Finalize how to organize implementation plan
+
+    - Maybe something to add in README.md or CLAUDE.md. But this is not a `design`
+
+7. After all desings are done, cut a new release, 0.0.x.
 
 
 ## Questions
 
-1. How to organize implementation plan?
-
-2. How to design accuracy evaluation
+1. How to design accuracy evaluation
 
     - What possible datasets can we use?
 
