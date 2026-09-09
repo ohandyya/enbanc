@@ -40,6 +40,11 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    # Goldens for the prompting surface docs/design/prompting.md pins to `procedure = 'p1'`.
+    # Expected text lives inline in the test, so a prompt change shows up as a prompt diff in
+    # the file under review. `pytest --inline-snapshot=fix` rewrites them. It is also what
+    # pydantic-ai itself uses, which keeps one idiom across the dependency boundary.
+    "inline-snapshot>=0.31.2",
     "pre-commit>=4.6.2",
     "pyright>=1.1.411",
     "pytest>=9.1.1",
@@ -86,6 +91,29 @@ typeCheckingMode = "standard"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Required by the tier layout, not a preference. A test's tier is its directory
+# (docs/decisions/0031-tests-are-tiered.md), so the same subject is tested from several of
+# them and `tests/unit/test_web_search.py` and `tests/integration/test_web_search.py` are the
+# normal case. Under the default `prepend` mode those two share a top-level module name and
+# collection fails outright; `importlib` gives each file a name derived from its full path.
+# The alternative is __init__.py in every tier directory, which buys the same thing and makes
+# tests a package for no other reason.
+addopts = "--import-mode=importlib"
+# One per tier directory. `tests/conftest.py` applies these during collection from the path a
+# test was collected from, so nothing is decorated by hand and nothing can be forgotten;
+# registering them here is what keeps an unknown marker an error rather than a typo that runs.
+# See docs/design/testing.md and docs/decisions/0031-tests-are-tiered.md.
+markers = [
+    "unit: enbanc's own behaviour, offline and enforced",
+    "contract: what docs/design/execution.md claims about pydantic-ai",
+    "integration: reaches a real provider or Tavily; not run in CI",
+    "e2e: api.md's example end to end; not run in CI",
+]
+# A warning this library cares about is a warning worth a test. CostNotFoundWarning in
+# particular is specified as firing exactly once per proceeding (docs/design/execution.md), and
+# a suite that swallows warnings by default cannot assert that. Errors here, `pytest.warns`
+# where it is expected.
+filterwarnings = ["error"]
 # `auto`, so an `async def test_` just runs — no per-test decorator to forget.
 asyncio_mode = "auto"
 # Each test gets a fresh event loop. A session-wide loop leaks state between tests via anything

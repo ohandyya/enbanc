@@ -144,6 +144,10 @@ The full design lives in [`docs/design/`](./docs/design/):
   PydanticAI: the whole thing written out as literal messages, then the message
   history behind the transcript, the toolset that ledgers what an advocate's
   tools return, and the round loop itself.
+- [**Testing**](./docs/design/testing.md) — how a library whose behaviour is
+  LLM-driven is asserted on deterministically: the tiers, why the offline ones
+  are enforced rather than trusted, and how the guarantee the transcript makes
+  is checked by a test rather than by review.
 - [**Glossary**](./docs/glossary.md) — the courtroom vocabulary. One table, one
   minute.
 

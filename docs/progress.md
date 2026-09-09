@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-09-05
+updated: 2026-09-09
 ---
 
 # Progress
@@ -11,60 +11,9 @@ at the start of the next one.
 
 Two halves, two different guarantees:
 
-- `## Current state
-
-**Phase:** Design complete. **No `enbanc` code exists yet** —
-`src/enbanc/__init__.py` is a placeholder and `tests/` holds one placeholder
-test. The published `0.0.4` on PyPI reserves the name and nothing more.
-
-Settled and binding across
-[`0001`](./decisions/0001-statute-carries-no-model.md)–[`0030`](./decisions/0030-the-retry-budgets.md).
-All six design documents under [`design/`](./design/) carry **no open
-questions**: every public type, every way a proceeding can *end*, its
-*behaviour*, how evidence becomes a checkable exhibit, everything a participant
-reads, and now how the whole thing maps onto PydanticAI.
-
-[`design/execution.md`](./design/execution.md) was written this session and was
-the last document required before code. It carries the proceeding written out as
-literal messages — eight runs across four agents, three advocates, two rounds,
-one advocate twice-questioned — and the three pieces that read off it: message
-history against the transcript, the ledgering toolset, and round orchestration.
-
-**Next up:** Write code. `design/` is the spec and it is complete; the three
-documents deliberately left for future
-([`degenerate-deliberations.md`](./design/degenerate-deliberations.md),
-[`testing.md`](./design/testing.md),
-[`packaging.md`](./design/packaging.md)) are not needed for `0.1.0`.
-
-Two things the next session should carry:
-
-- **The five probes are not tests yet.** `execution.md` asserts six claims about
-  `pydantic-ai 2.36.0` — the ledgering interception point, in-place usage
-  accumulation, the two retry budgets, output-tool shape, `max_concurrency`'s
-  scope, and the task-group failure pattern. Each was verified by a throwaway
-  script in a scratch directory. They belong in `tests/` the moment it holds
-  anything real, or a version bump falsifies the document silently. See
-  [`journal/2026-09-05-the-probe-found-the-holes.md`](./journal/2026-09-05-the-probe-found-the-holes.md).
-- **Piece 2 is small and piece 3 is not.** The ledgering toolset — called "the
-  hardest single piece of code in the library" until this session — is a
-  `WrapperToolset` with `call_tool` overridden. Round orchestration is now the
-  largest piece: the filing clerk, the task group, the snapshot construction,
-  and the round loop.
-
-**Open questions:**
-
-- None, anywhere in [`design/`](./design/). This is the first session that has
-  been true.
-- Whether the `0.1.0` scope line (the three future documents out) deserves an
-  ADR, or stays recorded in the placeholders themselves.
-- `procedure` version `p1` is authored but unshipped, so its changelog row in
-  [`prompting.md`](./design/prompting.md#procedure-versions) has nothing to
-  compare against yet. Its text moved this session — the judge's procedural
-  prompt gained a sentence on the interrogatory id scheme — which needed no bump
-  only because nothing has shipped under `p1`. The first prompt edit after
-  `0.1.0` ships is the one that tests whether the bump discipline holds.
-
-## Log` is **history**, prepended newest-first and never edited. Entries are
+- `## Current state` is **current truth**, rewritten in place every session.
+  Anything stale here is a bug.
+- `## Log` is **history**, prepended newest-first and never edited. Entries are
   true as of their date and go stale by design.
 
 The log says *what* changed and *where it stopped*. It does not say *why* —
@@ -73,60 +22,92 @@ spec: [`design/`](./design/) is.
 
 ## Current state
 
-**Phase:** Design, one document short of complete. **No `enbanc` code exists
-yet** — `src/enbanc/__init__.py` is a placeholder and `tests/` holds one
-placeholder test. The published `0.0.4` on PyPI reserves the name and nothing
+**Phase:** Design complete, and the first files under `tests/` are a harness
+rather than tests. **Still no `enbanc` code** — `src/enbanc/__init__.py` is a
+placeholder, and the suite that runs green covers a `hello()` stub and one claim
+about `pydantic-ai`. The published `0.0.4` on PyPI reserves the name and nothing
 more.
 
 Settled and binding across
-[`0001`](./decisions/0001-statute-carries-no-model.md)–[`0027`](./decisions/0027-an-advocate-answers-its-interrogatories-in-order.md):
+[`0001`](./decisions/0001-statute-carries-no-model.md)–[`0032`](./decisions/0032-a-design-doc-is-mirrored-by-tests.md).
+Seven design documents under [`design/`](./design/) carry **no open questions**:
 every public type, every way a proceeding can *end*, its *behaviour*, how
-evidence becomes a checkable exhibit, and now everything a participant reads.
-[`design/api.md`](./design/api.md), [`tribunal.md`](./design/tribunal.md),
-[`evidence.md`](./design/evidence.md), [`outcomes.md`](./design/outcomes.md) and
-[`prompting.md`](./design/prompting.md) carry no open questions.
+evidence becomes a checkable exhibit, everything a participant reads, how the
+whole thing maps onto PydanticAI, and now how any of it is known to be true.
+[`degenerate-deliberations.md`](./design/degenerate-deliberations.md) and
+[`packaging.md`](./design/packaging.md) remain placeholders and are not needed
+for `0.1.0`.
 
-`Transcript` gained four standing fields this session — `verdicts`,
-`max_rounds`, `guidance`, `procedure` — so the context invariant is back to
-[`0021`](./decisions/0021-retry-prompts-are-outside-the-invariant.md)'s form with
-retry prompts as its only exception, and
-[`prompting.md`](./design/prompting.md#the-invariant-accounted-for) carries the
-table that keeps it honest. `Tribunal.instructions_for(participant)` is the one
-public method prompting added.
+[`design/testing.md`](./design/testing.md) was written this session and the
+harness it describes exists: four tier directories under `tests/`, each test's
+tier derived from its path, the two offline tiers enforcing that with a socket
+guard, and live fixtures that name no provider. `make unit-tests`,
+`contract-tests`, `integration-tests`, and `e2e-tests` all run; `make test` is
+the two offline tiers and `check-all` and CI are unchanged.
 
-**Next up:** Write [`design/execution.md`](./design/execution.md), the last
-document required before code. Its three load-bearing pieces are named in the
-placeholder and two have shrunk: piece 1 now only has to settle where the
-snapshot is taken, how `since` is tracked per participant, and what happens to a
-history when [`0012`](./decisions/0012-a-failure-cancels-the-round.md) cancels a
-run — carrying a conversation itself is `message_history` plus a dict, verified
-and recorded under
-[What PydanticAI already does](./design/execution.md#what-pydanticai-already-does).
-Piece 3's task-group shape is now fixed by
-[`0027`](./decisions/0027-an-advocate-answers-its-interrogatories-in-order.md):
-one task per addressed advocate, that advocate's interrogatories queued inside
-it. Piece 2, the ledgering toolset, is untouched and is still the hardest single
-piece of code in the library.
+**Next up:** Write the `0.1.0` schemas from
+[`design/api.md`](./design/api.md#schemas) — the verdict base, the inputs, the
+five filings, the judge's output and its private emit-shapes, the record, and
+the result. They are the floor everything else stands on, and they come with
+their own first test: `Filing`, `Deliberation`, and `Outcome` must be
+`TypeAliasType`, and [`api.md`](./design/api.md#a-note-on-generic-aliases) says
+why plainly — *a type checker does not catch this; only running it does*.
 
-Before writing its prose, write the literal message sequence — two rounds, three
-advocates, one twice-questioned — for the reason in
-[`journal/2026-09-04-writing-the-prompt-found-the-holes.md`](./journal/2026-09-04-writing-the-prompt-found-the-holes.md).
+Three things the next session should carry:
+
+- **Seven of the eight probes are still not tests.**
+  [`design/execution.md`](./design/execution.md#what-pydanticai-already-does)
+  makes eight runnable claims about `pydantic-ai 2.36.0`.
+  `tests/contract/` now exists to hold them and pins one — `max_concurrency` is
+  an `__init__` parameter. The rest are still throwaway scratch files, and a
+  version bump falsifies the document silently until they land.
+- **Piece 2 is small and piece 3 is not.** The ledgering toolset is a
+  `WrapperToolset` with `call_tool` overridden. Round orchestration is the
+  largest piece: the filing clerk, the task group, the snapshot construction,
+  and the round loop.
+- **The network guard is a tripwire, not a sandbox.** It catches `asyncio`, and
+  so every HTTP client the library will actually use, but raw `_socket`,
+  subprocesses, and anything connecting at import time go straight past it.
+  A module-level client that connects eagerly is the realistic gap, and it is
+  the kind of thing the first real code could introduce.
 
 **Open questions:**
 
-- None in the five settled design docs. `execution.md` carries an *agenda*
-  rather than open questions in the rule-7 sense; it gets them once the document
-  exists to own them.
-- Whether the `0.1.0` scope line (prompting and execution in;
-  [`degenerate-deliberations.md`](./design/degenerate-deliberations.md),
-  [`testing.md`](./design/testing.md), [`packaging.md`](./design/packaging.md)
-  out) deserves an ADR, or stays recorded in the placeholders themselves.
+- None, anywhere in [`design/`](./design/).
+- Whether the `0.1.0` scope line — the two remaining placeholder documents out —
+  deserves an ADR, or stays recorded in the placeholders themselves.
 - `procedure` version `p1` is authored but unshipped, so its changelog row in
   [`prompting.md`](./design/prompting.md#procedure-versions) has nothing to
   compare against yet. The first prompt edit after `0.1.0` ships is the one that
   tests whether the bump discipline holds.
 
 ## Log
+
+### 2026-09-09 — testing is designed, and the harness is built before the code it will test
+
+**Did:** Rewrote [`design/testing.md`](./design/testing.md) from placeholder to
+spec — four tiers rather than three, the offline guarantee enforced instead of
+promised, the transcript invariant as an assertion every proceeding-level test
+can call, and [`outcomes.md`](./design/outcomes.md) mirrored section for section.
+Built the harness it describes, so all four `make` targets run against an
+essentially empty suite. Fixed two `UsageLimits` examples in
+[`design/api.md`](./design/api.md) that
+[`0029`](./decisions/0029-a-budgets-request-limit-must-be-chosen.md) had made
+raise, and repaired this file — an unclosed backtick from the 2026-09-05 wrap-up
+had swallowed its own `Current state` block and left the 2026-09-04 one
+rendering in its place.
+
+**Stopped at:** Clean. `tests/contract/` holds one of the eight `pydantic-ai`
+claims [`design/execution.md`](./design/execution.md) makes; the other seven are
+still scratch files.
+
+**Why this way:**
+[`journal/2026-09-09-building-the-harness-found-three-constraints.md`](./journal/2026-09-09-building-the-harness-found-three-constraints.md)
+for what running it caught that designing it had not,
+[`decisions/0031`](./decisions/0031-tests-are-tiered.md),
+[`0032`](./decisions/0032-a-design-doc-is-mirrored-by-tests.md).
+
+**Commits:** `f6b9bf3`, `f3e7320`
 
 ### 2026-09-05 — execution is designed, and the dependency is verified rather than read
 

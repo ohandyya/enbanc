@@ -16,6 +16,10 @@
 
     - Even better: find a way to publish it.
 
+5. Automatic PR creation & Update
+
+    - Can we expand the `create-pr-summary` command to automatically create a PR with title and description or updating existing PR with title and description?
+
 ## To Dos
 
 1. [Done] How to design tools an how to allow user to extend the tool?
@@ -28,7 +32,7 @@
 
 2. [Done] Design docs/design/execution.md
 
-3. Design docs/design/testing.md
+3. [Done] Design docs/design/testing.md
 
 4. Design docs/design/packaging.md
 
@@ -41,18 +45,28 @@
 
 5. Design docs/design/degenerate-deliberations.md
 
-6. After all desings are done, cut a new release, 0.0.x.
+6. Finalize how to organize implementation plan
+
+    - Maybe something to add in README.md or CLAUDE.md. But this is not a `design`
+
+7. After all desings are done, cut a new release, 0.0.x.
 
 
 ## Questions
 
-1. How to organize implementation plan?
-
-2. How to design accuracy evaluation
+1. How to design accuracy evaluation
 
     - What possible datasets can we use?
 
 ## Daily Log
+
+### Sep 9
+
+#### To Dos
+
+1. [Done] Remove ANTHROPIC_API_KEY
+2. [Done] Ask AI how does block network work
+3. Re-thinkg the decision of `running integration and e2e in CI`
 
 ### Sep 5
 
