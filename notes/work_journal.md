@@ -16,6 +16,10 @@
 
     - Even better: find a way to publish it.
 
+5. Automatic PR creation & Update
+
+    - Can we expand the `create-pr-summary` command to automatically create a PR with title and description or updating existing PR with title and description?
+
 ## To Dos
 
 1. [Done] How to design tools an how to allow user to extend the tool?
