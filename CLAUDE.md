@@ -16,6 +16,7 @@ one carries a different guarantee about whether its contents are true.
 | `docs/glossary.md` | The domain vocabulary. | Always |
 | `docs/guides/` | User-facing how-to. | When changing public behavior |
 | `docs/journal/` | **Historical. May be stale.** Records of past work. | Only when explicitly asked |
+| `tests/` | **What is actually verified.** Tiered by directory — see below. | Before adding a test |
 | `notes/`, `local/` | Human-only. | Never — reads are denied |
 
 ## Rules
@@ -70,3 +71,39 @@ updated: YYYY-MM-DD
 
 `make help` lists the available targets. Tooling is uv + ruff + pyright +
 pytest, with pre-commit hooks enforced in CI.
+
+### Tests
+
+**A test's tier is the directory it lives in.** Nothing is marked by hand:
+`tests/conftest.py` derives the marker from the path, and the offline guarantee
+is an autouse fixture scoped to a directory. Filing a test in the wrong one
+silently changes what it is permitted to do.
+
+| Directory | Subject | Third parties | Target |
+|---|---|---|---|
+| `tests/unit/` | `enbanc`'s own behaviour — the bulk of the suite, and the only tier that tests edge cases | none, enforced | `unit-tests` |
+| `tests/contract/` | claims `docs/design/execution.md` makes about `pydantic-ai` | none, enforced | `contract-tests` |
+| `tests/integration/` | that the plumbing to a real service works | a provider, Tavily | `integration-tests` |
+| `tests/e2e/` | that `docs/design/api.md`'s example works as written | a provider, Tavily | `e2e-tests` |
+
+- **The offline tiers may not reach a third party, and a socket guard enforces
+  it.** Fake the model with `TestModel` or `FunctionModel` —
+  [`0003`](docs/decisions/0003-models-and-guidance-are-injected.md) makes it
+  injected, so a whole proceeding runs with no provider. A test that genuinely
+  needs the network belongs in a live tier, not in an exemption.
+- **`make test` is the two offline tiers**, and it is what `check-all` and CI
+  run. The live tiers read `.env`, cost money, and never run in CI.
+- **A red `contract` test means the dependency moved**, not that `enbanc` broke.
+  The fix is usually prose in `docs/design/execution.md`.
+- **The harness names no provider.** `ENBANC_TEST_MODEL` holds a model string
+  and the credential is that provider's own, resolved by PydanticAI. `enbanc`
+  commits to working with any `pydantic_ai.models.Model`, so a tier pinned to
+  one provider would test less than the library promises. `TAVILY_API_KEY` is
+  the exception, because
+  [`0018`](docs/decisions/0018-the-search-client-is-a-core-dependency.md) already
+  fixed that provider as the library's.
+
+`docs/design/testing.md` is the strategy — including how the transcript
+invariant is checked and how `outcomes.md` is mirrored — and
+[`0031`](docs/decisions/0031-tests-are-tiered.md) is why the tiers are shaped
+this way.

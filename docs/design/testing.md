@@ -11,8 +11,10 @@ says what values it holds, [`prompting.md`](./prompting.md) says what text each
 participant reads, and [`execution.md`](./execution.md) says how the loop is
 built; this says how any of it is known to be true.
 
-> `status: draft` — none of this exists yet. This is the target, not a
-> reference. `tests/` currently holds a placeholder and nothing else.
+> `status: draft` — the harness exists and the tests do not. `tests/` carries
+> the four tier directories, the marker-by-path wiring, the offline guard, and
+> the live fixtures described below; what they hold is three placeholders and
+> one pinned `pydantic-ai` claim, because there is no `enbanc` to test yet.
 
 The question is tractable because of a decision made elsewhere.
 [`0003`](../decisions/0003-models-and-guidance-are-injected.md) makes the model
