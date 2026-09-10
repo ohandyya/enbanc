@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-09-09
+updated: 2026-09-10
 ---
 
 # Progress
@@ -22,28 +22,30 @@ spec: [`design/`](./design/) is.
 
 ## Current state
 
-**Phase:** Design complete, and the first files under `tests/` are a harness
-rather than tests. **Still no `enbanc` code** — `src/enbanc/__init__.py` is a
-placeholder, and the suite that runs green covers a `hello()` stub and one claim
-about `pydantic-ai`. The published `0.0.4` on PyPI reserves the name and nothing
-more.
+**Phase:** Design complete, the test harness exists, and it now has a way to run
+against real providers from a pull request. **Still no `enbanc` code** —
+`src/enbanc/__init__.py` is a placeholder, and the suite that runs green covers a
+`hello()` stub and one claim about `pydantic-ai`. The published `0.0.4` on PyPI
+reserves the name and nothing more.
 
 Settled and binding across
-[`0001`](./decisions/0001-statute-carries-no-model.md)–[`0032`](./decisions/0032-a-design-doc-is-mirrored-by-tests.md).
+[`0001`](./decisions/0001-statute-carries-no-model.md)–[`0033`](./decisions/0033-live-tiers-run-in-ci-on-demand.md).
 Seven design documents under [`design/`](./design/) carry **no open questions**:
 every public type, every way a proceeding can *end*, its *behaviour*, how
 evidence becomes a checkable exhibit, everything a participant reads, how the
-whole thing maps onto PydanticAI, and now how any of it is known to be true.
+whole thing maps onto PydanticAI, and how any of it is known to be true.
 [`degenerate-deliberations.md`](./design/degenerate-deliberations.md) and
 [`packaging.md`](./design/packaging.md) remain placeholders and are not needed
 for `0.1.0`.
 
-[`design/testing.md`](./design/testing.md) was written this session and the
-harness it describes exists: four tier directories under `tests/`, each test's
-tier derived from its path, the two offline tiers enforcing that with a socket
-guard, and live fixtures that name no provider. `make unit-tests`,
-`contract-tests`, `integration-tests`, and `e2e-tests` all run; `make test` is
-the two offline tiers and `check-all` and CI are unchanged.
+[`design/testing.md`](./design/testing.md) describes a harness that exists: four
+tier directories under `tests/`, each test's tier derived from its path, the two
+offline tiers enforcing that with a socket guard, and live fixtures that name no
+provider. `make test` is still the two offline tiers, and `ci.yml` is still
+exactly `make check-all` with no secrets. The live tiers now also run in CI when
+asked — [`live-tests.yml`](../.github/workflows/live-tests.yml), fired by a
+`live-tests` label on a pull request or by `workflow_dispatch`
+([`0033`](./decisions/0033-live-tiers-run-in-ci-on-demand.md)).
 
 **Next up:** Write the `0.1.0` schemas from
 [`design/api.md`](./design/api.md#schemas) — the verdict base, the inputs, the
@@ -53,8 +55,16 @@ their own first test: `Filing`, `Deliberation`, and `Outcome` must be
 `TypeAliasType`, and [`api.md`](./design/api.md#a-note-on-generic-aliases) says
 why plainly — *a type checker does not catch this; only running it does*.
 
-Three things the next session should carry:
+Four things the next session should carry:
 
+- **`live-tests.yml` has never run.** The branch is unmerged, the `live-tests`
+  label may not exist yet, and the `live-tests` GitHub environment holding
+  `OPENAI_API_KEY`, `TAVILY_API_KEY`, and `ENBANC_TEST_MODEL` is one-time setup
+  nobody has done. Until the workflow is on `main`, **Run workflow** does not
+  appear and `gh` answers `404`; the label half can be exercised from the pull
+  request itself. Both tiers are empty of tests anyway, so the first real signal
+  comes when there is something live to run —
+  [`testing.md`](./design/testing.md#triggering-a-live-run-in-ci) has the steps.
 - **Seven of the eight probes are still not tests.**
   [`design/execution.md`](./design/execution.md#what-pydanticai-already-does)
   makes eight runnable claims about `pydantic-ai 2.36.0`.
@@ -82,6 +92,26 @@ Three things the next session should carry:
   tests whether the bump discipline holds.
 
 ## Log
+
+### 2026-09-10 — the live tiers get a way into CI, on a label
+
+**Did:** Added [`.github/workflows/live-tests.yml`](../.github/workflows/live-tests.yml)
+so the integration and e2e tiers can run in CI, but only when a maintainer asks —
+a `live-tests` label on a pull request, or a `workflow_dispatch` with a tier
+picker. Credentials sit in a `live-tests` GitHub environment, and a preflight
+step turns an unset one into a failure, since the fixtures' laptop-correct skip
+would otherwise report a run that tested nothing as green. `ci.yml` and
+`make test` are untouched. Also extended the `create-pr-summary` skill with a
+confirmed step that puts the title and body onto GitHub.
+
+**Stopped at:** Clean, but nothing has exercised the workflow: the branch is
+unmerged, so `workflow_dispatch` is not yet offered, and the `live-tests`
+environment and label are one-time setup still to do.
+
+**Why this way:**
+[`decisions/0033`](./decisions/0033-live-tiers-run-in-ci-on-demand.md).
+
+**Commits:** `56a2bca`, `6f1b6a4`, `f2bc849`
 
 ### 2026-09-09 — testing is designed, and the harness is built before the code it will test
 
