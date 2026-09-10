@@ -352,6 +352,7 @@ request runs both tiers and reports as a check on that pull request, and
 Nothing runs on push, on an unlabelled pull request, or on a schedule, so no job
 spends money unattended and [`ci.yml`](../../.github/workflows/ci.yml) keeps its
 contract of being exactly `make check-all` with no secrets.
+[Below](#triggering-a-live-run-in-ci) is how to fire either one.
 
 The credentials sit in a `live-tests` GitHub environment rather than in
 repository secrets — `OPENAI_API_KEY` and `TAVILY_API_KEY` as secrets,
@@ -414,6 +415,53 @@ the one thing a live tier exists to rule out, and it reports green. So
 `live-tests.yml` opens with a preflight step that fails when any of the three
 values is empty. The fixtures are untouched; the rule differs by where it runs,
 and the step that makes it differ says so.
+
+### Triggering a live run in CI
+
+Two ways, and which one to reach for depends on what is being checked.
+
+**The label, for a change under review.** Add `live-tests` to the pull request.
+Both tiers run, and the result reports as a check on that pull request alongside
+`ci.yml`'s. Removing and re-adding it runs them again; `concurrency` cancels
+whatever was in flight rather than billing twice for one commit.
+
+```text
+gh pr edit <number> --add-label live-tests
+```
+
+The label has to exist in the repository before it can be applied to anything —
+`gh label create live-tests -d "Run the live test tiers on this PR"`, once ever.
+Creating it triggers nothing; the event is a label being *added to a pull
+request*.
+
+**The dispatch, for everything else.** Actions → **Live tests** → **Run
+workflow**, then choose a branch and a tier. This is the only way to run one tier
+alone, and the only way to run with no pull request in the picture — a re-check
+against `main` after a provider outage, or after a `pydantic-ai` bump.
+
+```text
+gh workflow run "Live tests" -f tier=integration
+gh workflow run "Live tests" --ref <branch> -f tier=both
+```
+
+`tier` defaults to `both`, and on the label event it is empty, which is why a
+label runs both tiers.
+
+**A `workflow_dispatch` is read from the default branch.** Worth stating because
+it is not guessable and it presents as a broken workflow: until `live-tests.yml`
+is on `main`, the **Run workflow** button does not exist and
+`gh run list --workflow=live-tests.yml` answers `404 … not found on the default
+branch`. The label is unaffected, because `pull_request` events use the workflow
+file from the pull request's own head branch. So a change to this workflow can be
+exercised on the pull request that makes it, and only the dispatch half has to
+wait for the merge.
+
+**The one-time setup.** A `live-tests` environment under Settings → Environments,
+holding `OPENAI_API_KEY` and `TAVILY_API_KEY` as environment secrets and
+`ENBANC_TEST_MODEL` as an environment variable. Nothing else — no repository
+secret, and no protection rule, since the label and the dispatch are themselves
+the manual gate. A run that finds any of the three empty fails at the preflight
+rather than skipping green.
 
 ## Open questions
 
