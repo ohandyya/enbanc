@@ -32,7 +32,9 @@ typecheck-watch: ## Re-run pyright on file changes
 # The tiers. A test's tier is the directory it lives in, so these select by path rather
 # than by marker — see docs/design/testing.md and docs/decisions/0031-tests-are-tiered.md.
 # unit and contract are offline and enforced; integration and e2e reach real providers,
-# read keys from .env, and skip when those are absent.
+# read keys from .env, and skip when those are absent. `-ra` on the two live targets prints
+# the reason for every skip: a live run that quietly tested nothing looks exactly like a
+# live run that passed, and the reason is the only thing that tells them apart.
 
 unit-tests: ## Run the unit tier: enbanc's own behaviour, offline
 	uv run pytest -v tests/unit
@@ -41,12 +43,14 @@ contract-tests: ## Run the contract tier: what execution.md claims about pydanti
 	uv run pytest -v tests/contract
 
 integration-tests: ## Run the integration tier: real Tavily, real provider (costs money)
-	uv run pytest -v tests/integration
+	uv run pytest -v -ra tests/integration
 
 e2e-tests: ## Run the e2e tier: api.md's example end to end (costs money)
-	uv run pytest -v tests/e2e
+	uv run pytest -v -ra tests/e2e
 
-# The offline gate. check-all and CI run this, so neither ever needs a provider key.
+# The offline gate. check-all and ci.yml run this, so neither ever needs a provider key.
+# The live targets above run in CI too, but only when asked — see live-tests.yml and
+# docs/decisions/0033-live-tiers-run-in-ci-on-demand.md.
 test: ## Run every offline test: the unit and contract tiers
 	uv run pytest -v tests/unit tests/contract
 

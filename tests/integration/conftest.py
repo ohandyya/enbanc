@@ -10,6 +10,7 @@ There is no tier-wide skip. A test asks for what it needs — `live_model` for a
 `tavily_api_key` for `web_search` — and skips itself when that is missing, so a Tavily test
 still runs on a machine with no model configured. Both fixtures are in `../conftest.py`.
 
-Does not run in CI ([`0031`](../../docs/decisions/0031-tests-are-tiered.md)). Run it by hand
-with `make integration-tests`.
+Run by hand with `make integration-tests`, or in CI on demand — the `live-tests` label on a
+pull request, or a workflow_dispatch
+([`0033`](../../docs/decisions/0033-live-tiers-run-in-ci-on-demand.md)). Never automatically.
 """

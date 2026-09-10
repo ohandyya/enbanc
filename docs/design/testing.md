@@ -1,6 +1,6 @@
 ---
 status: draft
-updated: 2026-09-09
+updated: 2026-09-10
 ---
 
 # Testing
@@ -31,8 +31,8 @@ below exist to keep it that way.
 |---|---|---|---|
 | `unit` | `enbanc`'s own behaviour | none, enforced | yes |
 | `contract` | claims `execution.md` makes about `pydantic-ai` | none, enforced | yes |
-| `integration` | that the plumbing to a real service works | a provider, Tavily | no |
-| `e2e` | that [`api.md`](./api.md)'s example works as written | a provider, Tavily | no |
+| `integration` | that the plumbing to a real service works | a provider, Tavily | on demand |
+| `e2e` | that [`api.md`](./api.md)'s example works as written | a provider, Tavily | on demand |
 
 **`unit` is the bulk of the suite and the only tier that tests edge cases.** It
 covers everything from `Tribunal.__init__` validation through a complete
@@ -344,12 +344,35 @@ keeps `check-all` and `.github/workflows/ci.yml` at exactly the composition they
 already have: the live tiers are additive, and nothing that passes today starts
 costing money.
 
-**The live tiers do not run in CI.** They read `.env` and are run by hand. CI
-therefore needs no secrets, fork pull requests keep working, and no scheduled job
-spends money unattended. The cost is real and is accepted: provider drift
-surfaces when someone runs these, not within a day of it happening. The trade is
-worth revisiting when the library has users, at which point a nightly job against
-a repository environment is the obvious move.
+**The live tiers run in CI only when asked.** Locally they read `.env` and are
+run by hand. In CI they are `.github/workflows/live-tests.yml`, which fires two
+ways and neither of them is automatic: adding the **`live-tests` label** to a pull
+request runs both tiers and reports as a check on that pull request, and
+**`workflow_dispatch`** runs either tier against any branch from the Actions tab.
+Nothing runs on push, on an unlabelled pull request, or on a schedule, so no job
+spends money unattended and [`ci.yml`](../../.github/workflows/ci.yml) keeps its
+contract of being exactly `make check-all` with no secrets.
+
+The credentials sit in a `live-tests` GitHub environment rather than in
+repository secrets — `OPENAI_API_KEY` and `TAVILY_API_KEY` as secrets,
+`ENBANC_TEST_MODEL` as a variable, since a model name is not one and a run that
+names the model it tested is worth more than one that hides it. Only a job
+declaring that environment can read them, and each run lands in the deployments
+log. [`0033`](../decisions/0033-live-tiers-run-in-ci-on-demand.md) records why the
+trigger stays manual, and why a fork pull request cannot run these at all: it
+gets no secrets, so labelling one fails rather than passing.
+
+That environment does name a provider, and so does the workflow that reads it.
+This is the same choice a populated `.env` makes on a laptop and it is made in
+the same place — configuration, not the harness. What the section below fixes is
+that nothing in `tests/` knows which provider was chosen; swapping the CI
+environment to another one is two secrets and a variable, and no test changes.
+
+The cost [`0031`](../decisions/0031-tests-are-tiered.md) accepted is unchanged —
+provider drift still surfaces when someone asks, not within a day of it
+happening. What the workflow buys is that asking is a click on the pull request
+under review. A nightly job remains the obvious next move and is now a
+`schedule:` block away.
 
 **The harness names no provider, because the library does not.**
 [`api.md`](./api.md#design-commitments) commits to working with any
@@ -383,6 +406,14 @@ for and did not happen — a typo, an uninstalled provider SDK, or a missing
 credential — and skipping would hide all three behind the same green dot.
 PydanticAI's own message names the variable or the package, so it is passed
 through rather than re-worded.
+
+**In CI, unset is a failure too.** The skip above is right for a laptop, where an
+absent key means the machine was never set up for live runs. In a run someone
+asked for it means the opposite — the run happened and proved nothing, which is
+the one thing a live tier exists to rule out, and it reports green. So
+`live-tests.yml` opens with a preflight step that fails when any of the three
+values is empty. The fixtures are untouched; the rule differs by where it runs,
+and the step that makes it differ says so.
 
 ## Open questions
 

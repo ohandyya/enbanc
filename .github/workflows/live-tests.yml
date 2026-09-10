@@ -1,0 +1,76 @@
+name: Live tests
+
+# The live tiers, on demand. `ci.yml` is the gate that runs on every push and every pull
+# request and needs no secrets; this is the one that costs money, so nothing here fires on
+# its own. Label a pull request `live-tests` to run it there, or dispatch it by hand from
+# the Actions tab. See docs/decisions/0033-live-tiers-run-in-ci-on-demand.md.
+on:
+  pull_request:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      tier:
+        description: Which live tier to run
+        type: choice
+        options: [both, integration, e2e]
+        default: both
+
+# One live run per pull request at a time. Re-labelling supersedes the run in flight rather
+# than billing a provider twice for the same commit.
+concurrency:
+  group: live-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  live:
+    # The label is the gate: every other label added to a pull request is a no-op.
+    if: >-
+      github.event_name == 'workflow_dispatch'
+      || github.event.label.name == 'live-tests'
+    name: live tiers
+    runs-on: ubuntu-latest
+    # Scopes the credentials to this job rather than to every workflow in the repository,
+    # and records each run in the deployments log. Same pattern as `pypi` in release.yml.
+    environment: live-tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+
+      # No Python matrix, unlike ci.yml. These tiers bill a provider per run, and what they
+      # prove — that the wire to a real service still works — is not per-interpreter.
+      - name: Install dependencies
+        run: uv sync --all-groups
+
+      # The live fixtures skip when a key is absent (tests/conftest.py), which is right on a
+      # laptop and wrong here: CI would report green having run nothing. So the rule differs
+      # by where it runs, and this step is where it differs — unset is a failure.
+      - name: Require live credentials
+        env:
+          ENBANC_TEST_MODEL: ${{ vars.ENBANC_TEST_MODEL }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+        run: |
+          : "${ENBANC_TEST_MODEL:?not set — see the live-tests environment}"
+          : "${OPENAI_API_KEY:?not set — a fork pull request cannot read secrets}"
+          : "${TAVILY_API_KEY:?not set — see the live-tests environment}"
+
+      # `inputs.tier` is empty on the `labeled` event, so a label runs both tiers and the
+      # picker only narrows a manual dispatch.
+      - name: Integration tier
+        if: inputs.tier != 'e2e'
+        env:
+          ENBANC_TEST_MODEL: ${{ vars.ENBANC_TEST_MODEL }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+        run: make integration-tests
+
+      - name: End-to-end tier
+        if: inputs.tier != 'integration'
+        env:
+          ENBANC_TEST_MODEL: ${{ vars.ENBANC_TEST_MODEL }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+        run: make e2e-tests
