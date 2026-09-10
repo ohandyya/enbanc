@@ -106,8 +106,8 @@ addopts = "--import-mode=importlib"
 markers = [
     "unit: enbanc's own behaviour, offline and enforced",
     "contract: what docs/design/execution.md claims about pydantic-ai",
-    "integration: reaches a real provider or Tavily; not run in CI",
-    "e2e: api.md's example end to end; not run in CI",
+    "integration: reaches a real provider or Tavily; in CI only on demand",
+    "e2e: api.md's example end to end; in CI only on demand",
 ]
 # A warning this library cares about is a warning worth a test. CostNotFoundWarning in
 # particular is specified as firing exactly once per proceeding (docs/design/execution.md), and

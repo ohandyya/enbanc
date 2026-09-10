@@ -56,6 +56,10 @@ hand through `make integration-tests` and `make e2e-tests`. `make test` stays an
 alias for the offline tiers, so `check-all` and `.github/workflows/ci.yml` keep
 the composition they already have.
 
+*Revised by [`0033`](./0033-live-tiers-run-in-ci-on-demand.md): the live tiers
+now run in CI when a maintainer asks for them, in a workflow of their own.
+Everything else here stands.*
+
 `../design/testing.md` owns the resulting strategy.
 
 ## Consequences

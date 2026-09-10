@@ -1,6 +1,6 @@
 ---
 status: draft
-updated: 2026-09-09
+updated: 2026-09-10
 ---
 
 # Testing
@@ -31,8 +31,8 @@ below exist to keep it that way.
 |---|---|---|---|
 | `unit` | `enbanc`'s own behaviour | none, enforced | yes |
 | `contract` | claims `execution.md` makes about `pydantic-ai` | none, enforced | yes |
-| `integration` | that the plumbing to a real service works | a provider, Tavily | no |
-| `e2e` | that [`api.md`](./api.md)'s example works as written | a provider, Tavily | no |
+| `integration` | that the plumbing to a real service works | a provider, Tavily | on demand |
+| `e2e` | that [`api.md`](./api.md)'s example works as written | a provider, Tavily | on demand |
 
 **`unit` is the bulk of the suite and the only tier that tests edge cases.** It
 covers everything from `Tribunal.__init__` validation through a complete
@@ -344,12 +344,36 @@ keeps `check-all` and `.github/workflows/ci.yml` at exactly the composition they
 already have: the live tiers are additive, and nothing that passes today starts
 costing money.
 
-**The live tiers do not run in CI.** They read `.env` and are run by hand. CI
-therefore needs no secrets, fork pull requests keep working, and no scheduled job
-spends money unattended. The cost is real and is accepted: provider drift
-surfaces when someone runs these, not within a day of it happening. The trade is
-worth revisiting when the library has users, at which point a nightly job against
-a repository environment is the obvious move.
+**The live tiers run in CI only when asked.** Locally they read `.env` and are
+run by hand. In CI they are `.github/workflows/live-tests.yml`, which fires two
+ways and neither of them is automatic: adding the **`live-tests` label** to a pull
+request runs both tiers and reports as a check on that pull request, and
+**`workflow_dispatch`** runs either tier against any branch from the Actions tab.
+Nothing runs on push, on an unlabelled pull request, or on a schedule, so no job
+spends money unattended and [`ci.yml`](../../.github/workflows/ci.yml) keeps its
+contract of being exactly `make check-all` with no secrets.
+[Below](#triggering-a-live-run-in-ci) is how to fire either one.
+
+The credentials sit in a `live-tests` GitHub environment rather than in
+repository secrets — `OPENAI_API_KEY` and `TAVILY_API_KEY` as secrets,
+`ENBANC_TEST_MODEL` as a variable, since a model name is not one and a run that
+names the model it tested is worth more than one that hides it. Only a job
+declaring that environment can read them, and each run lands in the deployments
+log. [`0033`](../decisions/0033-live-tiers-run-in-ci-on-demand.md) records why the
+trigger stays manual, and why a fork pull request cannot run these at all: it
+gets no secrets, so labelling one fails rather than passing.
+
+That environment does name a provider, and so does the workflow that reads it.
+This is the same choice a populated `.env` makes on a laptop and it is made in
+the same place — configuration, not the harness. What the section below fixes is
+that nothing in `tests/` knows which provider was chosen; swapping the CI
+environment to another one is two secrets and a variable, and no test changes.
+
+The cost [`0031`](../decisions/0031-tests-are-tiered.md) accepted is unchanged —
+provider drift still surfaces when someone asks, not within a day of it
+happening. What the workflow buys is that asking is a click on the pull request
+under review. A nightly job remains the obvious next move and is now a
+`schedule:` block away.
 
 **The harness names no provider, because the library does not.**
 [`api.md`](./api.md#design-commitments) commits to working with any
@@ -383,6 +407,61 @@ for and did not happen — a typo, an uninstalled provider SDK, or a missing
 credential — and skipping would hide all three behind the same green dot.
 PydanticAI's own message names the variable or the package, so it is passed
 through rather than re-worded.
+
+**In CI, unset is a failure too.** The skip above is right for a laptop, where an
+absent key means the machine was never set up for live runs. In a run someone
+asked for it means the opposite — the run happened and proved nothing, which is
+the one thing a live tier exists to rule out, and it reports green. So
+`live-tests.yml` opens with a preflight step that fails when any of the three
+values is empty. The fixtures are untouched; the rule differs by where it runs,
+and the step that makes it differ says so.
+
+### Triggering a live run in CI
+
+Two ways, and which one to reach for depends on what is being checked.
+
+**The label, for a change under review.** Add `live-tests` to the pull request.
+Both tiers run, and the result reports as a check on that pull request alongside
+`ci.yml`'s. Removing and re-adding it runs them again; `concurrency` cancels
+whatever was in flight rather than billing twice for one commit.
+
+```text
+gh pr edit <number> --add-label live-tests
+```
+
+The label has to exist in the repository before it can be applied to anything —
+`gh label create live-tests -d "Run the live test tiers on this PR"`, once ever.
+Creating it triggers nothing; the event is a label being *added to a pull
+request*.
+
+**The dispatch, for everything else.** Actions → **Live tests** → **Run
+workflow**, then choose a branch and a tier. This is the only way to run one tier
+alone, and the only way to run with no pull request in the picture — a re-check
+against `main` after a provider outage, or after a `pydantic-ai` bump.
+
+```text
+gh workflow run "Live tests" -f tier=integration
+gh workflow run "Live tests" --ref <branch> -f tier=both
+```
+
+`tier` defaults to `both`, and on the label event it is empty, which is why a
+label runs both tiers.
+
+**A `workflow_dispatch` is read from the default branch.** Worth stating because
+it is not guessable and it presents as a broken workflow: until `live-tests.yml`
+is on `main`, the **Run workflow** button does not exist and
+`gh run list --workflow=live-tests.yml` answers `404 … not found on the default
+branch`. The label is unaffected, because `pull_request` events use the workflow
+file from the pull request's own head branch. So a change to this workflow can be
+exercised on the pull request that makes it, and only the dispatch half has to
+wait for the merge.
+
+**The one-time setup.** A `live-tests` environment under Settings → Environments,
+holding `OPENAI_API_KEY` and `TAVILY_API_KEY` as environment secrets and
+`ENBANC_TEST_MODEL` as an environment variable. Nothing else — no repository
+secret, and no protection rule, since the label and the dispatch are themselves
+the manual gate. A run that finds any of the three empty fails at the preflight
+rather than skipping green.
 
 ## Open questions
 

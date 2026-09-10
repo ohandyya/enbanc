@@ -91,8 +91,11 @@ silently changes what it is permitted to do.
   [`0003`](docs/decisions/0003-models-and-guidance-are-injected.md) makes it
   injected, so a whole proceeding runs with no provider. A test that genuinely
   needs the network belongs in a live tier, not in an exemption.
-- **`make test` is the two offline tiers**, and it is what `check-all` and CI
-  run. The live tiers read `.env`, cost money, and never run in CI.
+- **`make test` is the two offline tiers**, and it is what `check-all` and
+  `ci.yml` run. The live tiers cost money and never run on their own: locally
+  they read `.env`, and in CI they are `live-tests.yml`, fired by hand with the
+  `live-tests` label on a PR or a `workflow_dispatch`
+  ([`0033`](docs/decisions/0033-live-tiers-run-in-ci-on-demand.md)).
 - **A red `contract` test means the dependency moved**, not that `enbanc` broke.
   The fix is usually prose in `docs/design/execution.md`.
 - **The harness names no provider.** `ENBANC_TEST_MODEL` holds a model string

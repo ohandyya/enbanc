@@ -9,6 +9,7 @@ Which provider it runs against is the runner's, through `live_model` in `../conf
 `enbanc` commits to working with any `pydantic_ai.models.Model`, so a tier that could only
 run against one provider would be testing less than the library promises.
 
-Does not run in CI ([`0031`](../../docs/decisions/0031-tests-are-tiered.md)). Run it by hand
-with `make e2e-tests`.
+Run by hand with `make e2e-tests`, or in CI on demand — the `live-tests` label on a pull
+request, or a workflow_dispatch
+([`0033`](../../docs/decisions/0033-live-tiers-run-in-ci-on-demand.md)). Never automatically.
 """

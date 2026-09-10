@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-09-05
+updated: 2026-09-10
 ---
 
 # Documentation
@@ -76,6 +76,7 @@ full ruleset.
 | [`decisions/0030-the-retry-budgets.md`](./decisions/0030-the-retry-budgets.md) | Why `Agent(retries=...)` is two independent budgets rather than the one three documents described, what numbers `enbanc` sets and why `outcomes.md` §1 is what pins them, and why a tool's `max_retries` rides on the `Tool` beside its timeout while the output budget stays the library's |
 | [`decisions/0031-tests-are-tiered.md`](./decisions/0031-tests-are-tiered.md) | Why the suite splits into four tiers with `contract` separate from `unit` despite both being offline, why a test's tier is its directory rather than a marker it might forget to carry, why the offline tiers block sockets instead of promising not to use them, and why the live tiers stay out of CI at the price of drift surfacing late |
 | [`decisions/0032-a-design-doc-is-mirrored-by-tests.md`](./decisions/0032-a-design-doc-is-mirrored-by-tests.md) | Why `outcomes.md`'s worked values are mirrored by hand-written tests rather than extracted and executed, why generating the document from snapshots would invert authorship and contradict rule 1, and what accepting a possibility of drift buys — documents that stay written to be read |
+| [`decisions/0033-live-tiers-run-in-ci-on-demand.md`](./decisions/0033-live-tiers-run-in-ci-on-demand.md) | Why the live tiers now run in CI on a label rather than never, why the trigger stays manual instead of nightly or per-push, why the credentials sit in a GitHub environment rather than in repository secrets, and why a missing key is a skip on a laptop and a failure in CI |
 
 ### Guides — user-facing how-to
 

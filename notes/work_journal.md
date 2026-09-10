@@ -16,7 +16,7 @@
 
     - Even better: find a way to publish it.
 
-5. Automatic PR creation & Update
+5. [Done] Automatic PR creation & Update
 
     - Can we expand the `create-pr-summary` command to automatically create a PR with title and description or updating existing PR with title and description?
 
