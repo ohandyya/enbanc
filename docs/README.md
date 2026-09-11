@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-09-10
+updated: 2026-09-11
 ---
 
 # Documentation
@@ -37,7 +37,6 @@ full ruleset.
 | [`design/prompting.md`](./design/prompting.md) | How `enbanc` turns its types into text a model reads, and a proceeding back into text a human reads: the two procedural prompts in full, how an agent's instructions are assembled, the four turn templates, how ledger ids reach the model, and what `Transcript.render()` produces |
 | [`design/execution.md`](./design/execution.md) | How a proceeding maps onto PydanticAI: verified findings about what the framework already does, the whole proceeding written out as literal messages, then the three pieces — message history against the transcript, the ledgering toolset, and round orchestration with the filing clerk, the failure pattern, and usage capture |
 | [`design/testing.md`](./design/testing.md) | How a library whose behaviour is LLM-driven is asserted on deterministically: the four tiers and how one is selected, the enforced offline guarantee, how the model is faked, how the transcript invariant is checked, `outcomes.md` mirrored section by section, and what must not be asserted |
-| [`design/degenerate-deliberations.md`](./design/degenerate-deliberations.md) | **Placeholder, left for future.** Behaviours the schemas admit and no document rules on — an empty continuance, an interrogatory to a conceded advocate. Not needed for `0.1.0` |
 | [`design/packaging.md`](./design/packaging.md) | How the library is laid out as a package: the two importable namespaces and the private modules behind them, `__all__` as the contract with `api.md` as its list, the one forced import cycle, what `import enbanc` may do, the Python floor, and why there is one distribution rather than two |
 
 ### Decisions — ADRs
@@ -79,6 +78,8 @@ full ruleset.
 | [`decisions/0033-live-tiers-run-in-ci-on-demand.md`](./decisions/0033-live-tiers-run-in-ci-on-demand.md) | Why the live tiers now run in CI on a label rather than never, why the trigger stays manual instead of nightly or per-push, why the credentials sit in a GitHub environment rather than in repository secrets, and why a missing key is a skip on a laptop and a failure in CI |
 | [`decisions/0034-the-export-surface-is-the-package.md`](./decisions/0034-the-export-surface-is-the-package.md) | Why `enbanc` and `enbanc.tools` are the only importable namespaces and every other module is underscore-prefixed, why `api.md` is the export list and `__all__` is mirrored by a test rather than held by prose, and why public module names and a single `_schemas.py` were both rejected |
 | [`decisions/0035-testing-holds-technique-not-an-index.md`](./decisions/0035-testing-holds-technique-not-an-index.md) | Why a design document names its own mirror beside the claim it pins rather than `design/testing.md` carrying an index of what tests what, why `outcomes.md`'s table stays as a stated exception, and why the one test that steps outside the socket guard is technique `testing.md` does own |
+| [`decisions/0036-a-continuance-carries-at-least-one-interrogatory.md`](./decisions/0036-a-continuance-carries-at-least-one-interrogatory.md) | Why `min_length=1` sits on both the judge's emit-shape and the public `Continuance` — the empty one dispatches nobody and leaves a transcript of identical no-op rounds — which retry budget a schema failure spends, and why tolerating it or reading it as a stop signal were both rejected |
+| [`decisions/0037-a-conceded-advocate-stays-addressable.md`](./decisions/0037-a-conceded-advocate-stays-addressable.md) | Why an advocate that conceded stays seated and may argue its verdict again on evidence filed since, why the record marks nothing superseded rather than gaining a `withdrawal` filing, and why forbidding it would be the first stateful check on the judge's output |
 
 ### Guides — user-facing how-to
 

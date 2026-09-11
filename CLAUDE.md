@@ -3,6 +3,35 @@
 Adversarial multi-agent adjudication, built on PydanticAI. Pre-`0.1.0`: the
 public API described in `README.md` and `docs/design/` does not exist yet.
 
+## Asking me questions
+
+I hold every decision. When you are unsure, your job is to make the decision
+easy to make well — not to make it fast.
+
+1. **Prose first, `AskUserQuestion` last.** While we are still exploring — plan
+   mode, brainstorming, anything where the shape is not yet agreed — ask in the
+   message body and wait for a reply. The tool's chips are too small to carry an
+   argument. Reach for it only once a decision has narrowed to a few named
+   alternatives.
+2. **Never open with `AskUserQuestion`.** Every call is preceded by a message
+   that says what you found, what actually differs between the options, what
+   each one costs later, and which you recommend and why. The options in the
+   widget are labels for that text, not a substitute for it.
+3. **Recommend, and mark it.** Your pick goes first with `(Recommended)`
+   appended. A question with no recommendation is an unfinished analysis. Say
+   plainly when you are near-indifferent, and say plainly when an option is a
+   mistake.
+4. **Show the artifact, don't describe it.** When options differ in something
+   concrete — a doc structure, a signature, a directory layout — put it in each
+   option's `preview` so I can compare them side by side.
+5. **"Other" may be a question, not an answer.** If I type a question back,
+   answer it in prose and ask again. Do not read it as a choice, and do not
+   start work.
+6. **One decision per question.** Never bundle unrelated choices to save a round
+   trip. I would rather answer three questions than one compound one.
+7. **A question is not a checkpoint to clear.** If `docs/design/`, the code, or
+   an obvious default already answers it, decide, and tell me what you assumed.
+
 ## Documentation map
 
 Read this before writing code. The directories are not interchangeable — each

@@ -1,6 +1,6 @@
 ---
 status: draft
-updated: 2026-09-05
+updated: 2026-09-11
 ---
 
 # The tribunal
@@ -196,6 +196,19 @@ failure mode the adversarial structure exists to prevent. It is a round-1
 filing: an advocate persuaded by the record it reads in a later round says so in
 its response, which is what the interrogatory asked for.
 
+**An advocate that conceded stays seated, and its concession is revisable.** The
+judge may put an interrogatory to it like any other advocate, and the response may
+maintain the concession or argue the assigned verdict afresh on evidence that has
+entered the record since. A round-1 concession is a finding about the facts that
+advocate could reach alone — the round is blind — and by round 3 a peer may have
+filed an exhibit that bears on it. A judge that could not ask would rule against a
+finding the record has already undermined, with nothing in the transcript showing
+why. Nothing is marked superseded: a `Concession` in round 1 followed by a
+`Response` in round 3 is a complete, ordered account of an advocate that changed
+its mind, and a flag saying so would be a second place that can disagree with the
+entries. `tests/unit/test_a_conceded_advocate_is_addressable.py` pins it. See
+[`0037`](../decisions/0037-a-conceded-advocate-stays-addressable.md).
+
 **An advocate can be degraded without being lost, and the record says so.** A
 tool that raises ends the proceeding under the rule below; a tool that times out
 does not — the advocate is told, adapts, and files what it can
@@ -270,9 +283,13 @@ returns either a `Ruling` (verdict + reasoning, terminal) or a `Continuance`
 (interrogatories for the next round), both parameterized by the verdict enum
 and both tagged with a defaulted `kind` literal. This makes invalid states
 unrepresentable: there is no decision that also carries pending questions, and
-no non-decision with nothing to ask. Pydantic discriminates on the tag, so the
-schema validates itself, documents itself to the model, and survives being
-persisted and read back. Shape is in
+no non-decision with nothing to ask — the second half enforced by `min_length=1`
+on the interrogatory list rather than merely asserted here, because an empty
+continuance dispatches nobody and leaves the judge deliberating on an empty delta
+until the rounds run out
+([`0036`](../decisions/0036-a-continuance-carries-at-least-one-interrogatory.md)).
+Pydantic discriminates on the tag, so the schema validates itself, documents
+itself to the model, and survives being persisted and read back. Shape is in
 [`../glossary.md`](../glossary.md#judge-output-shape).
 
 ## Open questions

@@ -34,9 +34,12 @@ Eight design documents under [`design/`](./design/) carry **no open questions**:
 every public type, every way a proceeding can *end*, its *behaviour*, how
 evidence becomes a checkable exhibit, everything a participant reads, how the
 whole thing maps onto PydanticAI, how any of it is known to be true, and how it
-is laid out as an importable package.
-[`degenerate-deliberations.md`](./design/degenerate-deliberations.md) is the one
-remaining placeholder and is not needed for `0.1.0`.
+is laid out as an importable package. There are **no placeholders left** —
+`degenerate-deliberations.md` was deleted once its three holes were answered by
+[`0036`](./decisions/0036-a-continuance-carries-at-least-one-interrogatory.md),
+[`0037`](./decisions/0037-a-conceded-advocate-stays-addressable.md), and
+[`0027`](./decisions/0027-an-advocate-answers-its-interrogatories-in-order.md),
+which had already settled the third on the day the placeholder was written.
 
 [`design/packaging.md`](./design/packaging.md) constrains the first modules
 before they are written: `enbanc` and `enbanc.tools` are the only importable
@@ -85,12 +88,13 @@ Five things the next session should carry:
   request itself. Both tiers are empty of tests anyway, so the first real signal
   comes when there is something live to run —
   [`testing.md`](./design/testing.md#triggering-a-live-run-in-ci) has the steps.
-- **Seven of the eight probes are still not tests.**
+- **Most of the probes are still not tests.**
   [`design/execution.md`](./design/execution.md#what-pydanticai-already-does)
-  makes eight runnable claims about `pydantic-ai 2.36.0`.
-  `tests/contract/` now exists to hold them and pins one — `max_concurrency` is
-  an `__init__` parameter. The rest are still throwaway scratch files, and a
-  version bump falsifies the document silently until they land.
+  makes a run of falsifiable claims about `pydantic-ai 2.36.0`, and
+  `tests/contract/` pins two of them — `max_concurrency` is an `__init__`
+  parameter, and a failing output *schema* spends the `output` retry budget
+  rather than `tools`. The rest are still throwaway scratch files, and a version
+  bump falsifies the document silently until they land.
 - **Piece 2 is small and piece 3 is not.** The ledgering toolset is a
   `WrapperToolset` with `call_tool` overridden. Round orchestration is the
   largest piece: the filing clerk, the task group, the snapshot construction,
@@ -105,15 +109,34 @@ Five things the next session should carry:
 **Open questions:**
 
 - None, anywhere in [`design/`](./design/).
-- Whether the `0.1.0` scope line — now just
-  [`degenerate-deliberations.md`](./design/degenerate-deliberations.md) —
-  deserves an ADR, or stays recorded in the placeholder itself.
 - `procedure` version `p1` is authored but unshipped, so its changelog row in
   [`prompting.md`](./design/prompting.md#procedure-versions) has nothing to
   compare against yet. The first prompt edit after `0.1.0` ships is the one that
   tests whether the bump discipline holds.
 
 ## Log
+
+### 2026-09-11 — the last placeholder is answered and deleted
+
+**Did:** Closed the three holes `design/degenerate-deliberations.md` had parked
+and deleted the document, leaving [`design/`](./design/) with no placeholders
+left. An empty continuance is now unrepresentable rather than tolerated —
+`min_length=1` on both the judge's emit-shape and the public `Continuance`, which
+makes the zero-task round unreachable and the round loop's guard unnecessary. A
+conceded advocate stays seated, may be addressed again, and may argue its verdict
+afresh on evidence filed since. The third hole needed no answer: `0027` had
+settled it on the day the placeholder was written.
+[`design/execution.md`](./design/execution.md#a-failing-output-schema-spends-the-output-budget)
+gained the probe finding the first of those rests on, and `tests/contract/` pins
+it. Also added CLAUDE.md's rules for how questions are put to me.
+
+**Why this way:**
+[`decisions/0036`](./decisions/0036-a-continuance-carries-at-least-one-interrogatory.md),
+[`decisions/0037`](./decisions/0037-a-conceded-advocate-stays-addressable.md). No
+journal entry — everything settled this session binds future work, so all of it is
+ADR or spec material.
+
+**Commits:** `32059be`, `b79cc29`
 
 ### 2026-09-11 — where a document's test mirror is recorded
 

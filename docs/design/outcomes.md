@@ -1,6 +1,6 @@
 ---
 status: draft
-updated: 2026-09-05
+updated: 2026-09-11
 ---
 
 # Every way a proceeding ends
@@ -716,6 +716,47 @@ and carrying both would store one fact twice.
 **Nothing was retried by `enbanc`.** By the time you see this, the retry policy
 on the httpx client inside your own `Model` has already given up. See
 [`0009`](../decisions/0009-model-settings-live-on-the-model.md).
+
+### The judge's output will not validate
+
+The third of the three, and the one `enbanc` *does* retry. The judge deliberates
+at the end of round 1 and emits a continuance with no interrogatories — which
+`min_length=1` refuses
+([`0036`](../decisions/0036-a-continuance-carries-at-least-one-interrogatory.md)).
+It is corrected twice, spending the `output` budget
+([`0030`](../decisions/0030-the-retry-budgets.md)), and emits the same thing each
+time.
+
+```text
+round 1   Argument(advocate=APPROVE, exhibits=[psql, web_search])
+          Argument(advocate=DENY,    exhibits=[psql])
+          Concession(advocate=REFER)
+          <the judge files three empty continuances; none of them is a filing>
+```
+
+```python
+ProceedingFailed(
+    participant='judge',
+    round=1,
+    transcript=Transcript(..., entries=[...]),      # 3 entries, no Continuance
+    usage_by_participant={...},                     # all four; the judge's row
+                                                    # covers three attempts, not one
+    usage=RunUsage(requests=9, tool_calls=3, ...),
+)
+# e.__cause__ is UnexpectedModelBehavior('Exceeded maximum output retries (2)')
+```
+
+**The transcript holds nothing the judge emitted.** A filing enters the record at
+the clerk ([`execution.md`](./execution.md#the-filing-clerk)), and an output that
+never validated never reached it — so a reviewer sees a complete round 1 and no
+deliberation, which is the same shape a downed judge leaves. What separates them
+is `__cause__`, and neither is a `Hearing`.
+
+**Three attempts, one `participant` row.** The retries are the same run, so the
+judge's usage accumulates across them rather than appearing three times
+([`0028`](../decisions/0028-usage-accumulates-per-participant.md)). A judge that
+cannot produce a valid continuance is not a proceeding that stopped early — it is
+one whose record would not have explained its own ruling.
 
 ## 5. The tribunal is misconfigured
 

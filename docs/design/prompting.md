@@ -1,6 +1,6 @@
 ---
 status: draft
-updated: 2026-09-05
+updated: 2026-09-11
 ---
 
 # Prompting and rendering
@@ -194,6 +194,11 @@ advocate that manufactures a case for an indefensible position damages the
 record it was seated to build. In round 1 you concede by filing a concession; in
 a later round you say so in your response to the interrogatory that asked.
 
+Conceding does not end your part in the proceeding. You remain seated, and the
+judge may still address an interrogatory to you. Answer it as you would any
+other: if the record still does not support your verdict, say so again, and if
+evidence filed since has made a case for it, make that case.
+
 Evidence and citation:
 
 - Call your tools to gather evidence. Every source a tool returns is recorded
@@ -249,11 +254,17 @@ How a proceeding runs:
   front of it and files a response. Then you deliberate again on what is new.
 
 A continuance carries interrogatories. Each names the single advocate it is
-addressed to and asks that advocate one question. Address a question to the
-advocate best placed to answer it. You may put more than one question to the
-same advocate, and you need not address every advocate. Do not put the same
-question to everyone: an interrogatory is targeted, and an advocate answers only
-what is addressed to it.
+addressed to and asks that advocate one question. It must carry at least one:
+a continuance with nothing to ask is not a way to defer, and there is no round
+after it for anyone to file in. Address a question to the advocate best placed to
+answer it. You may put more than one question to the same advocate, and you need
+not address every advocate. Do not put the same question to everyone: an
+interrogatory is targeted, and an advocate answers only what is addressed to it.
+
+An advocate that conceded is still seated and may still be asked. Its concession
+was reached on what it could find alone, before it had read anyone else, so an
+exhibit filed since may bear on it — and an advocate asked about one may answer
+that the case for its verdict is now arguable after all.
 
 The tribunal gives each of your questions an id when it files your continuance,
 numbering them in the order you wrote them: the first question you issue in round

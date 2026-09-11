@@ -1,6 +1,6 @@
 ---
 status: draft
-updated: 2026-09-05
+updated: 2026-09-11
 ---
 
 # Execution
@@ -225,6 +225,27 @@ Three facts follow, and all three matter:
   tool" a real move rather than a figure of speech.
 - **`max_retries` resolves `tool → toolset → ctx`** (`agent/__init__.py:699`), so
   `Tool(fn, max_retries=…)` overrides the agent-level default for one tool.
+
+### A failing output schema spends the `output` budget
+
+A Pydantic constraint on the output *type* is a second path to the budget above,
+alongside the output validator [`0016`](../decisions/0016-exhibits-are-stamped-citations.md)
+spends it on. Attempts track `output` alone and `tools` is never consulted:
+
+```text
+emitting _Continuance(interrogatories=[]) against min_length=1:
+  retries={'tools': 5, 'output': 1}  -> 2 attempts, Exceeded maximum output retries (1)
+  retries={'tools': 1, 'output': 4}  -> 5 attempts, Exceeded maximum output retries (4)
+```
+
+The constraint also reaches the model, as `minItems: 1` in the output tool's JSON
+schema, and the retry prompt carries Pydantic's own message — *List should have at
+least 1 item after validation, not 0*. So a judge is told the rule before it is
+corrected for breaking it, and a judge that keeps breaking it is a participant
+whose output will not validate. This is what
+[`0036`](../decisions/0036-a-continuance-carries-at-least-one-interrogatory.md)
+rests on, and
+`tests/contract/test_output_validation_spends_the_output_budget.py` pins it.
 
 ### `max_concurrency` is set at construction
 
@@ -834,6 +855,11 @@ while True:
     round_no += 1
     addressed = advocates_addressed_by(deliberation)
 ```
+
+**`addressed` is never empty.** `Continuance.interrogatories` carries
+`min_length=1` ([`0036`](../decisions/0036-a-continuance-carries-at-least-one-interrogatory.md)),
+so a continuance always names at least one advocate and the zero-task round is
+unreachable rather than tolerated. The loop needs no guard for it.
 
 **`max_rounds` is tested before the budget.** A proceeding that hit both is
 recorded as having run out of rounds — the limit every tribunal has, and the one
