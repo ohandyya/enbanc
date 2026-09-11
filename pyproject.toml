@@ -22,6 +22,14 @@ dependencies = [
     # cannot import is not a default. Only tiktoken is genuinely new — httpx and requests already
     # arrive with pydantic-ai. See docs/decisions/0018-the-search-client-is-a-core-dependency.md.
     "tavily-python>=0.8.1",
+    # `TypeAliasType`, which `typing` only ships from 3.12. The three generic aliases in
+    # docs/design/api.md — Filing, Deliberation, Outcome — need it at the 3.11 floor, and
+    # a plain alias parameterized by a bare TypeVar collapses under Pydantic rather than
+    # failing loudly. Declared rather than borrowed: pydantic pins this exact floor so it
+    # arrives anyway, but enbanc imports it directly and a package declares what it imports.
+    # This line and the import both go when requires-python moves to 3.12 and the aliases
+    # become `type Filing[V: Verdict] = ...`. See docs/design/packaging.md.
+    "typing-extensions>=4.14.1",
 ]
 
 [project.urls]
