@@ -555,6 +555,7 @@ source = { editable = "." }
 dependencies = [
     { name = "pydantic-ai" },
     { name = "tavily-python" },
+    { name = "typing-extensions" },
 ]
 
 [package.dev-dependencies]
@@ -571,6 +572,7 @@ dev = [
 requires-dist = [
     { name = "pydantic-ai", specifier = ">=2.36.0" },
     { name = "tavily-python", specifier = ">=0.8.1" },
+    { name = "typing-extensions", specifier = ">=4.14.1" },
 ]
 
 [package.metadata.requires-dev]
