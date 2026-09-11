@@ -38,7 +38,7 @@ full ruleset.
 | [`design/execution.md`](./design/execution.md) | How a proceeding maps onto PydanticAI: verified findings about what the framework already does, the whole proceeding written out as literal messages, then the three pieces — message history against the transcript, the ledgering toolset, and round orchestration with the filing clerk, the failure pattern, and usage capture |
 | [`design/testing.md`](./design/testing.md) | How a library whose behaviour is LLM-driven is asserted on deterministically: the four tiers and how one is selected, the enforced offline guarantee, how the model is faked, how the transcript invariant is checked, `outcomes.md` mirrored section by section, and what must not be asserted |
 | [`design/degenerate-deliberations.md`](./design/degenerate-deliberations.md) | **Placeholder, left for future.** Behaviours the schemas admit and no document rules on — an empty continuance, an interrogatory to a conceded advocate. Not needed for `0.1.0` |
-| [`design/packaging.md`](./design/packaging.md) | **Placeholder, left for future.** Module layout, export surface, where the errors live, the Python floor. Not needed for `0.1.0` |
+| [`design/packaging.md`](./design/packaging.md) | How the library is laid out as a package: the two importable namespaces and the private modules behind them, `__all__` as the contract with `api.md` as its list, the one forced import cycle, what `import enbanc` may do, the Python floor, and why there is one distribution rather than two |
 
 ### Decisions — ADRs
 
@@ -77,6 +77,7 @@ full ruleset.
 | [`decisions/0031-tests-are-tiered.md`](./decisions/0031-tests-are-tiered.md) | Why the suite splits into four tiers with `contract` separate from `unit` despite both being offline, why a test's tier is its directory rather than a marker it might forget to carry, why the offline tiers block sockets instead of promising not to use them, and why the live tiers stay out of CI at the price of drift surfacing late |
 | [`decisions/0032-a-design-doc-is-mirrored-by-tests.md`](./decisions/0032-a-design-doc-is-mirrored-by-tests.md) | Why `outcomes.md`'s worked values are mirrored by hand-written tests rather than extracted and executed, why generating the document from snapshots would invert authorship and contradict rule 1, and what accepting a possibility of drift buys — documents that stay written to be read |
 | [`decisions/0033-live-tiers-run-in-ci-on-demand.md`](./decisions/0033-live-tiers-run-in-ci-on-demand.md) | Why the live tiers now run in CI on a label rather than never, why the trigger stays manual instead of nightly or per-push, why the credentials sit in a GitHub environment rather than in repository secrets, and why a missing key is a skip on a laptop and a failure in CI |
+| [`decisions/0034-the-export-surface-is-the-package.md`](./decisions/0034-the-export-surface-is-the-package.md) | Why `enbanc` and `enbanc.tools` are the only importable namespaces and every other module is underscore-prefixed, why `api.md` is the export list and `__all__` is mirrored by a test rather than held by prose, and why public module names and a single `_schemas.py` were both rejected |
 
 ### Guides — user-facing how-to
 
