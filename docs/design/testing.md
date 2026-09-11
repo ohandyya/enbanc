@@ -1,6 +1,6 @@
 ---
 status: draft
-updated: 2026-09-10
+updated: 2026-09-11
 ---
 
 # Testing
@@ -130,6 +130,18 @@ error at the first byte.
 Loopback is allowed, so a test may stand up a local server; the block is on
 reaching a third party.
 
+**It is a tripwire, not a sandbox**, and one test deliberately steps outside it.
+`tests/unit/test_import_is_inert.py` checks what
+[`packaging.md`](./packaging.md#what-import-enbanc-may-do) requires of
+`import enbanc` — no I/O, no provider SDK, no `enbanc.tools` — and it can only ask
+that question in a **subprocess**, because by the time a test function runs,
+pytest has imported half the tree in-process and an autouse fixture has not yet
+existed at any point an import happened. A child process carries none of the
+guard. That is acceptable here and nowhere else: what the child does is
+`import enbanc` and read `sys.modules`, and the assertion is precisely that it
+reached nothing. A second subprocess test would need the same argument made
+again, from scratch.
+
 ## How the model is faked
 
 Three shapes, in increasing order of what they cost to write.
@@ -256,6 +268,32 @@ the mistake it catches looks ordinary
 message is the whole remedy. And **the suppression join** in §1 — the sources a
 tool returned that no filing cited — is the one place `0019`'s ledger earns its
 keep, so it is asserted over a proceeding built to have exactly one.
+
+### The table is the exception, not the pattern
+
+This is the only doc-to-module map in this document, and it is here because
+`outcomes.md` cannot hold it. That document is worked values written to be read,
+and [`0032`](../decisions/0032-a-design-doc-is-mirrored-by-tests.md) protects
+exactly that property — threading `# see tests/unit/outcomes/test_03_...` through
+seven sections of `repr` prose would damage the thing whose readability is its
+whole value.
+
+**Otherwise a design document names its own mirror, beside the claim it pins.**
+[`packaging.md`](./packaging.md#the-export-surface) names
+`tests/unit/test_export_surface.py` in the paragraph that fixes `__all__`, and
+[`test_import_is_inert.py`](./packaging.md#what-import-enbanc-may-do) in the one
+that lists the import-time invariants. Neither belongs in a table here.
+
+**This document holds technique, not inventory.** How a model is faked, how a
+prompt is pinned, how Tavily is faked, how the transcript invariant is asserted,
+and what must not be asserted at all — every section here exists because
+something was hard to test, and says how. A claim that needs no technique —
+`sorted(enbanc.__all__) == [...]` needs none — has nothing to say to this
+document, and an index row for it would be a second place to keep true whose
+failure mode is silence: a document gains a test, the index does not, and
+nothing catches it. That is the same objection this library makes to
+`position` on an `Argument` and to `cited` on a `Retrieval`. See
+[`0035`](../decisions/0035-testing-holds-technique-not-an-index.md).
 
 ## Pinning the prompting surface
 

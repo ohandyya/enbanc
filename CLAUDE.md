@@ -72,6 +72,17 @@ updated: YYYY-MM-DD
 `make help` lists the available targets. Tooling is uv + ruff + pyright +
 pytest, with pre-commit hooks enforced in CI.
 
+### Modules
+
+**`enbanc` and `enbanc.tools` are the only importable namespaces.** Every other
+module under `src/enbanc/` is underscore-prefixed. A module named without the
+underscore is public the moment anyone imports it, and that cannot be taken back
+([`0034`](docs/decisions/0034-the-export-surface-is-the-package.md)).
+
+`__all__` is the contract and its list is `docs/design/api.md`.
+`docs/design/packaging.md` is the layout — the module map, the one forced import
+cycle, and what `import enbanc` may not do.
+
 ### Tests
 
 **A test's tier is the directory it lives in.** Nothing is marked by hand:

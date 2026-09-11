@@ -219,10 +219,12 @@ because the thing it constrains is module-level code.
 
 The test runs `import enbanc` in a **subprocess** and inspects `sys.modules`,
 because by the time a test function runs, pytest has imported half the tree
-in-process and the question is no longer askable. A subprocess is outside the
-socket guard, which is acceptable here for the same reason the guard tolerates it
-generally: the child process does no I/O, and what is being asserted is precisely
-that.
+in-process and the question is no longer askable. A subprocess carries none of
+the socket guard, and
+[`testing.md`](./testing.md#the-offline-guarantee-enforced) sanctions *this test
+by name* rather than subprocesses in general: the child does `import enbanc` and
+reads `sys.modules`, and the assertion is precisely that it reached nothing. A
+second subprocess test would need that argument made again from scratch.
 
 The second is what keeps `tavily` off the `import enbanc` path. It changes no
 install — `tavily-python` is core

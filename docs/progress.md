@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-09-10
+updated: 2026-09-11
 ---
 
 # Progress
@@ -22,21 +22,30 @@ spec: [`design/`](./design/) is.
 
 ## Current state
 
-**Phase:** Design complete, the test harness exists, and it now has a way to run
-against real providers from a pull request. **Still no `enbanc` code** —
-`src/enbanc/__init__.py` is a placeholder, and the suite that runs green covers a
-`hello()` stub and one claim about `pydantic-ai`. The published `0.0.4` on PyPI
-reserves the name and nothing more.
+**Phase:** Design complete — including how the package itself is laid out — and
+the test harness exists with a way to run against real providers from a pull
+request. **Still no `enbanc` code**: `src/enbanc/__init__.py` is a `hello()`
+stub, and the suite that runs green covers it plus one claim about
+`pydantic-ai`. The published `0.0.4` on PyPI reserves the name and nothing more.
 
 Settled and binding across
-[`0001`](./decisions/0001-statute-carries-no-model.md)–[`0033`](./decisions/0033-live-tiers-run-in-ci-on-demand.md).
-Seven design documents under [`design/`](./design/) carry **no open questions**:
+[`0001`](./decisions/0001-statute-carries-no-model.md)–[`0035`](./decisions/0035-testing-holds-technique-not-an-index.md).
+Eight design documents under [`design/`](./design/) carry **no open questions**:
 every public type, every way a proceeding can *end*, its *behaviour*, how
 evidence becomes a checkable exhibit, everything a participant reads, how the
-whole thing maps onto PydanticAI, and how any of it is known to be true.
-[`degenerate-deliberations.md`](./design/degenerate-deliberations.md) and
-[`packaging.md`](./design/packaging.md) remain placeholders and are not needed
-for `0.1.0`.
+whole thing maps onto PydanticAI, how any of it is known to be true, and how it
+is laid out as an importable package.
+[`degenerate-deliberations.md`](./design/degenerate-deliberations.md) is the one
+remaining placeholder and is not needed for `0.1.0`.
+
+[`design/packaging.md`](./design/packaging.md) constrains the first modules
+before they are written: `enbanc` and `enbanc.tools` are the only importable
+namespaces and everything else is underscore-prefixed, `__all__` is a
+twenty-nine-name contract whose list is [`api.md`](./design/api.md#schemas)
+rather than a judgment made per name, and `import enbanc` may do no I/O, import
+no provider SDK, and not reach `enbanc.tools`. `typing-extensions>=4.14.1` is
+now declared in `pyproject.toml` ahead of the code that imports it — the 3.11
+floor needs it for `TypeAliasType`.
 
 [`design/testing.md`](./design/testing.md) describes a harness that exists: four
 tier directories under `tests/`, each test's tier derived from its path, the two
@@ -48,15 +57,26 @@ asked — [`live-tests.yml`](../.github/workflows/live-tests.yml), fired by a
 ([`0033`](./decisions/0033-live-tiers-run-in-ci-on-demand.md)).
 
 **Next up:** Write the `0.1.0` schemas from
-[`design/api.md`](./design/api.md#schemas) — the verdict base, the inputs, the
-five filings, the judge's output and its private emit-shapes, the record, and
-the result. They are the floor everything else stands on, and they come with
+[`design/api.md`](./design/api.md#schemas) into the module layout
+[`design/packaging.md`](./design/packaging.md#the-modules) now fixes — the
+verdict base, the inputs, the five filings, the judge's output and its private
+emit-shapes, the record, and the result, landing in `_verdicts.py`,
+`_inputs.py`, `_evidence.py`, `_filings.py`, `_transcript.py`, and
+`_hearing.py`. They are the floor everything else stands on, and they come with
 their own first test: `Filing`, `Deliberation`, and `Outcome` must be
-`TypeAliasType`, and [`api.md`](./design/api.md#a-note-on-generic-aliases) says
-why plainly — *a type checker does not catch this; only running it does*.
+`TypeAliasType`, and
+[`api.md`](./design/api.md#a-note-on-generic-aliases) says why plainly — *a type
+checker does not catch this; only running it does*.
 
-Four things the next session should carry:
+Five things the next session should carry:
 
+- **The schemas owe two tests `packaging.md` already specifies.**
+  `tests/unit/test_export_surface.py` pins the twenty-nine-name `__all__`
+  against a literal list, and `tests/unit/test_import_is_inert.py` asserts in a
+  subprocess that `import enbanc` pulls in neither `tavily` nor a provider SDK —
+  the one test sanctioned to step outside the socket guard
+  ([`0035`](./decisions/0035-testing-holds-technique-not-an-index.md)). Neither
+  can be written before there is a package to import.
 - **`live-tests.yml` has never run.** The branch is unmerged, the `live-tests`
   label may not exist yet, and the `live-tests` GitHub environment holding
   `OPENAI_API_KEY`, `TAVILY_API_KEY`, and `ENBANC_TEST_MODEL` is one-time setup
@@ -77,21 +97,59 @@ Four things the next session should carry:
   and the round loop.
 - **The network guard is a tripwire, not a sandbox.** It catches `asyncio`, and
   so every HTTP client the library will actually use, but raw `_socket`,
-  subprocesses, and anything connecting at import time go straight past it.
-  A module-level client that connects eagerly is the realistic gap, and it is
-  the kind of thing the first real code could introduce.
+  subprocesses, and anything connecting at import time go straight past it. The
+  import-time half now has a rule and a test named for it in
+  [`packaging.md`](./design/packaging.md#what-import-enbanc-may-do); the rest of
+  the gap stands.
 
 **Open questions:**
 
 - None, anywhere in [`design/`](./design/).
-- Whether the `0.1.0` scope line — the two remaining placeholder documents out —
-  deserves an ADR, or stays recorded in the placeholders themselves.
+- Whether the `0.1.0` scope line — now just
+  [`degenerate-deliberations.md`](./design/degenerate-deliberations.md) —
+  deserves an ADR, or stays recorded in the placeholder itself.
 - `procedure` version `p1` is authored but unshipped, so its changelog row in
   [`prompting.md`](./design/prompting.md#procedure-versions) has nothing to
   compare against yet. The first prompt edit after `0.1.0` ships is the one that
   tests whether the bump discipline holds.
 
 ## Log
+
+### 2026-09-11 — where a document's test mirror is recorded
+
+**Did:** Settled the one drift the checkpoint had parked: a design document names
+its own mirror beside the claim it pins, and
+[`design/testing.md`](./design/testing.md) holds technique rather than an index of
+what tests what — with `outcomes.md`'s table kept as a stated exception, because
+that document cannot host its own mapping without losing the readability
+[`0032`](./decisions/0032-a-design-doc-is-mirrored-by-tests.md) protects. The one
+piece that *was* technique moved: `testing.md`'s offline-guarantee section now
+names `test_import_is_inert.py` as the single sanctioned subprocess and says why
+a second would need the argument made again.
+
+**Why this way:**
+[`decisions/0035`](./decisions/0035-testing-holds-technique-not-an-index.md).
+
+### 2026-09-11 — packaging is designed, and the layout is chosen before the code
+
+**Did:** Took [`design/packaging.md`](./design/packaging.md) from placeholder to
+spec: two importable namespaces with every other module underscore-prefixed,
+[`api.md`](./design/api.md) as the export list behind a twenty-nine-name
+`__all__`, a module map keyed to the design document each module implements, the
+one forced import cycle between the renderer and `Transcript.render()`, three
+invariants on what `import enbanc` may do, and why there is one distribution
+rather than a slim/meta pair. Declared `typing-extensions>=4.14.1` as a core
+dependency, which the 3.11 floor forces for `TypeAliasType`.
+
+**Stopped at:** Clean. The dependency is declared and nothing imports it yet;
+that closes when the schemas land.
+
+**Why this way:**
+[`decisions/0034`](./decisions/0034-the-export-surface-is-the-package.md). No
+journal entry — everything settled this session binds future work, so all of it
+is ADR or spec material, the same call the 2026-09-02 entry records.
+
+**Commits:** `71cd7eb`, `1c2c880`
 
 ### 2026-09-10 — the live tiers get a way into CI, on a label
 

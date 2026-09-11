@@ -148,6 +148,9 @@ The full design lives in [`docs/design/`](./docs/design/):
   LLM-driven is asserted on deterministically: the tiers, why the offline ones
   are enforced rather than trusted, and how the guarantee the transcript makes
   is checked by a test rather than by review.
+- [**Packaging**](./docs/design/packaging.md) — how the library is laid out as
+  a package: the two namespaces you may import from, what `__all__` promises,
+  and what `import enbanc` is allowed to do.
 - [**Glossary**](./docs/glossary.md) — the courtroom vocabulary. One table, one
   minute.
 
