@@ -20,6 +20,10 @@
 
     - Can we expand the `create-pr-summary` command to automatically create a PR with title and description or updating existing PR with title and description?
 
+6. Creaet enbanc-slim[*]
+
+    - If there is a need, we can create `enbanc-sim` to only install the core of enbanc. But this is of low priority for now.
+
 ## To Dos
 
 1. [Done] How to design tools an how to allow user to extend the tool?
