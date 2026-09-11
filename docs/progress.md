@@ -34,9 +34,12 @@ Eight design documents under [`design/`](./design/) carry **no open questions**:
 every public type, every way a proceeding can *end*, its *behaviour*, how
 evidence becomes a checkable exhibit, everything a participant reads, how the
 whole thing maps onto PydanticAI, how any of it is known to be true, and how it
-is laid out as an importable package.
-[`degenerate-deliberations.md`](./design/degenerate-deliberations.md) is the one
-remaining placeholder and is not needed for `0.1.0`.
+is laid out as an importable package. There are **no placeholders left** —
+`degenerate-deliberations.md` was deleted once its three holes were answered by
+[`0036`](./decisions/0036-a-continuance-carries-at-least-one-interrogatory.md),
+[`0037`](./decisions/0037-a-conceded-advocate-stays-addressable.md), and
+[`0027`](./decisions/0027-an-advocate-answers-its-interrogatories-in-order.md),
+which had already settled the third on the day the placeholder was written.
 
 [`design/packaging.md`](./design/packaging.md) constrains the first modules
 before they are written: `enbanc` and `enbanc.tools` are the only importable
@@ -105,9 +108,6 @@ Five things the next session should carry:
 **Open questions:**
 
 - None, anywhere in [`design/`](./design/).
-- Whether the `0.1.0` scope line — now just
-  [`degenerate-deliberations.md`](./design/degenerate-deliberations.md) —
-  deserves an ADR, or stays recorded in the placeholder itself.
 - `procedure` version `p1` is authored but unshipped, so its changelog row in
   [`prompting.md`](./design/prompting.md#procedure-versions) has nothing to
   compare against yet. The first prompt edit after `0.1.0` ships is the one that

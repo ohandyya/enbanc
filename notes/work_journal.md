@@ -38,7 +38,7 @@
 
 3. [Done] Design docs/design/testing.md
 
-4. Design docs/design/packaging.md
+4. [Done] Design docs/design/packaging.md
 
     - How to trim the dependencies
 
@@ -47,13 +47,15 @@
         - For pydantic-ai, can we use just the core?
         - For tavily, I want it to be optional. If `tavily` is not installed, it shall raise an exception when user tries to use the tavily tool. But if user did not use the tavily tool, it should continue to work. Can we do this in the form of optional package?
 
-5. Design docs/design/degenerate-deliberations.md
+5. [WIP] Design docs/design/degenerate-deliberations.md
 
-6. Finalize how to organize implementation plan
+6. Updte CLAUDE.md on `AskUserQuestion`
+
+7. Finalize how to organize implementation plan
 
     - Maybe something to add in README.md or CLAUDE.md. But this is not a `design`
 
-7. After all desings are done, cut a new release, 0.0.x.
+8. After all desings are done, cut a new release, 0.0.x.
 
 
 ## Questions

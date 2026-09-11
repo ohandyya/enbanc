@@ -1,6 +1,6 @@
 ---
 status: draft
-updated: 2026-09-05
+updated: 2026-09-11
 ---
 
 # Public API
@@ -435,7 +435,7 @@ class Ruling(BaseModel, Generic[VerdictT]):
 
 class Continuance(BaseModel, Generic[VerdictT]):
     kind: Literal["continuance"] = "continuance"
-    interrogatories: list[Interrogatory[VerdictT]]
+    interrogatories: list[Interrogatory[VerdictT]] = Field(min_length=1)
 
 Deliberation = TypeAliasType(
     "Deliberation",
@@ -453,6 +453,27 @@ The `kind` tags are defaulted, so the model never has to produce them, and they
 are what lets a persisted transcript be read back without Pydantic guessing a
 union member from field shape. That matters more here than for most unions: the
 whole point of the artifact is that someone reads it later.
+
+**A continuance carries at least one interrogatory.** `min_length=1` is the other
+half of what the union is for: a `Ruling` cannot hold pending questions, and a
+`Continuance` cannot be a non-decision with nothing to ask. An empty one is not a
+harmless no-op — the round that followed it would dispatch nobody and the judge
+would deliberate again on an empty delta, so it could only repeat itself until
+`max_rounds` ran out, leaving a transcript of identical empty continuances that
+records a broken proceeding as though it were a hard one.
+
+The constraint sits on both shapes because they are checked at different moments.
+On `_Continuance` it validates the judge's output during a run: an empty emission
+is a retry against the **`output`** budget, carrying Pydantic's own message back
+to a model that was shown `minItems: 1` in the first place, and exhausting that
+budget is a participant whose output will not validate — `ProceedingFailed`, per
+[`0011`](../decisions/0011-exhaustion-is-an-outcome-failure-is-an-error.md). On
+`Continuance` it validates a persisted transcript read back, which is the half
+that makes the invariant a property of the artifact rather than of a live
+proceeding. `tests/unit/test_continuance_is_never_empty.py` pins both, and
+`tests/contract/test_output_validation_spends_the_output_budget.py` pins the
+budget it spends. See
+[`0036`](../decisions/0036-a-continuance-carries-at-least-one-interrogatory.md).
 
 `TypeAliasType` rather than a plain `Deliberation = Ruling[VerdictT] | ...`
 alias is a real constraint, not a style preference — see
@@ -477,7 +498,7 @@ class _Interrogatory(BaseModel, Generic[VerdictT]):   # what the judge emits
 
 class _Continuance(BaseModel, Generic[VerdictT]):
     kind: Literal["continuance"] = "continuance"
-    interrogatories: list[_Interrogatory[VerdictT]]
+    interrogatories: list[_Interrogatory[VerdictT]] = Field(min_length=1)
 
 # the judge's output_type is Ruling[VerdictT] | _Continuance[VerdictT]
 ```

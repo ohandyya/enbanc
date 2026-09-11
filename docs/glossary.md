@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-09-04
+updated: 2026-09-11
 ---
 
 # Glossary
@@ -21,7 +21,7 @@ table is the whole tax.
 | **Round** | One exchange: the advocates' filings, plus the judge's deliberation that closes it. `max_rounds` counts deliberations. |
 | **Filing** | Anything a participant enters into the record: an argument, a concession, a response, a continuance, or a ruling. |
 | **Argument** | An advocate's round-1 filing: a claim and its supporting exhibits, made blind — no peer's filing is in view. |
-| **Concession** | An advocate stating no reasonable case exists for its assigned verdict. A first-class outcome, not a failure, and a round-1 filing. |
+| **Concession** | An advocate stating no reasonable case exists for its assigned verdict. A first-class outcome, not a failure. The filing itself is a round-1 one, but the advocate stays seated: the judge may still address it, and its response may argue the verdict afresh on evidence filed since ([`0037`](./decisions/0037-a-conceded-advocate-stays-addressable.md)). |
 | **Tool** | A plain async function an advocate may call to gather evidence. Read-only, per-advocate, and PydanticAI's own — `enbanc` defines no tool base class and no tool decorator. |
 | **Source** | One piece of evidence a tool found, together with the reference that locates it. What tools *return*; most never become exhibits. |
 | **Reference** | The string that says where a piece of evidence lives — a URL, a document key, a file path, the query that produced a row. Each tool defines what a locator means for it; `enbanc` never parses one. |
