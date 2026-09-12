@@ -24,7 +24,7 @@ hunt for inbound links.
 
 | # | Doc | Depends on | PR | Status |
 |---|---|---|---|---|
-| 1 | [`schemas.md`](./schemas.md) | — | | `draft` |
+| 1 | [`schemas.md`](./schemas.md) | — | 19 | `current` |
 | 2 | [`contract-probes.md`](./contract-probes.md) | — | | `draft` |
 | 3 | [`web-search-tool.md`](./web-search-tool.md) | 1 | | `draft` |
 | 4 | [`rendering.md`](./rendering.md) | 1 | | `draft` |
