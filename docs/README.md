@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-09-11
+updated: 2026-09-12
 ---
 
 # Documentation
@@ -12,12 +12,14 @@ Everything under `docs/` is readable by AI agents. Human-only material lives in
 The split that matters is **current truth vs. dated record**:
 
 - `design/` and `decisions/` describe the system as it is meant to work now.
+- `implementations/` breaks that design into the PRs that build it — a plan
+  before the PR merges, a record of how that slice was cut after.
 - `journal/` records what happened on a given day and is never updated after.
 - `progress.md` straddles the two on purpose: its `Current state` block is
   rewritten every session, its `Log` is never edited.
 
-If the two disagree, `design/` wins. See [`../CLAUDE.md`](../CLAUDE.md) for the
-full ruleset.
+If any of them disagree with `design/`, `design/` wins. See
+[`../CLAUDE.md`](../CLAUDE.md) for the full ruleset.
 
 ## Index
 
@@ -38,6 +40,14 @@ full ruleset.
 | [`design/execution.md`](./design/execution.md) | How a proceeding maps onto PydanticAI: verified findings about what the framework already does, the whole proceeding written out as literal messages, then the three pieces — message history against the transcript, the ledgering toolset, and round orchestration with the filing clerk, the failure pattern, and usage capture |
 | [`design/testing.md`](./design/testing.md) | How a library whose behaviour is LLM-driven is asserted on deterministically: the four tiers and how one is selected, the enforced offline guarantee, how the model is faked, how the transcript invariant is checked, `outcomes.md` mirrored section by section, and what must not be asserted |
 | [`design/packaging.md`](./design/packaging.md) | How the library is laid out as a package: the two importable namespaces and the private modules behind them, `__all__` as the contract with `api.md` as its list, the one forced import cycle, what `import enbanc` may do, the Python floor, and why there is one distribution rather than two |
+
+### Implementations — how the design gets built, PR by PR
+
+One document per pull request: scope, the design sections it implements, the
+files and tests it brings, and what must merge before it. See
+[`implementations/README.md`](./implementations/README.md) for the shape of one.
+
+*(none yet)*
 
 ### Decisions — ADRs
 

@@ -163,6 +163,11 @@ If you have opinions, that's the place to aim them.
 
 What is *not* done is the code. Nothing here runs yet.
 
+How that design gets built is being broken into pull requests in
+[`docs/implementations/`](./docs/implementations/) — one document per PR: its
+scope, the design sections it implements, and the tests it brings. Empty until
+the first PR is planned.
+
 ## Status
 
 Pre-alpha, work in progress. Not usable. Current releases are placeholders that

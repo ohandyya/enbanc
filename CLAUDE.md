@@ -41,6 +41,7 @@ one carries a different guarantee about whether its contents are true.
 |---|---|---|
 | `docs/progress.md` | **Where the work stands.** Status is current; the log is dated. | First, at the start of a session |
 | `docs/design/` | **Current truth.** How the system is meant to work. | Always, before implementing |
+| `docs/implementations/` | **The build plan.** One doc per PR: scope, files, tests, order. | Before writing a PR's code |
 | `docs/decisions/` | Immutable ADRs. Why a path was chosen. | When a decision seems arbitrary |
 | `docs/glossary.md` | The domain vocabulary. | Always |
 | `docs/guides/` | User-facing how-to. | When changing public behavior |
@@ -81,6 +82,15 @@ one carries a different guarantee about whether its contents are true.
    in place with no ADR, and one that goes *moot* is deleted by whichever ADR
    made it moot, which says so.
 
+8. **`docs/implementations/` is a plan, never a spec.** One document per PR,
+   breaking `docs/design/` into the order it gets built: scope, the design
+   sections that PR implements, the files and tests it brings, what must merge
+   first. Where one disagrees with `docs/design/`, the design doc wins — an
+   implementation doc that contradicts it describes a mistake, not a change.
+   Once the PR merges the document is history: the code is the truth about the
+   code, so never read one to learn how the system currently behaves. A choice
+   made while writing a PR that *binds* future work is still an ADR.
+
 ## Conventions
 
 Every doc in `docs/` opens with frontmatter:
@@ -93,6 +103,12 @@ updated: YYYY-MM-DD
 ```
 
 - `docs/design/` — named by subject, no numbers: `tribunal.md`, `transcript.md`
+- `docs/implementations/` — one per PR, named by subject with no number:
+  `package-skeleton.md`. The order lives in that directory's README table, not
+  in the filenames, so resequencing the plan is one edit. The GitHub PR number
+  is unknowable when the doc is written; it goes in the frontmatter as `pr:`
+  once the PR is open. `status` tracks the PR: `draft` until it merges,
+  `current` once it has, `superseded` if the approach was replaced
 - `docs/decisions/` — numbered and immutable: `0001-short-title.md`
 - `docs/journal/` — dated: `YYYY-MM-DD-short-slug.md`
 
