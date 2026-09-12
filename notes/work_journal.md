@@ -47,9 +47,9 @@
         - For pydantic-ai, can we use just the core?
         - For tavily, I want it to be optional. If `tavily` is not installed, it shall raise an exception when user tries to use the tavily tool. But if user did not use the tavily tool, it should continue to work. Can we do this in the form of optional package?
 
-5. [WIP] Design docs/design/degenerate-deliberations.md
+5. [Done] Design docs/design/degenerate-deliberations.md
 
-6. Updte CLAUDE.md on `AskUserQuestion`
+6. [Done] Updte CLAUDE.md on `AskUserQuestion`
 
 7. Finalize how to organize implementation plan
 

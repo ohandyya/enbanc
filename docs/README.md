@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-09-11
+updated: 2026-09-12
 ---
 
 # Documentation
@@ -12,12 +12,14 @@ Everything under `docs/` is readable by AI agents. Human-only material lives in
 The split that matters is **current truth vs. dated record**:
 
 - `design/` and `decisions/` describe the system as it is meant to work now.
+- `implementations/` breaks that design into the PRs that build it — a plan
+  before the PR merges, a record of how that slice was cut after.
 - `journal/` records what happened on a given day and is never updated after.
 - `progress.md` straddles the two on purpose: its `Current state` block is
   rewritten every session, its `Log` is never edited.
 
-If the two disagree, `design/` wins. See [`../CLAUDE.md`](../CLAUDE.md) for the
-full ruleset.
+If any of them disagree with `design/`, `design/` wins. See
+[`../CLAUDE.md`](../CLAUDE.md) for the full ruleset.
 
 ## Index
 
@@ -38,6 +40,26 @@ full ruleset.
 | [`design/execution.md`](./design/execution.md) | How a proceeding maps onto PydanticAI: verified findings about what the framework already does, the whole proceeding written out as literal messages, then the three pieces — message history against the transcript, the ledgering toolset, and round orchestration with the filing clerk, the failure pattern, and usage capture |
 | [`design/testing.md`](./design/testing.md) | How a library whose behaviour is LLM-driven is asserted on deterministically: the four tiers and how one is selected, the enforced offline guarantee, how the model is faked, how the transcript invariant is checked, `outcomes.md` mirrored section by section, and what must not be asserted |
 | [`design/packaging.md`](./design/packaging.md) | How the library is laid out as a package: the two importable namespaces and the private modules behind them, `__all__` as the contract with `api.md` as its list, the one forced import cycle, what `import enbanc` may do, the Python floor, and why there is one distribution rather than two |
+
+### Implementations — how the design gets built, PR by PR
+
+One document per pull request: scope, the design sections it implements, the
+files and tests it brings, and what must merge before it. See
+[`implementations/README.md`](./implementations/README.md) for the shape of one,
+and its table for the order they land in.
+
+| Doc | What it covers |
+|---|---|
+| [`implementations/schemas.md`](./implementations/schemas.md) | The types everything stands on: verdicts, inputs, the five filings and their private emit-shapes, the record, the result, the errors |
+| [`implementations/contract-probes.md`](./implementations/contract-probes.md) | The six `execution.md` findings about `pydantic-ai` still living as scratch files, turned into the `contract` tier |
+| [`implementations/web-search-tool.md`](./implementations/web-search-tool.md) | `enbanc.tools.web_search` — the only tool `0.1.0` ships, and the second importable namespace |
+| [`implementations/rendering.md`](./implementations/rendering.md) | `_prompting.py`: procedure `p1`, both procedural prompts, the four turn templates, the three viewpoints, and `Transcript.render()` |
+| [`implementations/tribunal-construction.md`](./implementations/tribunal-construction.md) | `Tribunal`, `Judge`, `Advocate`, the four `ConfigurationError` cases, and `instructions_for()` — everything a caller can do before spending anything |
+| [`implementations/ledgering-toolset.md`](./implementations/ledgering-toolset.md) | `execution.md`'s piece 2: the wrapper that ledgers every tool call, issues the ids an advocate cites, and records the calls that returned nothing |
+| [`implementations/proceeding-core.md`](./implementations/proceeding-core.md) | The first half of piece 3: agents, the filing clerk, history, `since`, snapshots, usage, `hear_stream()` and `hear()` — a proceeding that runs one round |
+| [`implementations/round-loop.md`](./implementations/round-loop.md) | What a continuance starts: stamped ids, dispatch to the advocates named, an advocate's questions answered in order, and the two ways a proceeding ends without ruling |
+| [`implementations/failures.md`](./implementations/failures.md) | The failure half of piece 3: the first-failure slot, cancellation, `ProceedingFailed`, `ProceedingUnfinished`, and abandoning a stream |
+| [`implementations/zero-one-zero.md`](./implementations/zero-one-zero.md) | The `e2e` tier, the design documents' `draft` → `current` sweep, and the version bump that makes the library true |
 
 ### Decisions — ADRs
 

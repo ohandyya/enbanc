@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-09-11
+updated: 2026-09-12
 ---
 
 # Progress
@@ -59,17 +59,23 @@ asked — [`live-tests.yml`](../.github/workflows/live-tests.yml), fired by a
 `live-tests` label on a pull request or by `workflow_dispatch`
 ([`0033`](./decisions/0033-live-tiers-run-in-ci-on-demand.md)).
 
-**Next up:** Write the `0.1.0` schemas from
-[`design/api.md`](./design/api.md#schemas) into the module layout
-[`design/packaging.md`](./design/packaging.md#the-modules) now fixes — the
-verdict base, the inputs, the five filings, the judge's output and its private
-emit-shapes, the record, and the result, landing in `_verdicts.py`,
+The path from here to `0.1.0` is now a ten-PR plan in
+[`implementations/`](./implementations/), ordered by
+[its README table](./implementations/README.md#the-plan) and each doc still
+`draft` — none has a PR open yet.
+
+**Next up:** Start PR 1, [`implementations/schemas.md`](./implementations/schemas.md):
+the `0.1.0` schemas from [`design/api.md`](./design/api.md#schemas) into the
+module layout [`design/packaging.md`](./design/packaging.md#the-modules) fixes —
+the verdict base, the inputs, the five filings, the judge's output and its
+private emit-shapes, the record, and the result, landing in `_verdicts.py`,
 `_inputs.py`, `_evidence.py`, `_filings.py`, `_transcript.py`, and
 `_hearing.py`. They are the floor everything else stands on, and they come with
 their own first test: `Filing`, `Deliberation`, and `Outcome` must be
 `TypeAliasType`, and
 [`api.md`](./design/api.md#a-note-on-generic-aliases) says why plainly — *a type
-checker does not catch this; only running it does*.
+checker does not catch this; only running it does*. The doc's own `Files` and
+`Tests` sections are still empty, filled in when the PR starts.
 
 Five things the next session should carry:
 
@@ -115,6 +121,26 @@ Five things the next session should carry:
   tests whether the bump discipline holds.
 
 ## Log
+
+### 2026-09-12 — the build plan: ten PRs from schemas to `0.1.0`
+
+**Did:** Broke `docs/design/` into a ten-document build plan under
+[`implementations/`](./implementations/), one doc per PR
+(`schemas` → `contract-probes` → `web-search-tool` / `rendering` →
+`tribunal-construction` / `ledgering-toolset` → `proceeding-core` →
+`round-loop` → `failures` → `zero-one-zero`), each stating its scope, the
+design sections it implements, and its dependencies, ordered by
+[the README table](./implementations/README.md#the-plan) rather than a number
+in the filename. Added CLAUDE.md rule 8 and the `docs/implementations/` naming
+convention, and indexed all ten in `docs/README.md`. All ten are still `draft`
+— no PR has been opened against any of them yet.
+
+**Why this way:** No ADR or journal entry — the directory's shape (unnumbered,
+table-ordered, `pr:` filled in once opened) mirrors the existing
+`docs/design/` convention rather than settling anything new about the library
+itself, and nothing here was discovered by building.
+
+**Commits:** `20ba87b`, `8c4f259`
 
 ### 2026-09-11 — the last placeholder is answered and deleted
 
