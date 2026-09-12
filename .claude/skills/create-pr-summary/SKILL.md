@@ -1,17 +1,19 @@
 ---
 name: create-pr-summary
-description: Write a PR title and description for the current branch to pr_summary.md, then offer to apply it on GitHub — updating an existing PR's title and description, or opening a new PR. Use when the user asks for a PR summary, PR description, to describe this branch, to write up the changes for a pull request, or says "create pr summary".
+description: Write a PR title and description for the current branch to pr_summary.md, then offer to apply it on GitHub — updating an existing PR's title and description, or opening a new PR — and stamp the matching docs/implementations/ document with the PR number. Use when the user asks for a PR summary, PR description, to describe this branch, to write up the changes for a pull request, or says "create pr summary".
 ---
 
 # Create a PR summary
 
 Reads the current branch's committed changes and commit messages, then writes
 `pr_summary.md` at the repo root: a one-line title plus a PR description. Step 5 then
-offers to put that title and description onto GitHub directly.
+offers to put that title and description onto GitHub directly, and Step 6 records the PR
+number in the `docs/implementations/` document that planned it.
 
 Steps 1–4 are read-only — they write `pr_summary.md` and change nothing else. **Step 5 is
 the only step that touches GitHub**, it runs `gh` and `git push` only after the user
-confirms, and the user can decline it and keep the file alone.
+confirms, and the user can decline it and keep the file alone. Step 6 edits documents in
+the repo and runs only if Step 5 produced a PR number.
 
 `pr_summary.md` is already in `.gitignore`, and stays uncommitted either way.
 
@@ -211,7 +213,65 @@ existing PR and offer to update it instead.
 
 ### Report
 
-Say which PR was created or updated, and give its URL.
+Say which PR was created or updated, and give its URL. Then continue to Step 6.
+
+## Step 6 — Stamp the implementation doc
+
+Only when Step 5 actually created or updated a PR. If the user chose **Skip — file only**
+there is no number to write, so stop after Step 5.
+
+[`docs/implementations/`](../../../docs/implementations/README.md) holds one document per
+planned PR. Opening a PR is the moment two facts about that document become knowable for
+the first time: its number, and that the work is built rather than planned.
+
+### Find the matching document
+
+```bash
+head -6 docs/implementations/*.md        # status: and pr: for each
+git rev-parse --abbrev-ref HEAD          # the branch usually names it
+```
+
+Consider only documents that are **`status: draft` and carry no `pr:`**. Match on the
+branch name and on whether this PR's diff delivers what that document's `Scope` describes.
+
+**Propose one and confirm with `AskUserQuestion` before editing.** Name the document, say
+what in the diff matches it, and offer the other draft documents plus a *None of these*
+option. Never infer silently — stamping the wrong document is a false record of what a PR
+built, and nothing downstream will catch it.
+
+If none matches — a release PR, a docs fix, a hotfix — say so in one line and stop. That is
+the common case and is not a failure.
+
+### Make the three edits
+
+They are one unit of work. The third is the one that gets skipped, and
+[the README](../../../docs/implementations/README.md) says outright that it is the edit
+that earns deferring `Files` and `Tests` in the first place.
+
+1. **The document's frontmatter** — `status: current`, add `pr: <N>`, set `updated:` to
+   today.
+2. **The plan table** in `docs/implementations/README.md` — that row's `PR` column gains
+   the number and its `Status` column becomes `current`.
+3. **Every document listing this one under `Depends on`** — re-read its `Scope` against
+   what the build actually taught.
+
+```bash
+grep -l "(\./<doc>\.md)" docs/implementations/*.md    # who depends on it
+```
+
+For the third edit, **report and ask rather than rewriting**. Name each dependent document
+and say either that its `Scope` still reads true or exactly what the build invalidated in
+it. A scope correction is a judgment about the plan, and it is the user's to make.
+
+### Say what was assumed
+
+Stamping at open rather than at merge buys the number and the status in the one session
+that holds both, and it costs an assumption. **State it plainly in the report** — do not
+let it pass silently:
+
+> Marked `docs/implementations/<doc>.md` as `current` with `pr: <N>`, assuming #<N> merges
+> essentially as it stands. If review changes the shape of the PR, that document is what
+> needs correcting before it lands.
 
 ## Rules
 
@@ -227,4 +287,9 @@ Say which PR was created or updated, and give its URL.
   description; it does not change a PR's state.
 - Never write the body file inside the repo.
 - **Skip is a valid answer.** If the user declines Step 5, stop cleanly — the file is the
-  deliverable and the run succeeded.
+  deliverable and the run succeeded, and Step 6 does not run.
+- Never stamp an implementation doc without confirming the match with the user first.
+- Never touch a document that is already `current` or `superseded`, or one that already
+  carries a `pr:`. Those record a PR that is not this one.
+- Never rewrite a dependent document's `Scope` unprompted — name the drift and ask.
+- Never commit the document edits. The user stages their own work, here as everywhere.

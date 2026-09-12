@@ -22,11 +22,17 @@ spec: [`design/`](./design/) is.
 
 ## Current state
 
-**Phase:** Design complete — including how the package itself is laid out — and
-the test harness exists with a way to run against real providers from a pull
-request. **Still no `enbanc` code**: `src/enbanc/__init__.py` is a `hello()`
-stub, and the suite that runs green covers it plus one claim about
-`pydantic-ai`. The published `0.0.4` on PyPI reserves the name and nothing more.
+**Phase:** Design complete, and PR 1 of the ten-PR plan has landed code for the
+first time. [`schemas.md`](./implementations/schemas.md) is `current` with
+[PR #19](https://github.com/ohandyya/enbanc/pull/19) open (not yet merged):
+`_verdicts.py`, `_inputs.py`, `_evidence.py`, `_filings.py`, `_transcript.py`,
+`_hearing.py`, `_errors.py`, and `__init__.py` re-exporting twenty-five of the
+twenty-nine names, with `hello()` and its placeholder test deleted. `make
+check-all` is green — 103 tests, all in `tests/unit/` and `tests/contract/`.
+`Tribunal`, `Judge`, `Advocate`, and `Proceeding` still don't exist, so
+`test_export_surface.py`'s twenty-nine-name literal and `render()` both wait on
+later PRs, and the README's WIP banner is still accurate. The published
+`0.0.5` on PyPI still reserves the name and nothing more.
 
 Settled and binding across
 [`0001`](./decisions/0001-statute-carries-no-model.md)–[`0035`](./decisions/0035-testing-holds-technique-not-an-index.md).
@@ -59,33 +65,24 @@ asked — [`live-tests.yml`](../.github/workflows/live-tests.yml), fired by a
 `live-tests` label on a pull request or by `workflow_dispatch`
 ([`0033`](./decisions/0033-live-tiers-run-in-ci-on-demand.md)).
 
-The path from here to `0.1.0` is now a ten-PR plan in
+The path from here to `0.1.0` is a ten-PR plan in
 [`implementations/`](./implementations/), ordered by
-[its README table](./implementations/README.md#the-plan) and each doc still
-`draft` — none has a PR open yet.
+[its README table](./implementations/README.md#the-plan). PR 1 is `current`
+and open; the other nine are still `draft` with no PR opened against any of
+them.
 
-**Next up:** Start PR 1, [`implementations/schemas.md`](./implementations/schemas.md):
-the `0.1.0` schemas from [`design/api.md`](./design/api.md#schemas) into the
-module layout [`design/packaging.md`](./design/packaging.md#the-modules) fixes —
-the verdict base, the inputs, the five filings, the judge's output and its
-private emit-shapes, the record, and the result, landing in `_verdicts.py`,
-`_inputs.py`, `_evidence.py`, `_filings.py`, `_transcript.py`, and
-`_hearing.py`. They are the floor everything else stands on, and they come with
-their own first test: `Filing`, `Deliberation`, and `Outcome` must be
-`TypeAliasType`, and
-[`api.md`](./design/api.md#a-note-on-generic-aliases) says why plainly — *a type
-checker does not catch this; only running it does*. The doc's own `Files` and
-`Tests` sections are still empty, filled in when the PR starts.
+**Next up:** Get [PR #19](https://github.com/ohandyya/enbanc/pull/19) reviewed
+and merged, then start PR 2,
+[`implementations/contract-probes.md`](./implementations/contract-probes.md) —
+the six unpinned `pydantic-ai` findings in
+[`design/execution.md`](./design/execution.md#what-pydanticai-already-does)
+turned from scratch scripts into `tests/contract/` tests. It depends on
+nothing and touches no `enbanc` code, so it does not have to wait for PR 1 to
+merge if there's a reason to run it in parallel — the table lists it as
+independent and "mergeable at any point."
 
-Five things the next session should carry:
+Four things the next session should carry:
 
-- **The schemas owe two tests `packaging.md` already specifies.**
-  `tests/unit/test_export_surface.py` pins the twenty-nine-name `__all__`
-  against a literal list, and `tests/unit/test_import_is_inert.py` asserts in a
-  subprocess that `import enbanc` pulls in neither `tavily` nor a provider SDK —
-  the one test sanctioned to step outside the socket guard
-  ([`0035`](./decisions/0035-testing-holds-technique-not-an-index.md)). Neither
-  can be written before there is a package to import.
 - **`live-tests.yml` has never run.** The branch is unmerged, the `live-tests`
   label may not exist yet, and the `live-tests` GitHub environment holding
   `OPENAI_API_KEY`, `TAVILY_API_KEY`, and `ENBANC_TEST_MODEL` is one-time setup
@@ -121,6 +118,26 @@ Five things the next session should carry:
   tests whether the bump discipline holds.
 
 ## Log
+
+### 2026-09-12 — PR 1: the schemas, `enbanc`'s first code
+
+**Did:** Wrote the seven modules `schemas.md` scoped —
+`_verdicts.py`, `_inputs.py`, `_evidence.py`, `_filings.py`, `_transcript.py`,
+`_hearing.py`, `_errors.py` — and `__init__.py` re-exporting twenty-five of the
+twenty-nine `__all__` names, deleting `hello()` and its placeholder test.
+Added the unit suite for all seven modules plus `test_export_surface.py` and
+`test_import_is_inert.py`, both specified in `packaging.md` in advance of the
+package existing. Gave `api.md` the one-line edit `schemas.md` owed it —
+`Hearing.usage` noted as computed — in the same commit as the code. Opened
+[PR #19](https://github.com/ohandyya/enbanc/pull/19); `make check-all` is
+green at 103 tests. Also expanded `schemas.md` itself before writing code
+against it, and clarified the `create-pr-summary` skill and
+`docs/implementations/README.md` on when `status`/`pr:` get stamped.
+
+**Stopped at:** PR #19 is open, not merged. PR 2 (`contract-probes.md`) is
+next and has no dependency on this one merging first.
+
+**Commits:** `fc52d1a`, `553662f`, `e84cdf7`, `72fda3a`, `33c7036`
 
 ### 2026-09-12 — the build plan: ten PRs from schemas to `0.1.0`
 

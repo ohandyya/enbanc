@@ -51,11 +51,11 @@
 
 6. [Done] Updte CLAUDE.md on `AskUserQuestion`
 
-7. Finalize how to organize implementation plan
+7. [Done] Finalize how to organize implementation plan
 
     - Maybe something to add in README.md or CLAUDE.md. But this is not a `design`
 
-8. After all desings are done, cut a new release, 0.0.x.
+8. [Done] After all desings are done, cut a new release, 0.0.x.
 
 
 ## Questions
@@ -65,6 +65,19 @@
     - What possible datasets can we use?
 
 ## Daily Log
+
+### Sep 12
+
+#### Notes
+
+1. Shall we move all schemas to `src/enbanc/schemas`?
+
+2. Add a `walkthrough` Skill
+
+    - Purpose: Use AI to help understand what changes has been made, including the why. We want AI to highlight the key things to focus on.
+    - Reference: `https://github.com/ohandyya/health-coverage-navigator/blob/main/.claude/skills/walkthrough/SKILL.md`
+
+
 
 ### Sep 9
 

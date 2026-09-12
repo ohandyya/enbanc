@@ -717,7 +717,7 @@ class Hearing(BaseModel, Generic[VerdictT]):
     outcome: Outcome[VerdictT]
     transcript: Transcript[VerdictT]
     usage_by_participant: dict[VerdictT | Literal["judge"], RunUsage]
-    usage: RunUsage
+    usage: RunUsage              # computed; the sum of the breakdown, see below
     rounds: int
 ```
 
