@@ -141,9 +141,11 @@ checked at different moments
 
 ### `_transcript.py`
 
-`Entry`, `Retrieval`, `ToolFailure`, and `Transcript` with `Filing` declared
-here beside `Entry`'s use of it. `case` is `SerializeAsAny[Case]`, without which
-a subclass's fields leave the artifact silently.
+`Entry`, `Retrieval`, `ToolFailure`, and `Transcript`. `Filing` is imported from
+`_filings.py`, where the module table above and
+[`packaging.md`](../design/packaging.md#the-modules) put it, beside the five
+members it unions. `case` is `SerializeAsAny[Case]`, without which a subclass's
+fields leave the artifact silently.
 
 **Three dunders, and two consequences worth writing down.** `__iter__`, `__len__`
 and `__getitem__` are [`api.md`](../design/api.md#the-record)'s, and overriding

@@ -66,6 +66,19 @@
 
 ## Daily Log
 
+### Sep 12
+
+#### Notes
+
+1. Shall we move all schemas to `src/enbanc/schemas`?
+
+2. Add a `walkthrough` Skill
+
+    - Purpose: Use AI to help understand what changes has been made, including the why. We want AI to highlight the key things to focus on.
+    - Reference: `https://github.com/ohandyya/health-coverage-navigator/blob/main/.claude/skills/walkthrough/SKILL.md`
+
+
+
 ### Sep 9
 
 #### To Dos
