@@ -45,9 +45,21 @@ If any of them disagree with `design/`, `design/` wins. See
 
 One document per pull request: scope, the design sections it implements, the
 files and tests it brings, and what must merge before it. See
-[`implementations/README.md`](./implementations/README.md) for the shape of one.
+[`implementations/README.md`](./implementations/README.md) for the shape of one,
+and its table for the order they land in.
 
-*(none yet)*
+| Doc | What it covers |
+|---|---|
+| [`implementations/schemas.md`](./implementations/schemas.md) | The types everything stands on: verdicts, inputs, the five filings and their private emit-shapes, the record, the result, the errors |
+| [`implementations/contract-probes.md`](./implementations/contract-probes.md) | The six `execution.md` findings about `pydantic-ai` still living as scratch files, turned into the `contract` tier |
+| [`implementations/web-search-tool.md`](./implementations/web-search-tool.md) | `enbanc.tools.web_search` — the only tool `0.1.0` ships, and the second importable namespace |
+| [`implementations/rendering.md`](./implementations/rendering.md) | `_prompting.py`: procedure `p1`, both procedural prompts, the four turn templates, the three viewpoints, and `Transcript.render()` |
+| [`implementations/tribunal-construction.md`](./implementations/tribunal-construction.md) | `Tribunal`, `Judge`, `Advocate`, the four `ConfigurationError` cases, and `instructions_for()` — everything a caller can do before spending anything |
+| [`implementations/ledgering-toolset.md`](./implementations/ledgering-toolset.md) | `execution.md`'s piece 2: the wrapper that ledgers every tool call, issues the ids an advocate cites, and records the calls that returned nothing |
+| [`implementations/proceeding-core.md`](./implementations/proceeding-core.md) | The first half of piece 3: agents, the filing clerk, history, `since`, snapshots, usage, `hear_stream()` and `hear()` — a proceeding that runs one round |
+| [`implementations/round-loop.md`](./implementations/round-loop.md) | What a continuance starts: stamped ids, dispatch to the advocates named, an advocate's questions answered in order, and the two ways a proceeding ends without ruling |
+| [`implementations/failures.md`](./implementations/failures.md) | The failure half of piece 3: the first-failure slot, cancellation, `ProceedingFailed`, `ProceedingUnfinished`, and abandoning a stream |
+| [`implementations/zero-one-zero.md`](./implementations/zero-one-zero.md) | The `e2e` tier, the design documents' `draft` → `current` sweep, and the version bump that makes the library true |
 
 ### Decisions — ADRs
 
