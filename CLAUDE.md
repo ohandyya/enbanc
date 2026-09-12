@@ -107,8 +107,10 @@ updated: YYYY-MM-DD
   `package-skeleton.md`. The order lives in that directory's README table, not
   in the filenames, so resequencing the plan is one edit. The GitHub PR number
   is unknowable when the doc is written; it goes in the frontmatter as `pr:`
-  once the PR is open. `status` tracks the PR: `draft` until it merges,
-  `current` once it has, `superseded` if the approach was replaced
+  once the PR is open. `status` tracks the PR: `draft` while it is planned,
+  `current` once a PR is open and expected to merge as it stands, `superseded`
+  if the approach was replaced. Both are stamped at the moment the PR opens,
+  by [`create-pr-summary`](.claude/skills/create-pr-summary/SKILL.md)
 - `docs/decisions/` — numbered and immutable: `0001-short-title.md`
 - `docs/journal/` — dated: `YYYY-MM-DD-short-slug.md`
 

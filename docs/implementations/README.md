@@ -86,22 +86,41 @@ not a gap to close.**
 
 The standard frontmatter carries the state of the work:
 
-- `draft` — planned, not merged. The document is a proposal and may change.
-- `current` — merged. The document records what was built in that PR.
+- `draft` — planned. No PR is open, and the document is a proposal that may
+  change.
+- `current` — built. A PR is open and expected to merge as it stands, and the
+  document records what that PR contains.
 - `superseded` — the approach was abandoned or replaced. Leave the file in
   place with a line naming the document that replaced it.
 
-**Merging a PR edits three things besides the code.** The document's `status`
+**`current` is stamped when the PR opens, not when it merges**, and that is a
+deliberate trade. The number and the built-or-planned fact become knowable at
+the same moment — the moment the PR is opened — and that is the one session
+holding both. Waiting for the merge splits the edit across two sessions, and
+the second one never happens: nothing fires on a merge, which is how a plan
+directory ends up full of `draft` documents describing shipped code.
+
+What it costs is an assumption: that the PR merges essentially as it stands. It
+is stated out loud whenever the stamp is applied, and it is wrong sometimes. A
+PR that changes shape under review is a document that needs correcting before
+it lands — the same obligation `CLAUDE.md` rule 2 puts on a design doc, and the
+review is where it gets caught.
+
+**Opening a PR edits three things besides the code.** The document's `status`
 becomes `current` and its frontmatter gains the `pr:` number; the table above
 gains that number too; and the `Scope` of every document listing this one under
 `Depends on` is re-read and corrected wherever the build has invalidated it.
 That third edit is what earns the deferral above: deciding the files and tests
 late only pays if what the build taught is carried into the documents still
-ahead. A merge that skips it leaves the rest of the plan derived from the
-design alone — which is where it already was.
+ahead. Skipping it leaves the rest of the plan derived from the design alone —
+which is where it already was.
 
-A merged implementation doc is **history, not spec**. After the PR lands, the
-code is the truth about the code and `../design/` is the truth about the
+The [`create-pr-summary`](../../.claude/skills/create-pr-summary/SKILL.md)
+skill makes the first two edits and asks about the third, which keeps all three
+in one place rather than in three habits.
+
+A `current` implementation doc is **history, not spec**. Once the PR is written
+the code is the truth about the code and `../design/` is the truth about the
 intent; the implementation doc is kept as the record of how that slice was cut.
 Do not read one to learn how the system currently behaves.
 
