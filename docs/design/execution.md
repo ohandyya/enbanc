@@ -1,6 +1,6 @@
 ---
 status: draft
-updated: 2026-09-11
+updated: 2026-09-13
 ---
 
 # Execution
@@ -272,8 +272,10 @@ filed: ['approve']          transcript: ['filing from approve']
 
 That is [`outcomes.md`](./outcomes.md#an-advocates-provider-is-down) reproduced
 exactly. **Re-raising the cancelled-exception class before the general handler is
-load-bearing**: without it, `REFER`'s cancellation is caught and recorded as the
-failure, and the exception would name the wrong participant.
+load-bearing** — though not for the scenario above, where the failing task fills
+the slot before it cancels and both variants behave identically. What it protects
+is a proceeding cancelled from outside; see
+[Piece 3](#the-rounds-task-group).
 
 ## The proceeding, as messages
 
@@ -809,10 +811,30 @@ except BaseException as e:
     tg.cancel_scope.cancel()
 ```
 
-**The cancelled-exception re-raise comes first and is load-bearing.** Without it a
-cancelled sibling is caught by the general handler and may win the race to fill
-`first`, and `ProceedingFailed` would name an advocate that was merely stopped
-rather than the one that failed.
+**The cancelled-exception re-raise comes first and is load-bearing** — but not
+for the case it looks like it is for. When a *child fails*, dropping it changes
+nothing: the failing task assigns `first` **before** it calls
+`tg.cancel_scope.cancel()`, with no `await` between the two statements, so there
+is no point at which a cancelled sibling runs in between and no race to win.
+
+```text
+a child fails:
+  re-raise      clean; first=deny (RuntimeError)
+  no re-raise   clean; first=deny (RuntimeError)
+
+cancelled from outside (nothing failed):
+  re-raise      clean; first=None
+  no re-raise   clean; first=approve (CancelledError)
+```
+
+What it protects is **an outer cancel scope firing while every child is
+healthy**. Without the re-raise, the first advocate to notice it was cancelled is
+caught by the general handler and records *itself* as the failure, and
+`ProceedingFailed` names an advocate that was merely stopped — when nothing
+failed at all. A caller cancelling `hear()`, or a timeout wrapped around a
+proceeding, reaches exactly this, so it is a live hazard rather than a
+hypothetical. `tests/contract/test_a_failing_fan_out_need_not_raise_a_group.py`
+pins the discriminating case.
 
 **The group exits cleanly and the orchestrator raises afterwards**, with
 `first.exc` as `__cause__`. So `ProceedingFailed.participant` is singular because

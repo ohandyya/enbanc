@@ -225,8 +225,8 @@ needs, pinned against a `WrapperToolset` subclass standing in for `Ledgering`.
   tokens accumulate rather than reset.
 - `result.usage is u` — identity, not equality. It is a property, not a method.
 - **A run that dies mid-flight leaves its partial spend.** A tool that raises
-  drives the run to `UnexpectedModelBehavior`, and `u` still holds what was spent
-  getting there. This is the half that matters: it is what lets
+  propagates its own exception unchanged — PydanticAI does not wrap it — and `u`
+  still holds what was spent getting there. This is the half that matters: it is what lets
   `usage_by_participant` name every participant that was dispatched even on a
   failure ([`0028`](../decisions/0028-usage-accumulates-per-participant.md)), and
   it is why [`api.md`](../design/api.md#when-something-goes-wrong) can say what it
