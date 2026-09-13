@@ -130,6 +130,33 @@ underscore is public the moment anyone imports it, and that cannot be taken back
 `docs/design/packaging.md` is the layout — the module map, the one forced import
 cycle, and what `import enbanc` may not do.
 
+### Credentials
+
+**Some work needs a real provider or real Tavily** — the live test tiers, a
+scratch script that calls a model, a one-off check that the `web_search` tool
+actually searches. The values for that live in `.env`, which is gitignored and
+which **you may not read**: it holds live secrets.
+
+**`.env.example` is how you learn what `.env` contains.** It is the committed
+template, it names every variable that belongs in `.env`, and it says in prose
+what each one is for — `TAVILY_API_KEY`, `ENBANC_TEST_MODEL`, and whatever
+credential the chosen provider needs. Read it instead of guessing, and never put
+a real value in it.
+
+- **The `make` live targets need nothing from you.** `integration-tests` and
+  `e2e-tests` parse `.env` themselves, in `tests/conftest.py`'s `live_env`
+  fixture, and skip when what they need is absent.
+- **Everything else needs the variables in the shell first.** Source them in the
+  same command, because shell state does not survive between calls:
+
+  ```sh
+  set -a && source .env && set +a && uv run python scratch.py
+  ```
+
+- **Never print a secret.** No `echo "$TAVILY_API_KEY"`, no `env`, no writing one
+  into a file, a test fixture, or a commit. If a value looks wrong, say which
+  variable is wrong and let me look.
+
 ### Tests
 
 **A test's tier is the directory it lives in.** Nothing is marked by hand:
