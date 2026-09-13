@@ -8,9 +8,12 @@ act with a diff on it.
 `Proceeding` — do not exist yet, so the literal-list assertion cannot land until
 `docs/implementations/proceeding-core.md` completes the surface. What lands here is the half
 that is assertable today and catches a typo in a re-export the moment it is made.
+
+The *second* list is whole, and asserted literally below.
 """
 
 import enbanc
+import enbanc.tools
 
 
 def test_every_exported_name_resolves() -> None:
@@ -40,3 +43,16 @@ def test_the_four_names_that_do_not_exist_yet_are_not_claimed() -> None:
     for name in ("Tribunal", "Judge", "Advocate", "Proceeding"):
         assert name not in enbanc.__all__
         assert not hasattr(enbanc, name)
+
+
+def test_the_tools_namespace_holds_exactly_one_name() -> None:
+    """`docs/design/packaging.md` ("The export surface") fixes `enbanc.tools.__all__` as
+    `["web_search"]`, and unlike the top-level list this one is complete today: `web_search`
+    is the only tool `0.1.0` ships.
+
+    Importing `enbanc.tools` here does not weaken `test_import_is_inert.py`, which asks
+    whether `import enbanc` reaches the subpackage in a subprocess that imports `enbanc` and
+    nothing else. That it is a subprocess is exactly what keeps the two modules unrelated.
+    """
+    assert enbanc.tools.__all__ == ["web_search"]
+    assert enbanc.tools.web_search is not None

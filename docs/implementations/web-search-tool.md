@@ -94,10 +94,21 @@ opens nothing.
 
 **There is no `close()`.** The factory returns the function and nothing else, so
 there is no object a caller could close and no lifecycle to document. The pool
-lives as long as the process, and an uncollected client emits no
-`ResourceWarning` — which matters, because `pyproject.toml` sets
-`filterwarnings = ["error"]` and a warning at teardown would fail the suite
-rather than print.
+lives as long as the process, which is the right answer in a program.
+
+**It is the wrong answer under pytest, and that was found by running it.** This
+document claimed an uncollected client emits no `ResourceWarning`; `httpx` indeed
+defines no `__del__`, but asyncio's transport does and so does the socket beneath
+it. pytest-asyncio gives each test its own event loop, the client outlives it, and
+collecting it later raises two `ResourceWarning`s — which `filterwarnings =
+["error"]` turns into a failed session *after* the test has already passed.
+
+The cost is paid in the harness, not in the signature. The integration tier
+[closes what the factory built](#testsintegrationtest_web_searchpy) through the
+same module-level seam the unit tier fakes. A `close()` on the tool would be
+public surface existing for one caller who is not a user, which is exactly the
+trade [`testing.md`](../design/testing.md#faking-tavily) refuses — and `evidence.md`
+fixes the signature without a lifecycle on it.
 
 #### `max_results` is a factory keyword
 
@@ -371,9 +382,19 @@ shape rather than the content: a non-empty `list[Source]`, every `reference` an
 as the library's choice, which is why this tier may name it while the model tier
 may not — `testing.md` draws that line explicitly.
 
-It also prints the keys of one raw result. That is not an assertion; it is how the
-[open question](#open-questions) below gets answered, and the only tier that can
-answer it.
+**A module-local fixture closes every client the factory built**, for the reason
+[above](#toolsweb_searchpy): the tool has no `close()` by design, and under pytest
+the client outlives the loop it was made on. The fixture monkeypatches the same
+module-level name the unit tier fakes, but to *track* rather than to fake — the
+subclass appends itself to a list and changes nothing else, so the search is a
+real search. Whatever the e2e tier ends up running `web_search` inside will need
+the same thing, and that is when it earns promotion to a conftest.
+
+It does **not** print the keys of one raw result. This document planned that as
+the way its open question about the per-result `id` got answered; the question was
+answered before any code was written, so the print would be scaffolding around an
+answer — and reaching a raw result means building a second client beside the tool,
+which is the one thing the test has no reason to do.
 
 ### What is deliberately elsewhere
 
