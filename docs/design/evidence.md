@@ -1,6 +1,6 @@
 ---
 status: draft
-updated: 2026-09-05
+updated: 2026-09-13
 ---
 
 # Evidence
@@ -476,18 +476,36 @@ Advocate(tools=[web_search(api_key=...)])
 | `title` | `label` |
 | `content` | `content` |
 
-All three are present on every result and are non-empty strings. The rest of the
-response is dropped:
+All three are present on every result and are non-empty strings.
+
+**A result missing `url` or `content` is skipped, and the rest of the response is
+returned.** That is unreachable against a Tavily behaving as described above, and
+it is specified anyway because `Source.reference` is required: a row with no
+locator cannot be represented, so *something* has to happen to it. Skipping
+rather than raising, because [a tool that expects to come up empty returns an
+empty result](#what-tools-may-do) — and raising would end the entire proceeding
+over one malformed row, discarding the usable sources beside it and every filing
+already made. What it costs is that a skipped row never reaches the ledger, so
+the record cannot say the advocate saw it; that is accepted, because a row
+without a reference is precisely what the ledger has no way to hold. A missing
+`title` is not an error at all: `label` is optional and becomes `None`.
+
+The rest of the response is dropped:
 
 - **`score` and `id`** are always returned and neither is a locator. Tavily's
   `id` is tempting as a ready-made citation handle, and it is the wrong one: it
   is scoped to the request that produced it (`"e5450d-00"`), not to the
-  document, so it identifies nothing a reviewer could look up later.
-- **`raw_content` and `favicon`** are absent unless asked for, and `web_search`
-  does not ask. Raw content is the full page, and the ledger records verbatim
-  what a tool returned — so requesting it would put whole pages in every
-  transcript. The snippet is what the advocate reasons over and what a reviewer
-  needs; the page is a click away through the reference.
+  document, so it identifies nothing a reviewer could look up later. Re-running
+  the same query renumbers it — the same URL comes back under a different id —
+  which is the cheap way to confirm this has not changed.
+- **`raw_content` and `favicon`** are not requested, and `web_search` does not
+  ask. They are withheld differently — `raw_content` comes back as `null` on
+  every result, while `favicon` is absent from the payload entirely — and the
+  asymmetry reaches nothing, because a key whose value is null is dropped by the
+  same code that drops a key that never arrived. Raw content is the full page,
+  and the ledger records verbatim what a tool returned — so requesting it would
+  put whole pages in every transcript. The snippet is what the advocate reasons
+  over and what a reviewer needs; the page is a click away through the reference.
 - **The top-level `answer`** — Tavily's own LLM summary of the results —
   is not requested either, and could not become an exhibit if it were. It is
   synthesized across sources, so there is no single reference behind it. An
@@ -496,6 +514,17 @@ response is dropped:
 
 `web_search` therefore sends `query` and `max_results` and nothing that changes
 the response shape.
+
+**`max_results` is the factory's, not the model's**, and the signature is
+`web_search(api_key, *, max_results=5)` — the shape
+[`docstore_search(client, *, limit=5)`](#step-3--a-factory-when-the-tool-needs-configuration)
+already has, since these are the same kind of object. How much lands in the
+ledger is the caller's to control, and a `max_results` in front of the model
+would hand that lever to the participant whose context it exists to bound.
+Five rather than Tavily's own default of ten, for the reason `raw_content` is
+refused: every result that comes back is recorded verbatim, so the count is a
+decision about the size of the record and not about search quality. The default
+is why `web_search(api_key=...)` is the whole call everywhere it appears.
 
 It is **written against Tavily's own SDK** as a plain async function returning
 `Source` — Step 3 above, with nothing added. PydanticAI ships a
