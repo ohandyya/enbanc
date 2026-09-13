@@ -22,19 +22,20 @@ spec: [`design/`](./design/) is.
 
 ## Current state
 
-**Phase:** Design complete, and two of the ten-PR plan's PRs have code.
-[`schemas.md`](./implementations/schemas.md) is `current` and merged
-([PR #19](https://github.com/ohandyya/enbanc/pull/19)):
-`_verdicts.py`, `_inputs.py`, `_evidence.py`, `_filings.py`, `_transcript.py`,
-`_hearing.py`, `_errors.py`, and `__init__.py` re-exporting twenty-five of the
-twenty-nine names, with `hello()` and its placeholder test deleted.
-[`contract-probes.md`](./implementations/contract-probes.md) has all seven of
-its modules written and green on the `contract-probes` branch, with
-[PR #20](https://github.com/ohandyya/enbanc/pull/20) open — but the document's
+**Phase:** Design complete, and three of the ten-PR plan's PRs have code.
+[`schemas.md`](./implementations/schemas.md)
+([PR #19](https://github.com/ohandyya/enbanc/pull/19)) and
+[`contract-probes.md`](./implementations/contract-probes.md)
+([PR #20](https://github.com/ohandyya/enbanc/pull/20)) are both `current` and
+merged. [`web-search-tool.md`](./implementations/web-search-tool.md)'s code is
+done — `enbanc.tools.web_search`, the package's first tool and the first
+module below `enbanc.tools` — with
+[PR #21](https://github.com/ohandyya/enbanc/pull/21) open, but the document's
 own frontmatter is still `status: draft` with no `pr:` field, unstamped since
-the PR opened (see the question below). `make check-all` is green — 133 tests,
-all in `tests/unit/` and `tests/contract/`. `Tribunal`, `Judge`, `Advocate`,
-and `Proceeding` still don't exist, so `test_export_surface.py`'s
+the PR opened (the same gap PR 2's document sat in last session — run
+`create-pr-summary` to close it). `make check-all` is green — 151 tests, all in
+`tests/unit/` and `tests/contract/`. `Tribunal`, `Judge`, `Advocate`, and
+`Proceeding` still don't exist, so `test_export_surface.py`'s
 twenty-nine-name literal and `render()` both wait on later PRs, and the
 README's WIP banner is still accurate. The published `0.0.5` on PyPI still
 reserves the name and nothing more.
@@ -72,24 +73,26 @@ asked — [`live-tests.yml`](../.github/workflows/live-tests.yml), fired by a
 
 The path from here to `0.1.0` is a ten-PR plan in
 [`implementations/`](./implementations/), ordered by
-[its README table](./implementations/README.md#the-plan). PR 1 is `current`
-and merged; PR 2's code is done and its PR is open but the document is
-unstamped; the other eight are still `draft` with no PR opened against any of
-them.
+[its README table](./implementations/README.md#the-plan). PRs 1 and 2 are
+`current` and merged; PR 3's code is done and its PR is open but the document
+is unstamped; the other seven are still `draft` with no PR opened against any
+of them.
 
-**Next up:** Get [PR #20](https://github.com/ohandyya/enbanc/pull/20) (the
-contract probes) reviewed and merged, then start PR 3,
-[`implementations/web-search-tool.md`](./implementations/web-search-tool.md) —
-it depends on PR 1, which has now merged, so nothing blocks starting it.
+**Next up:** Get [PR #21](https://github.com/ohandyya/enbanc/pull/21) (the web
+search tool) reviewed and merged, then start PR 4,
+[`implementations/rendering.md`](./implementations/rendering.md) — it depends
+on PR 1, which has already merged, so nothing blocks starting it.
 
 Four things the next session should carry:
 
-- **`live-tests.yml` has still never run.** The `live-tests` label may not
-  exist yet, and the `live-tests` GitHub environment holding
-  `OPENAI_API_KEY`, `TAVILY_API_KEY`, and `ENBANC_TEST_MODEL` is one-time setup
-  nobody has done. Both tiers are still empty of tests anyway, so the first
-  real signal comes when there is something live to run —
-  [`testing.md`](./design/testing.md#triggering-a-live-run-in-ci) has the steps.
+- **`live-tests.yml` has now run for real, on both triggers.** A
+  `workflow_dispatch` on `main` (2026-09-10) and the `live-tests` label on
+  [PR #21](https://github.com/ohandyya/enbanc/pull/21) (2026-09-13) both went
+  green — the GitHub environment holding `OPENAI_API_KEY`, `TAVILY_API_KEY`,
+  and `ENBANC_TEST_MODEL` is set up, and the label exists. The integration
+  tier is no longer empty: `test_web_search.py` ran one real Tavily call and
+  passed. The e2e tier is still `test_placeholder.py` — it only asserts the
+  runner's model builds, and waits on `api.md`'s example to exist.
 - **Every probe-shaped `pydantic-ai` finding in `execution.md` now has a
   test.** [`design/execution.md`](./design/execution.md#what-pydanticai-already-does)'s
   eleven findings are down to zero unpinned: nine are probes with a
@@ -115,6 +118,25 @@ Four things the next session should carry:
   tests whether the bump discipline holds.
 
 ## Log
+
+### 2026-09-13 — PR 3: the web search tool
+
+**Did:** Implemented `enbanc.tools.web_search` — `tools/_web_search.py` and
+`tools/__init__.py`, the first code below the `enbanc.tools` namespace and the
+first tool the package ships. A plain async factory over `AsyncTavilyClient`
+mapping three Tavily fields onto `Source` and dropping the rest, per
+`evidence.md`. Added the unit suite (mapping edge cases against a fake client)
+and the integration test (one real call to Tavily), plus a
+`CLAUDE.md` credentials section for the `.env` variables live tests need.
+Writing the integration test against the real API — not the unit tests' canned
+response — surfaced three things about Tavily's response shape `evidence.md`
+had assumed rather than observed; corrected in the same commit. `make
+check-all` is green at 151 tests. Opened
+[PR #21](https://github.com/ohandyya/enbanc/pull/21).
+
+**Why this way:** [`journal/2026-09-13-tavily-response-shape-found-by-hitting-it.md`](./journal/2026-09-13-tavily-response-shape-found-by-hitting-it.md).
+
+**Commits:** `0432d82`, `8868ade`, `3d70506`, `2ce1fc2`
 
 ### 2026-09-13 — PR 2: the contract probes
 

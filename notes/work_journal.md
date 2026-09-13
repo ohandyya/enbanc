@@ -66,6 +66,10 @@
 
 ## Daily Log
 
+### Sep 13
+
+1.[DON'T CHANGE] Change the default web_search max_results to 10
+
 ### Sep 12
 
 #### Notes
