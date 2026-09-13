@@ -9,8 +9,9 @@ rather than passing a number down at dispatch time.
 If this fails after a `pydantic-ai` bump, the dependency moved and `execution.md` is now
 wrong. Fix the document, then decide whether the design it forced still makes sense.
 
-This is the first of the tier's modules; the remaining findings in
-`execution.md#what-pydanticai-already-does` get one each as the code they describe lands.
+This was the first of the tier's modules. Every probe-shaped finding in
+`execution.md#what-pydanticai-already-does` now has one; the two that do not are derivations
+rather than probes, and `docs/design/testing.md#the-four-tiers` says which.
 """
 
 import inspect

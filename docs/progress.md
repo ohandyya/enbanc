@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-09-12
+updated: 2026-09-13
 ---
 
 # Progress
@@ -22,17 +22,22 @@ spec: [`design/`](./design/) is.
 
 ## Current state
 
-**Phase:** Design complete, and PR 1 of the ten-PR plan has landed code for the
-first time. [`schemas.md`](./implementations/schemas.md) is `current` with
-[PR #19](https://github.com/ohandyya/enbanc/pull/19) open (not yet merged):
+**Phase:** Design complete, and two of the ten-PR plan's PRs have code.
+[`schemas.md`](./implementations/schemas.md) is `current` and merged
+([PR #19](https://github.com/ohandyya/enbanc/pull/19)):
 `_verdicts.py`, `_inputs.py`, `_evidence.py`, `_filings.py`, `_transcript.py`,
 `_hearing.py`, `_errors.py`, and `__init__.py` re-exporting twenty-five of the
-twenty-nine names, with `hello()` and its placeholder test deleted. `make
-check-all` is green — 103 tests, all in `tests/unit/` and `tests/contract/`.
-`Tribunal`, `Judge`, `Advocate`, and `Proceeding` still don't exist, so
-`test_export_surface.py`'s twenty-nine-name literal and `render()` both wait on
-later PRs, and the README's WIP banner is still accurate. The published
-`0.0.5` on PyPI still reserves the name and nothing more.
+twenty-nine names, with `hello()` and its placeholder test deleted.
+[`contract-probes.md`](./implementations/contract-probes.md) has all seven of
+its modules written and green on the `contract-probes` branch, with
+[PR #20](https://github.com/ohandyya/enbanc/pull/20) open — but the document's
+own frontmatter is still `status: draft` with no `pr:` field, unstamped since
+the PR opened (see the question below). `make check-all` is green — 133 tests,
+all in `tests/unit/` and `tests/contract/`. `Tribunal`, `Judge`, `Advocate`,
+and `Proceeding` still don't exist, so `test_export_surface.py`'s
+twenty-nine-name literal and `render()` both wait on later PRs, and the
+README's WIP banner is still accurate. The published `0.0.5` on PyPI still
+reserves the name and nothing more.
 
 Settled and binding across
 [`0001`](./decisions/0001-statute-carries-no-model.md)–[`0035`](./decisions/0035-testing-holds-technique-not-an-index.md).
@@ -68,36 +73,28 @@ asked — [`live-tests.yml`](../.github/workflows/live-tests.yml), fired by a
 The path from here to `0.1.0` is a ten-PR plan in
 [`implementations/`](./implementations/), ordered by
 [its README table](./implementations/README.md#the-plan). PR 1 is `current`
-and open; the other nine are still `draft` with no PR opened against any of
+and merged; PR 2's code is done and its PR is open but the document is
+unstamped; the other eight are still `draft` with no PR opened against any of
 them.
 
-**Next up:** Get [PR #19](https://github.com/ohandyya/enbanc/pull/19) reviewed
-and merged, then start PR 2,
-[`implementations/contract-probes.md`](./implementations/contract-probes.md) —
-the six unpinned `pydantic-ai` findings in
-[`design/execution.md`](./design/execution.md#what-pydanticai-already-does)
-turned from scratch scripts into `tests/contract/` tests. It depends on
-nothing and touches no `enbanc` code, so it does not have to wait for PR 1 to
-merge if there's a reason to run it in parallel — the table lists it as
-independent and "mergeable at any point."
+**Next up:** Get [PR #20](https://github.com/ohandyya/enbanc/pull/20) (the
+contract probes) reviewed and merged, then start PR 3,
+[`implementations/web-search-tool.md`](./implementations/web-search-tool.md) —
+it depends on PR 1, which has now merged, so nothing blocks starting it.
 
 Four things the next session should carry:
 
-- **`live-tests.yml` has never run.** The branch is unmerged, the `live-tests`
-  label may not exist yet, and the `live-tests` GitHub environment holding
+- **`live-tests.yml` has still never run.** The `live-tests` label may not
+  exist yet, and the `live-tests` GitHub environment holding
   `OPENAI_API_KEY`, `TAVILY_API_KEY`, and `ENBANC_TEST_MODEL` is one-time setup
-  nobody has done. Until the workflow is on `main`, **Run workflow** does not
-  appear and `gh` answers `404`; the label half can be exercised from the pull
-  request itself. Both tiers are empty of tests anyway, so the first real signal
-  comes when there is something live to run —
+  nobody has done. Both tiers are still empty of tests anyway, so the first
+  real signal comes when there is something live to run —
   [`testing.md`](./design/testing.md#triggering-a-live-run-in-ci) has the steps.
-- **Most of the probes are still not tests.**
-  [`design/execution.md`](./design/execution.md#what-pydanticai-already-does)
-  makes a run of falsifiable claims about `pydantic-ai 2.36.0`, and
-  `tests/contract/` pins two of them — `max_concurrency` is an `__init__`
-  parameter, and a failing output *schema* spends the `output` retry budget
-  rather than `tools`. The rest are still throwaway scratch files, and a version
-  bump falsifies the document silently until they land.
+- **Every probe-shaped `pydantic-ai` finding in `execution.md` now has a
+  test.** [`design/execution.md`](./design/execution.md#what-pydanticai-already-does)'s
+  eleven findings are down to zero unpinned: nine are probes with a
+  `tests/contract/` module each, two are derivations tested elsewhere. A
+  version bump now has something to fail loudly rather than going unnoticed.
 - **Piece 2 is small and piece 3 is not.** The ledgering toolset is a
   `WrapperToolset` with `call_tool` overridden. Round orchestration is the
   largest piece: the filing clerk, the task group, the snapshot construction,
@@ -118,6 +115,27 @@ Four things the next session should carry:
   tests whether the bump discipline holds.
 
 ## Log
+
+### 2026-09-13 — PR 2: the contract probes
+
+**Did:** Wrote the seven remaining `tests/contract/` modules `contract-probes.md`
+scoped, each pinning one `execution.md` finding about `pydantic-ai` directly
+(conversation-as-parameter, instructions re-resolved, filing-as-tool-call,
+tool-call interception, usage accumulation, two retry budgets, fan-out without
+an `ExceptionGroup`) — every probe-shaped finding in `execution.md` now has a
+module. Writing the fan-out module found `execution.md`'s own scenario
+non-discriminating — both variants of the cancelled-exception re-raise behaved
+identically under a child failure — so the doc was wrong about what the
+re-raise protects (external cancellation, not a failing child); corrected in
+the same commit along with `testing.md`'s checklist table (ten findings to
+eleven). `make contract-tests` is green at 36 tests. No `enbanc` code touched —
+this PR is independent and mergeable on its own.
+
+**Stopped at:** Work is on the `contract-probes` branch, committed and clean,
+but `docs/implementations/contract-probes.md` is still `status: draft` — no PR
+opened yet.
+
+**Commits:** `229989d`, `bfe88c4`
 
 ### 2026-09-12 — PR 1: the schemas, `enbanc`'s first code
 
