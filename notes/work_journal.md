@@ -24,6 +24,17 @@
 
     - If there is a need, we can create `enbanc-sim` to only install the core of enbanc. But this is of low priority for now.
 
+7. What to add in guides?
+
+    - We should add target use cases in the guides.
+
+    - Targe use caes
+
+        - Labeling
+        - Decision making (loan)
+
+8. Can we puiblish API references ?
+
 ## To Dos
 
 1. [Done] How to design tools an how to allow user to extend the tool?
