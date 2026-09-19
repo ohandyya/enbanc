@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-09-13
+updated: 2026-09-19
 ---
 
 # Progress
@@ -22,21 +22,25 @@ spec: [`design/`](./design/) is.
 
 ## Current state
 
-**Phase:** Design complete, and three of the ten-PR plan's PRs have code.
-[`schemas.md`](./implementations/schemas.md)
-([PR #19](https://github.com/ohandyya/enbanc/pull/19)) and
+**Phase:** Design complete, and three of the ten-PR plan's PRs are `current`
+and merged: [`schemas.md`](./implementations/schemas.md)
+([PR #19](https://github.com/ohandyya/enbanc/pull/19)),
 [`contract-probes.md`](./implementations/contract-probes.md)
-([PR #20](https://github.com/ohandyya/enbanc/pull/20)) are both `current` and
-merged. [`web-search-tool.md`](./implementations/web-search-tool.md)'s code is
-done — `enbanc.tools.web_search`, the package's first tool and the first
-module below `enbanc.tools` — with
-[PR #21](https://github.com/ohandyya/enbanc/pull/21) open, but the document's
-own frontmatter is still `status: draft` with no `pr:` field, unstamped since
-the PR opened (the same gap PR 2's document sat in last session — run
-`create-pr-summary` to close it). `make check-all` is green — 151 tests, all in
-`tests/unit/` and `tests/contract/`. `Tribunal`, `Judge`, `Advocate`, and
-`Proceeding` still don't exist, so `test_export_surface.py`'s
-twenty-nine-name literal and `render()` both wait on later PRs, and the
+([PR #20](https://github.com/ohandyya/enbanc/pull/20)), and
+[`web-search-tool.md`](./implementations/web-search-tool.md)
+([PR #21](https://github.com/ohandyya/enbanc/pull/21)) — that PR merged
+2026-09-13 and the document is stamped correctly; last session's note that it
+was unstamped had already gone stale by the time it was written.
+[`rendering.md`](./implementations/rendering.md)'s code is now done too —
+`_prompting.py` (both procedural prompts, the three viewpoints, `render()`,
+and the turn templates), `Transcript.render()`, and the forced import cycle
+[`packaging.md`](./design/packaging.md#what-imports-what) predicted — but no
+PR is open against it yet and its frontmatter is still `status: draft`; run
+`create-pr-summary` before starting the next PR. `make check-all` is green —
+204 tests, all in `tests/unit/` and `tests/contract/`, up from 151.
+`Tribunal`, `Judge`, `Advocate`, and `Proceeding` still don't exist, so
+`test_export_surface.py`'s twenty-nine-name literal still waits on
+[`proceeding-core.md`](./implementations/proceeding-core.md) (PR 7), and the
 README's WIP banner is still accurate. The published `0.0.5` on PyPI still
 reserves the name and nothing more.
 
@@ -73,17 +77,20 @@ asked — [`live-tests.yml`](../.github/workflows/live-tests.yml), fired by a
 
 The path from here to `0.1.0` is a ten-PR plan in
 [`implementations/`](./implementations/), ordered by
-[its README table](./implementations/README.md#the-plan). PRs 1 and 2 are
-`current` and merged; PR 3's code is done and its PR is open but the document
-is unstamped; the other seven are still `draft` with no PR opened against any
-of them.
+[its README table](./implementations/README.md#the-plan). PRs 1–3 are
+`current` and merged; PR 4's code is done but no PR is open against it yet;
+the other six are still `draft` with no PR opened against any of them.
 
-**Next up:** Get [PR #21](https://github.com/ohandyya/enbanc/pull/21) (the web
-search tool) reviewed and merged, then start PR 4,
-[`implementations/rendering.md`](./implementations/rendering.md) — it depends
-on PR 1, which has already merged, so nothing blocks starting it.
+**Next up:** Run `create-pr-summary` against
+[`rendering.md`](./implementations/rendering.md) to open its PR and stamp the
+document, then start PR 5,
+[`tribunal-construction.md`](./implementations/tribunal-construction.md) — it
+depends on PR 1 (merged) and PR 4 (code done), so nothing but opening PR 4's
+PR blocks it. It's where `instructions_for()` and the goldens that run through
+it land, which `rendering.md` deliberately left out — the prompt *text* was
+this PR's job, assembling it into an agent's instructions is that one's.
 
-Four things the next session should carry:
+Six things the next session should carry:
 
 - **`live-tests.yml` has now run for real, on both triggers.** A
   `workflow_dispatch` on `main` (2026-09-10) and the `live-tests` label on
@@ -108,16 +115,46 @@ Four things the next session should carry:
   import-time half now has a rule and a test named for it in
   [`packaging.md`](./design/packaging.md#what-import-enbanc-may-do); the rest of
   the gap stands.
+- **The shared eight-entry proceeding now lives in `tests/unit/conftest.py`**
+  (`case`, `deny`, `proceeding` fixtures) — the same worked proceeding
+  [`execution.md`](./design/execution.md#the-proceeding-as-messages) and
+  [`prompting.md`](./design/prompting.md#the-turns) are both written against.
+  PR 5 and PR 6 should extend it rather than each rebuilding
+  [`outcomes.md`](./design/outcomes.md)'s spine by hand.
+- **The subset-property test caught a real bug before anything shipped**, which
+  is the kind of evidence [`0026`](./decisions/0026-one-renderer-serves-both-audiences.md)'s
+  bet is supposed to produce: an early implementation let the empty-record
+  placeholder leak into an agent's delta, and `tests/unit/test_projections.py`
+  failed on it immediately. Fixed; see the log entry below.
 
 **Open questions:**
 
 - None, anywhere in [`design/`](./design/).
-- `procedure` version `p1` is authored but unshipped, so its changelog row in
+- `procedure` version `p1` is now implemented and pinned by goldens
+  (`tests/unit/test_procedural_prompts.py`,
+  `tests/unit/test_transcript_render.py`, `tests/unit/test_turns.py`), but
+  still unshipped — no `Tribunal` exists yet to run a proceeding under it, and
+  its changelog row in
   [`prompting.md`](./design/prompting.md#procedure-versions) has nothing to
-  compare against yet. The first prompt edit after `0.1.0` ships is the one that
+  compare against. The first prompt edit after `0.1.0` ships is the one that
   tests whether the bump discipline holds.
 
 ## Log
+
+### 2026-09-19 — PR 4: rendering
+
+**Did:** Implemented [`rendering.md`](./implementations/rendering.md) — `_prompting.py`
+(both procedural prompts, `ReviewerView`/`JudgeView`/`AdvocateView`, the `since` filter,
+`render()`, and the three functions covering all four turn templates), `Transcript.render()`
+and the one forced import cycle it breaks, and a shared eight-entry proceeding fixture in
+`tests/unit/conftest.py` that later PRs can extend instead of rebuilding. Six new test
+modules; `make check-all` moved from 151 to 204 passing. Corrected two design docs in the
+same commit, as `CLAUDE.md` rule 2 requires: `packaging.md`'s stale cycle-break snippet, and
+`prompting.md`'s under-specified no-label source row, its four sections that vary with what a
+proceeding holds, and the per-line indentation rule. No `PROCEDURE` bump — the prompting
+surface's *text* did not change, only the cases the doc had not yet spelled out for it.
+
+**Commits:** 65fda81, b39408b.
 
 ### 2026-09-13 — PR 3: the web search tool
 

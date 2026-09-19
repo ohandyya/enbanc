@@ -35,6 +35,13 @@
 
 8. Can we puiblish API references ?
 
+9. Accuracy / Performance measurement
+
+    - What possible datasets can we use to demonstrate the effectiveness?
+        - Can we use AI to search for Kaggle and find a relevant dataset?
+    - What kind of algorihtm can we compare?
+        - Maybe compare with a single LLM prompt?
+
 ## To Dos
 
 1. [Done] How to design tools an how to allow user to extend the tool?
@@ -71,9 +78,6 @@
 
 ## Questions
 
-1. How to design accuracy evaluation
-
-    - What possible datasets can we use?
 
 ## Daily Log
 

@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-09-11
+updated: 2026-09-19
 ---
 
 # Packaging
@@ -112,16 +112,16 @@ from ._filings import Argument, Concession, Continuance, Response, Ruling   # ru
 if TYPE_CHECKING:
     from ._transcript import Transcript                                     # annotation only
 
-def render_transcript(transcript: "Transcript[Any]") -> str: ...
+def render(transcript: "Transcript[Any]", view: View) -> str: ...
 ```
 
 ```python
 # _transcript.py
-from ._prompting import render_transcript                                   # runtime
+from ._prompting import ReviewerView, render                                # runtime
 
 class Transcript(BaseModel, Generic[VerdictT]):
     def render(self) -> str:
-        return render_transcript(self)
+        return render(self, ReviewerView())
 ```
 
 `_prompting` imports `_filings` for real, because it dispatches on filing type;

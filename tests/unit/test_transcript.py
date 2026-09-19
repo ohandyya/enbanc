@@ -242,11 +242,6 @@ def test_a_failed_call_is_recorded_and_carries_no_id() -> None:
     assert "id" not in ToolFailure.model_fields
 
 
-def test_the_transcript_holds_no_renderer_yet() -> None:
-    """`render()` lands with `_prompting.py` — see `docs/implementations/rendering.md`."""
-    assert not hasattr(Transcript, "render")
-
-
 def test_a_ruling_is_a_filing_like_any_other() -> None:
     transcript = _transcript()
     ruled = transcript.model_copy(
