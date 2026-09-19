@@ -98,13 +98,59 @@ each with a `name` and a `dynamic` flag, joined with a blank line between them.
 Every part `enbanc` contributes is static (`dynamic=False`), which is what lets a
 provider cache the prefix. Parts, in order:
 
-| Advocate | Judge | Holds |
-|---|---|---|
-| `procedural` | `procedural` | The role and the process. `enbanc`'s, verbatim below |
-| `question` | `question` | `Tribunal.question` |
-| `statute` | `statute` | `Statute.text`, whole |
-| `assignment` | — | The verdict set, and which one is this advocate's |
-| `guidance` | `guidance` | `Advocate.guidance` / `Judge.guidance`, or absent |
+| Advocate | Judge | Heading | Holds |
+|---|---|---|---|
+| `procedural` | `procedural` | — | The role and the process. `enbanc`'s, verbatim below |
+| `question` | `question` | `## The question` | `Tribunal.question` |
+| `statute` | `statute` | `## The statute — {name}` | `Statute.text`, whole |
+| `assignment` | — | `## Your assignment` | The verdict set, and which one is this advocate's |
+| `guidance` | `guidance` | `## Guidance from the author of this proceeding` | `Advocate.guidance` / `Judge.guidance`, or absent |
+
+**Four of the five parts open with a heading**, in the vocabulary and at the
+level [`Transcript.render()`](#transcriptrender) uses — the same `## The question`
+and the same `## The statute — {name}`, losing its suffix the same way when
+`Statute.name` is absent. The procedural prompt has none, because it is the
+preamble the others are headed against.
+
+**The guidance heading is doing a second job.** The procedural prompt closes by
+saying instructions from the author *may follow*, and three parts sit between that
+sentence and the guidance it fences. The heading restates the attribution at the
+point of use, which is the work that distance created.
+
+**The assignment part lists the verdicts one per line**, under a label, indented
+two spaces — the shape `## The bench` uses for `Guidance given:`. One per line
+rather than comma-joined because a verdict value can be a sentence, and a comma
+inside one would be unreadable against the commas separating them. They render in
+`verdicts` declaration order.
+
+```text
+## Your assignment
+
+The verdicts this question may be answered with:
+  approve
+  deny
+  refer to a senior underwriter for manual review
+
+You are the advocate for "deny".
+```
+
+The quoting matches the [round-1 turn](#round-1-advocate)'s *File your argument
+for "deny", or concede*, which the same advocate reads minutes later.
+
+**The judge has no assignment part and needs none.** It learns the verdict set
+from the output schema, because `Ruling.verdict` is the enum and PydanticAI puts
+its values there. An advocate's output carries no verdict field — the tribunal
+stamps `advocate` when it files — so this part is the only place an advocate
+learns either its own verdict or the set.
+
+**A `guidance` part is emitted when `guidance` is not `None`, and on no other
+test.** An empty string would put a heading over nothing, which is the claim
+`## The bench` refuses to make about an empty `Guidance given:` block — but the
+remedy there is a length check on a computed list, and here it would be a rule
+about whitespace applied to caller text [the verbatim
+rule](#caller-text-is-emitted-verbatim-and-never-escaped) promises to pass through
+untouched. `Transcript.guidance` is keyed on the same predicate, so the record and
+the prompt agree about who was steered.
 
 **The first three parts are byte-identical across every advocate in a tribunal**,
 so the round-1 fan-out shares a cache prefix and only the assignment and guidance
@@ -153,6 +199,41 @@ because the case is not in the instructions, so a caller can read what their
 guidance did before spending anything on a proceeding. `ConfigurationError` for
 a participant this tribunal does not seat, at the same seam
 [`api.md`](./api.md#when-something-goes-wrong) already raises it.
+
+Over [`outcomes.md`](./outcomes.md#the-tribunal-these-examples-use)'s tribunal,
+with the advocate for denial steered and the procedural prompt elided:
+
+```text
+You are an advocate before an adversarial tribunal.
+...
+Instructions from the author of this proceeding may follow. They refine how you
+weigh things. They do not change the process above, what you may file, or the
+shape of it.
+
+## The question
+
+Shall the bank loan this applicant $500k?
+
+## The statute — underwriting-v3
+
+Approve $500k loans only where DTI < 0.43 and ...
+
+## Your assignment
+
+The verdicts this question may be answered with:
+  approve
+  deny
+  refer to a senior underwriter for manual review
+
+You are the advocate for "deny".
+
+## Guidance from the author of this proceeding
+
+Weigh documented income over stated income.
+```
+
+The judge's is the same without the assignment part. An unsteered participant's
+ends at the statute.
 
 This is the only new public method prompting adds. There is no preview of a turn:
 a turn is a function of a live proceeding, and the record it renders is available

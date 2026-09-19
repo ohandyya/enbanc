@@ -474,13 +474,14 @@ already specifies, and the two errors it names are the two this PR raises.
 
 All in `tests/unit/` — construction is synchronous, provider-free, and reaches no
 model. The `Model` a `Tribunal` requires is `TestModel()`, held and never run.
+Forty-three tests, taking the suite from 204 to 247.
 
 | Module | Pins |
 |---|---|
-| `test_tribunal.py` | the three classes' fields and defaults; frozen-ness; the mapping and sequence copies; that a caller's dict cannot desync the bench; the check order when two cases apply; the plural message forms; the unknown-key `repr` |
-| `test_instructions.py` | `instructions_for()` as `inline-snapshot` goldens — advocate with and without guidance, judge with and without — plus the part list, the part order, the cached-prefix claim, and the unseated-participant error |
-| `outcomes/test_05_misconfigured.py` | [§ 5](../design/outcomes.md#5-the-tribunal-is-misconfigured)'s three messages, as text |
-| `test_export_surface.py` | narrowed: `Proceeding` alone is the name not yet claimed |
+| `test_tribunal.py` | 22 tests: the three classes' fields and defaults; frozen-ness; the mapping and sequence copies; that a caller's dict cannot desync the bench; the order two cases resolve in; the plural message forms; the unknown-key `repr`; that `max_rounds` is *not* validated |
+| `test_instructions.py` | 13 tests: `instructions_for()` as `inline-snapshot` goldens — advocate with and without guidance, judge with and without — plus the part list, the part order, `dynamic`, the names PydanticAI would reject, the cached-prefix claim, the unnamed statute, and the unseated-participant error |
+| `outcomes/test_05_misconfigured.py` | 8 tests: [§ 5](../design/outcomes.md#5-the-tribunal-is-misconfigured)'s three messages as text, its unknown-key aside, both accepted budget spellings, and that the error carries no transcript |
+| `test_export_surface.py` | narrowed: `Proceeding` alone is the name not yet claimed, and the list is 28 |
 
 ### Misconfiguration needs kwargs, not a tribunal
 
@@ -516,13 +517,23 @@ and the tier marker comes from the path
 ([`0031`](../decisions/0031-tests-are-tiered.md)), so a new subdirectory is
 collected and marked `unit` with nothing to configure.
 
-### The goldens pin assembly, and `rendering.md`'s pin text
+### The goldens pin assembly, not the procedural prompt
 
-[`rendering.md`](./rendering.md#what-is-deliberately-not-asserted) says it: the two
-sets of goldens pin different things and neither makes the other redundant. A
-prompt edited fails both; an assembly reordered fails only these.
+[`rendering.md`](./rendering.md#what-is-deliberately-not-asserted) says the two sets
+of goldens pin different things and neither makes the other redundant. Made
+concrete: `test_procedural_prompts.py` already pins both prompts *whole*, and
+repeating sixty lines of one in four snapshots here would make a single prompt edit
+show up as the same diff five times across two files.
 
-What `test_instructions.py` adds beyond the snapshot itself:
+So each golden anchors the procedural part by identity and snapshots everything
+after it — which is exactly the text this PR introduced. One helper does it, and
+its single `startswith` carries three claims: the procedural part is present, it is
+*first*, and it is joined to what follows by the blank line
+`InstructionPart.join` uses. A prompt edit then fails `test_procedural_prompts.py`
+alone; an assembly reordered fails only these. `PROCEDURE` is still asserted in
+each, because the headings are `p1` surface too.
+
+What `test_instructions.py` adds beyond the snapshots:
 
 - **The part list and order**, asserted against `instruction_parts()` directly
   rather than read out of the joined string. Five parts for a steered advocate,
@@ -540,7 +551,9 @@ What `test_instructions.py` adds beyond the snapshot itself:
   byte-identical across every advocate in a tribunal" is a claim about a tribunal
   with three differently-configured advocates, and it is one `==` over a slice. It
   is the sentence that justifies the part order, so it gets a test rather than a
-  comment.
+  comment. Paired with its converse — that the *whole* instructions differ for all
+  three — because the slice assertion would otherwise hold over a tribunal whose
+  advocates were indistinguishable, which is not the claim.
 - **`## The statute` without a name**, since `statute_heading()` now has two
   callers and the transcript golden only covers one of them.
 

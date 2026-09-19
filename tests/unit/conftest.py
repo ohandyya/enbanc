@@ -5,11 +5,15 @@ multi-round proceeding belongs here, not in `e2e`: ADR 0003 makes the model inje
 whole proceeding runs with no provider in the loop.
 """
 
+from collections.abc import Callable
 from datetime import UTC, datetime
+from typing import Any
 
 import pytest
+from pydantic_ai.models.test import TestModel
 
 from enbanc import (
+    Advocate,
     Argument,
     Case,
     Concession,
@@ -17,14 +21,17 @@ from enbanc import (
     Entry,
     Exhibit,
     Interrogatory,
+    Judge,
     Response,
     Retrieval,
     Ruling,
+    Source,
     Statute,
     ToolFailure,
     Transcript,
     Verdict,
 )
+from enbanc.tools import web_search
 
 
 @pytest.fixture(autouse=True)
@@ -87,6 +94,59 @@ def case() -> LoanApplication:
         dti=0.51,
         documents=["w2-2024", "schedule-c-2024"],
     )
+
+
+async def psql(query: str) -> list[Source]:
+    """The warehouse tool every advocate in `outcomes.md` is given.
+
+    Never called in this tier yet — a tribunal holds its tools and nothing runs them until
+    there is a proceeding — but it has to be a real async function with a docstring, because
+    that is what PydanticAI derives a tool schema from and what an `Advocate` is annotated to
+    take.
+    """
+    return []
+
+
+@pytest.fixture
+def outcomes_kwargs() -> Callable[[], dict[str, Any]]:
+    """The tribunal `docs/design/outcomes.md` works every ending through, as keyword arguments.
+
+    **Kwargs rather than a built `Tribunal`**, which is what
+    `docs/design/testing.md` ("`outcomes.md` is the spine") asks for in the general case. § 5
+    cannot use a factory that returns the object: it tests a constructor that *raises*, so the
+    factory would raise first. A test varies one key and calls `Tribunal(**kwargs)` itself;
+    one that wants the object writes `Tribunal(**outcomes_kwargs())`.
+
+    A callable rather than a dict so that a test mutating what it got cannot reach the next
+    test. `advocates` is rebuilt per call for the same reason — a shallow `dict(...)` of a
+    module-level mapping would share the inner dict.
+
+    `web_search` is the real factory with a key that is not one: its `__init__` builds an
+    `httpx.AsyncClient` and performs no I/O, so the object `outcomes.md` shows is the object
+    the fixture holds, and the socket guard has nothing to catch.
+    """
+
+    def build() -> dict[str, Any]:
+        return {
+            "question": "Shall the bank loan this applicant $500k?",
+            "verdicts": LoanDecision,
+            "statute": Statute(
+                text="Approve $500k loans only where DTI < 0.43 and ...",
+                name="underwriting-v3",
+            ),
+            "model": TestModel(),
+            "judge": Judge(guidance="Where the record is ambiguous, deny."),
+            "advocates": {
+                LoanDecision.APPROVE: Advocate(
+                    tools=[psql, web_search(api_key="tvly-not-a-real-key")]
+                ),
+                LoanDecision.DENY: Advocate(tools=[psql]),
+                LoanDecision.REFER: Advocate(tools=[psql]),
+            },
+            "max_rounds": 5,
+        }
+
+    return build
 
 
 @pytest.fixture

@@ -4,10 +4,10 @@
 names this module in the paragraph that does it. Adding a public name is then a deliberate
 act with a diff on it.
 
-**Partial, deliberately.** Four of the twenty-nine — `Tribunal`, `Judge`, `Advocate`,
-`Proceeding` — do not exist yet, so the literal-list assertion cannot land until
-`docs/implementations/proceeding-core.md` completes the surface. What lands here is the half
-that is assertable today and catches a typo in a re-export the moment it is made.
+**Partial, deliberately.** One of the twenty-nine — `Proceeding` — does not exist yet, so
+the literal-list assertion cannot land until `docs/implementations/proceeding-core.md`
+completes the surface. What lands here is the half that is assertable today and catches a typo
+in a re-export the moment it is made.
 
 The *second* list is whole, and asserted literally below.
 """
@@ -38,11 +38,16 @@ def test_nothing_exported_is_private() -> None:
     assert [name for name in enbanc.__all__ if name.startswith("_")] == []
 
 
-def test_the_four_names_that_do_not_exist_yet_are_not_claimed() -> None:
-    """The list grows in `proceeding-core.md`, not by accident before it."""
-    for name in ("Tribunal", "Judge", "Advocate", "Proceeding"):
-        assert name not in enbanc.__all__
-        assert not hasattr(enbanc, name)
+def test_the_one_name_that_does_not_exist_yet_is_not_claimed() -> None:
+    """The list grows in `proceeding-core.md`, not by accident before it.
+
+    `Tribunal`, `Judge` and `Advocate` joined the surface in
+    `docs/implementations/tribunal-construction.md`, taking it from twenty-five names to
+    twenty-eight. `Proceeding` is the last one, and it arrives with `hear_stream()`.
+    """
+    assert len(enbanc.__all__) == 28
+    assert "Proceeding" not in enbanc.__all__
+    assert not hasattr(enbanc, "Proceeding")
 
 
 def test_the_tools_namespace_holds_exactly_one_name() -> None:
