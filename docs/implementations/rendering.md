@@ -1,5 +1,6 @@
 ---
-status: draft
+status: current
+pr: 23
 updated: 2026-09-19
 ---
 
@@ -21,9 +22,13 @@ forced import cycle is broken, `_prompting` importing `_transcript` under
 **Not in this PR.** `instructions_for()` and the goldens that run through it.
 Assembling instruction parts needs a `Tribunal`, so both land in
 [`tribunal-construction.md`](./tribunal-construction.md) — the prompt *text* is
-here, the assembly of it is there. The tool-result format is specified here and
-implemented in [`ledgering-toolset.md`](./ledgering-toolset.md), where
-`render_call` and `render_results` live.
+here, the assembly of it is there. The tool-result format's per-source shape is
+specified here and already built here too, as `render_source` — a bare tool
+result is one more caller of the same three-line shape an exhibit and a ledger
+row already use, [as the module ended up laid out](#one-three-line-source-shape-in-three-dressings).
+What's left for [`ledgering-toolset.md`](./ledgering-toolset.md) is composing
+`render_source` with the "returned *N* sources" header line no function here
+renders — that PR names whatever wraps the two together.
 
 ## Implements
 

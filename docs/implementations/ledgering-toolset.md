@@ -1,6 +1,6 @@
 ---
 status: draft
-updated: 2026-09-12
+updated: 2026-09-19
 ---
 
 # The ledgering toolset
@@ -12,10 +12,14 @@ recorded and every citation it files can be stamped.
 ## Scope
 
 `_ledgering.py`: `Ledgering` with `call_tool` overridden, `as_sources`'s
-shape-sniff, `render_call` and `render_results` in
-[`prompting.md`](../design/prompting.md#how-ledger-ids-reach-the-model)'s format,
-the per-advocate id counter that survives the whole proceeding, and the output
-validator that rejects an `_Exhibit` citing an id the ledger does not hold.
+shape-sniff, the "returned *N* sources" header line composed around
+`_prompting.render_source` — already built in
+[`rendering.md`](./rendering.md#one-three-line-source-shape-in-three-dressings),
+which is where each source's own three-line shape lives — in
+[`prompting.md`](../design/prompting.md#how-ledger-ids-reach-the-model)'s
+format, the per-advocate id counter that survives the whole proceeding, and the
+output validator that rejects an `_Exhibit` citing an id the ledger does not
+hold.
 
 A `ModelRetry` — which is what a `Tool` timeout becomes — is recorded on
 `failures` and re-raised untouched. Anything else propagates: the difference
