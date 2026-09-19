@@ -85,6 +85,20 @@ select = [
     "SIM", # flake8-simplify
 ]
 
+[tool.ruff.lint.per-file-ignores]
+# A golden holds rendered output, not code. The prompting surface docs/design/prompting.md
+# fixes includes lines longer than this file's limit — a judge's reasoning, a statute, an
+# excerpt — and re-wrapping one inside the snapshot would make the test assert something the
+# renderer does not emit. E501 is a rule about reading code; these strings are a picture of
+# what enbanc printed. Only the modules whose snapshots embed a rendered proceeding are listed.
+"tests/unit/test_transcript_render.py" = ["E501"]
+"tests/unit/test_turns.py" = ["E501"]
+# SIM300 reads `ADVOCATE_PROCEDURE == snapshot(...)` as a Yoda condition, because the name is
+# upper-case. It is not: inline-snapshot's convention is actual on the left and expected on the
+# right, and it is the form `--inline-snapshot=fix` writes back. Flipping to satisfy the rule
+# would put the expected value first and make the next `fix` run undo it.
+"tests/unit/test_procedural_prompts.py" = ["SIM300"]
+
 [tool.ruff.lint.isort]
 known-first-party = ["enbanc"]
 

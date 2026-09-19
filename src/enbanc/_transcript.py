@@ -19,6 +19,7 @@ from pydantic import BaseModel, SerializeAsAny
 
 from ._filings import Filing
 from ._inputs import Case, Statute
+from ._prompting import ReviewerView, render
 from ._verdicts import Participant, VerdictT
 
 
@@ -151,3 +152,22 @@ class Transcript(BaseModel, Generic[VerdictT]):
 
     def __getitem__(self, i: int) -> Entry[VerdictT]:
         return self.entries[i]
+
+    def render(self) -> str:
+        """The proceeding as readable text: the header, the record, the ledger, the failures.
+
+        **This is the reviewer's viewpoint of a renderer the agents share**, so what it emits
+        is specified rather than left to implementation — `docs/design/prompting.md` has it in
+        full. An agent's view is this view minus rows, never plus text, which is what makes
+        the context invariant checkable by construction
+        (`docs/decisions/0026-one-renderer-serves-both-audiences.md`).
+
+        Its output is therefore **versioned**, by `self.procedure` rather than by the package
+        version. A `render()` on a model usually means *however it prints today*; this one
+        does not, and changing what it emits is a procedure bump.
+
+        The delegation to `_prompting` is where the package's one import cycle is broken:
+        `_transcript` imports the renderer for real, and the renderer imports `_transcript`
+        under `TYPE_CHECKING` only. See `docs/design/packaging.md` ("What imports what").
+        """
+        return render(self, ReviewerView())

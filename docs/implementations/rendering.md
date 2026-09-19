@@ -54,8 +54,9 @@ whole of its import story.
 
 | Module | Holds | Imports from the package |
 |---|---|---|
-| `_prompting.py` | `PROCEDURE`, `ADVOCATE_PROCEDURE`, `JUDGE_PROCEDURE`, `ReviewerView`, `JudgeView`, `AdvocateView`, `View`, `render`, `render_source`, `argument_turn`, `response_turn`, `deliberation_turn` | `_verdicts`, `_inputs`, `_filings` at runtime; `_transcript` under `TYPE_CHECKING` |
+| `_prompting.py` | `PROCEDURE`, `ADVOCATE_PROCEDURE`, `JUDGE_PROCEDURE`, `LEDGER_PREAMBLE`, `NONE`, `ReviewerView`, `JudgeView`, `AdvocateView`, `View`, `indent`, `render_source`, `render`, `argument_turn`, `response_turn`, `deliberation_turn` | `_verdicts`, `_inputs`, `_evidence`, `_filings` at runtime; `_transcript` under `TYPE_CHECKING` |
 | `_transcript.py` | `Transcript.render()` — the one public name this PR reaches | gains `_prompting` |
+| `pyproject.toml` | two scoped `per-file-ignores`, [below](#two-lint-rules-scoped-off-the-goldens) | — |
 
 Nothing in `_prompting.py` carries a leading underscore and everything in it is
 private, because the module does
@@ -411,6 +412,20 @@ out the participant's own filings: what the advocate emitted was a bare id and
 an excerpt, and what entered the record has the tool and the reference stamped
 beside them, so showing it back is showing it something it has not seen.
 
+**`(none)` belongs to the reviewer's section, not to the record rendering** — a
+distinction the subset test found rather than the design. The obvious first
+implementation puts the placeholder inside the helper that joins entry blocks,
+which is shared, so an empty agent delta rendered as `(none)` — a word the
+reviewer's record section does not contain at that position, and therefore an
+*addition*, which is the one thing the subset property forbids. The helper now
+returns the empty string and `_reviewer` supplies the placeholder at the single
+place it means something.
+
+An empty delta is unreachable in a real proceeding: a continuance carries at
+least one interrogatory, so every dispatched run has something new to read. The
+test that caught this renders a `since` past the last round, which is why it is
+worth keeping even though no orchestrator will ever produce that call.
+
 **`since` is the only state this PR reads, and the snapshot is the state it does
 not own.** [`execution.md`](../design/execution.md#since-advances-once-per-run-not-once-per-round)
 splits them deliberately — `since` selects *which rounds*, the snapshot decides
@@ -472,6 +487,34 @@ that its output is versioned by `Transcript.procedure` — which is the one fact
 about this method a reader is liable to guess wrong, because a `render()` on a
 model usually means *however it prints today*.
 
+### Two lint rules scoped off the goldens
+
+`pyproject.toml` gains a `[tool.ruff.lint.per-file-ignores]` table with two
+entries, and both are about goldens rather than about style.
+
+**`E501` on `test_transcript_render.py` and `test_turns.py`.** A golden holds
+rendered output, and the prompting surface contains lines longer than this
+repository's 100-column limit — a judge's reasoning, a statute, an excerpt.
+Re-wrapping one inside the snapshot would make the test assert something the
+renderer does not emit, which is the one thing a golden may not do. The rule is
+about reading code; these strings are a picture of what `enbanc` printed. Only
+the two modules whose snapshots embed a rendered proceeding are listed, so the
+limit still holds over every line of test code in them that is code.
+
+**`SIM300` on `test_procedural_prompts.py`.** Ruff reads
+`ADVOCATE_PROCEDURE == snapshot(...)` as a Yoda condition, because the name is
+upper-case. It is not one: `inline-snapshot`'s convention is actual on the left
+and expected on the right, and that is the form `--inline-snapshot=fix` writes
+back. Satisfying the rule would put the expected value first and the next `fix`
+run would undo it.
+
+### Deleted
+
+`tests/unit/test_transcript.py::test_the_transcript_holds_no_renderer_yet`,
+which asserted `not hasattr(Transcript, "render")` and pointed at this document.
+It was [`schemas.md`](./schemas.md)'s placeholder for exactly this PR, and its
+successor is `tests/unit/test_transcript_render.py`.
+
 ### Design documents
 
 Three edits, all of them `CLAUDE.md` rule 2 paid in this commit.
@@ -526,6 +569,17 @@ the point of a renderer that takes only a transcript.
 | `test_turns.py` | all four templates as goldens, including the second run of a twice-questioned advocate whose delta is its own stamped response |
 | `test_projections.py` | the invariant's half that lives here — see below |
 | `test_cycle_break.py` | that `_prompting` binds no `Transcript` at runtime |
+
+### Three fixtures, and why they are fixtures
+
+`tests/unit/conftest.py` gains `case`, `deny`, and `proceeding`. A `conftest.py`
+is not a module a test may import from, so anything a test needs out of it
+arrives as a fixture value — including `deny`, which is a verdict *member*
+rather than the enum class. `type[Verdict]` has no members to a type checker:
+the base declares none, which is exactly what makes it subclassable
+([`0004`](../decisions/0004-verdicts-are-a-strenum.md)), so `loan_decision.DENY`
+is a pyright error rather than a style choice. A test that needs the whole bench
+reads `proceeding.verdicts`, which is the same list and is typed.
 
 ### The fixture is the worked proceeding, and it is shared
 

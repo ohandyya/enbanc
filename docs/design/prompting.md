@@ -1,6 +1,6 @@
 ---
 status: draft
-updated: 2026-09-11
+updated: 2026-09-19
 ---
 
 # Prompting and rendering
@@ -525,12 +525,18 @@ dti_for(applicant="A. Okonkwo") returned 1 source.
   dti: 0.51
 ```
 
-Three lines per source: `[id]` and the label when there is one, then the
-reference, then the content verbatim. **The reference is shown even though the
-advocate never writes one**, because where a source came from bears on how much
-weight it deserves, and an advocate that cannot see the difference between the
-applicant's own filing and a trade-press summary argues worse. It is in the
-record either way.
+Three lines per source: `[id]` and the label, then the reference, then the
+content verbatim. **The reference is shown even though the advocate never writes
+one**, because where a source came from bears on how much weight it deserves, and
+an advocate that cannot see the difference between the applicant's own filing and
+a trade-press summary argues worse. It is in the record either way.
+
+**With no label the reference takes the first line and the reference line is
+dropped**, so the row is two lines — the anonymous source above. A bare `[s3]`
+would put nothing on the line that exists to identify the row, and the reference
+is always the first thing on a source's first line that is not the id. An
+empty-string label counts as no label, because it would otherwise render as a
+trailing space.
 
 `content` is reproduced exactly as the tool returned it, un-truncated, matching
 `Retrieval.content`. Keeping a context small is the tool's job, not the
@@ -597,6 +603,46 @@ the record did not rest on.
 [round 1] deny — find_filings(applicant="A. Okonkwo")
   Timed out after 30.0 seconds.
 ```
+
+**Four sections vary with what the proceeding holds.** The worked example above
+is fully populated and cannot show them:
+
+- `## The statute — {name}` loses its suffix when `Statute.name` is absent,
+  leaving `## The statute`. The heading is the only place a name renders.
+- `Guidance given:` and the block under it are absent when nobody was steered.
+  The heading is a claim that someone was, and an empty one would be a claim
+  that nobody was, made in the same words.
+- `## The record` and `## The ledger` are always emitted, with `(none)` under
+  them when they are empty. Both are standing halves of the artifact — `entries`
+  says what the ruling rests on and `ledger` says what was available to rest on
+  — so *nothing was available* is a fact about the proceeding rather than an
+  absence of one, and it is written down.
+- `## Failed calls` is emitted only when something failed. It is an exception
+  log rather than a standing half: a populated `failures` is
+  [not a finding](./api.md#the-record), so an empty one is nothing at all, and a
+  heading over it would give prominence to an absence.
+
+**Guidance renders judge-first, then in `verdicts` order**, skipping anyone who
+was given none. `Transcript.guidance` is a mapping and its iteration order is
+whatever the tribunal inserted in; an artifact that is the same bytes for the
+same proceeding cannot depend on that.
+
+**A value that spans lines is indented on every line of it.** A claim, a reason,
+an answer, a ruling's reasoning, an excerpt, a retrieval's content, a failure's
+detail — each takes its block's indent throughout, and a blank line inside one
+stays blank rather than becoming trailing whitespace.
+
+This is not the wrapping
+[above](#caller-text-is-emitted-verbatim-and-never-escaped) forbids, and the
+distinction is exact: nothing is reflowed, nothing is truncated, no line break is
+added or removed, and stripping a fixed prefix recovers the original byte for
+byte. What it buys is that a block stays one unit. Under the alternative the
+second line of a two-line claim begins at column 0, where it is
+indistinguishable from the header of the next entry, and an excerpt's second line
+reads as though it belonged to the filing rather than to the exhibit. Nothing a
+participant writes reaches column 0, which is the one thing this costs the
+[spoofing note](#caller-text-is-emitted-verbatim-and-never-escaped) above — in
+the direction that note would want.
 
 **"cited" and "not cited" are computed at render time, not stored.** They are the
 join [`api.md`](./api.md#the-record) specifies, and the reason there is no
