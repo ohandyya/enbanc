@@ -28,7 +28,7 @@ hunt for inbound links.
 | 2 | [`contract-probes.md`](./contract-probes.md) | — | 20 | `current` |
 | 3 | [`web-search-tool.md`](./web-search-tool.md) | 1 | 21 | `current` |
 | 4 | [`rendering.md`](./rendering.md) | 1 | 23 | `current` |
-| 5 | [`tribunal-construction.md`](./tribunal-construction.md) | 1, 4 | | `draft` |
+| 5 | [`tribunal-construction.md`](./tribunal-construction.md) | 1, 4 | 24 | `current` |
 | 6 | [`ledgering-toolset.md`](./ledgering-toolset.md) | 1, 4 | | `draft` |
 | 7 | [`proceeding-core.md`](./proceeding-core.md) | 5, 6 | | `draft` |
 | 8 | [`round-loop.md`](./round-loop.md) | 7 | | `draft` |
