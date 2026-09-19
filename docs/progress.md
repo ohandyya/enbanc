@@ -22,27 +22,28 @@ spec: [`design/`](./design/) is.
 
 ## Current state
 
-**Phase:** Design complete, and three of the ten-PR plan's PRs are `current`
+**Phase:** Design complete, and four of the ten-PR plan's PRs are `current`
 and merged: [`schemas.md`](./implementations/schemas.md)
 ([PR #19](https://github.com/ohandyya/enbanc/pull/19)),
 [`contract-probes.md`](./implementations/contract-probes.md)
-([PR #20](https://github.com/ohandyya/enbanc/pull/20)), and
+([PR #20](https://github.com/ohandyya/enbanc/pull/20)),
 [`web-search-tool.md`](./implementations/web-search-tool.md)
-([PR #21](https://github.com/ohandyya/enbanc/pull/21)) — that PR merged
-2026-09-13 and the document is stamped correctly; last session's note that it
-was unstamped had already gone stale by the time it was written.
-[`rendering.md`](./implementations/rendering.md)'s code is now done too —
-`_prompting.py` (both procedural prompts, the three viewpoints, `render()`,
-and the turn templates), `Transcript.render()`, and the forced import cycle
-[`packaging.md`](./design/packaging.md#what-imports-what) predicted — but no
-PR is open against it yet and its frontmatter is still `status: draft`; run
-`create-pr-summary` before starting the next PR. `make check-all` is green —
-204 tests, all in `tests/unit/` and `tests/contract/`, up from 151.
-`Tribunal`, `Judge`, `Advocate`, and `Proceeding` still don't exist, so
-`test_export_surface.py`'s twenty-nine-name literal still waits on
-[`proceeding-core.md`](./implementations/proceeding-core.md) (PR 7), and the
-README's WIP banner is still accurate. The published `0.0.5` on PyPI still
-reserves the name and nothing more.
+([PR #21](https://github.com/ohandyya/enbanc/pull/21)), and
+[`rendering.md`](./implementations/rendering.md)
+([PR #23](https://github.com/ohandyya/enbanc/pull/23)).
+[`tribunal-construction.md`](./implementations/tribunal-construction.md)'s
+code is done too — `Tribunal`, `Judge`, `Advocate`, the four
+`ConfigurationError` checks, and `instructions_for()` — and
+[PR #24](https://github.com/ohandyya/enbanc/pull/24) is open against it with
+the document stamped `current`, but it has not merged yet. The implementation
+doc records 43 new tests, 204 → 247, all in `tests/unit/`; that count was not
+re-verified by running the suite this session — run `make check-all` before
+merging #24. `Tribunal`, `Judge`, and `Advocate` are exported now (25 → 28
+names); `Proceeding` is the only one of the twenty-nine left, still waiting on
+[`proceeding-core.md`](./implementations/proceeding-core.md) (PR 7). The
+README's WIP banner is still accurate — `hear()` doesn't exist, so nothing in
+the published surface can actually run a proceeding yet. The published `0.0.5`
+on PyPI still reserves the name and nothing more.
 
 Settled and binding across
 [`0001`](./decisions/0001-statute-carries-no-model.md)–[`0035`](./decisions/0035-testing-holds-technique-not-an-index.md).
@@ -77,20 +78,21 @@ asked — [`live-tests.yml`](../.github/workflows/live-tests.yml), fired by a
 
 The path from here to `0.1.0` is a ten-PR plan in
 [`implementations/`](./implementations/), ordered by
-[its README table](./implementations/README.md#the-plan). PRs 1–3 are
-`current` and merged; PR 4's code is done but no PR is open against it yet;
-the other six are still `draft` with no PR opened against any of them.
+[its README table](./implementations/README.md#the-plan). PRs 1–4 are
+`current` and merged; PR 5's code is done and open as #24 but not yet merged;
+[`ledgering-toolset.md`](./implementations/ledgering-toolset.md) (PR 6)'s plan
+doc is written but no code exists yet (`_ledgering.py` is not in the tree); the
+other four are still `draft` with no plan or code.
 
-**Next up:** Run `create-pr-summary` against
-[`rendering.md`](./implementations/rendering.md) to open its PR and stamp the
-document, then start PR 5,
-[`tribunal-construction.md`](./implementations/tribunal-construction.md) — it
-depends on PR 1 (merged) and PR 4 (code done), so nothing but opening PR 4's
-PR blocks it. It's where `instructions_for()` and the goldens that run through
-it land, which `rendering.md` deliberately left out — the prompt *text* was
-this PR's job, assembling it into an agent's instructions is that one's.
+**Next up:** Get #24 reviewed and merged, then start PR 6,
+[`ledgering-toolset.md`](./implementations/ledgering-toolset.md) — its plan is
+already written, it depends only on PR 1 and PR 4 (both merged), and nothing
+in PR 5 changed its scope. It's `execution.md`'s piece 2: the `WrapperToolset`
+that intercepts every tool call an advocate makes so the ledger can record it.
+PR 7, [`proceeding-core.md`](./implementations/proceeding-core.md), needs both
+5 and 6 and is where `hear()` finally exists.
 
-Six things the next session should carry:
+Things the next session should carry:
 
 - **`live-tests.yml` has now run for real, on both triggers.** A
   `workflow_dispatch` on `main` (2026-09-10) and the `live-tests` label on
@@ -115,31 +117,53 @@ Six things the next session should carry:
   import-time half now has a rule and a test named for it in
   [`packaging.md`](./design/packaging.md#what-import-enbanc-may-do); the rest of
   the gap stands.
-- **The shared eight-entry proceeding now lives in `tests/unit/conftest.py`**
-  (`case`, `deny`, `proceeding` fixtures) — the same worked proceeding
-  [`execution.md`](./design/execution.md#the-proceeding-as-messages) and
-  [`prompting.md`](./design/prompting.md#the-turns) are both written against.
-  PR 5 and PR 6 should extend it rather than each rebuilding
-  [`outcomes.md`](./design/outcomes.md)'s spine by hand.
-- **The subset-property test caught a real bug before anything shipped**, which
-  is the kind of evidence [`0026`](./decisions/0026-one-renderer-serves-both-audiences.md)'s
-  bet is supposed to produce: an early implementation let the empty-record
-  placeholder leak into an agent's delta, and `tests/unit/test_projections.py`
-  failed on it immediately. Fixed; see the log entry below.
+- **The shared conftest pattern held up for PR 5, and PR 6 should follow it
+  too.** `tests/unit/conftest.py` now also has `outcomes_kwargs` — a factory
+  returning keyword arguments rather than a built `Tribunal`, because
+  [`outcomes.md`](./design/outcomes.md#5-the-tribunal-is-misconfigured) § 5
+  needs a constructor that *raises*, and a fixture that pre-built the object
+  would raise before a test body ran. PR 6 varies the same bench further; grow
+  this fixture rather than rebuilding it.
+- **A reserved-value check over an enum needs `member.value == X`, not
+  `X in SomeEnum`.** `EnumType.__contains__` raised `TypeError` for a
+  non-member value until Python 3.12, and `requires-python` is `>=3.11` — the
+  natural spelling passes on the newer interpreter and fails on the floor leg
+  of `ci.yml` alone. `Tribunal`'s reserved-`"judge"` check
+  ([`_tribunal.py`](../src/enbanc/_tribunal.py)) hit this; anything else that
+  validates a value against an enum should check it before writing the
+  obvious version.
 
 **Open questions:**
 
 - None, anywhere in [`design/`](./design/).
 - `procedure` version `p1` is now implemented and pinned by goldens
   (`tests/unit/test_procedural_prompts.py`,
-  `tests/unit/test_transcript_render.py`, `tests/unit/test_turns.py`), but
-  still unshipped — no `Tribunal` exists yet to run a proceeding under it, and
-  its changelog row in
+  `tests/unit/test_transcript_render.py`, `tests/unit/test_turns.py`,
+  `tests/unit/test_instructions.py`), but still unshipped — no `hear()` exists
+  yet to actually run a proceeding under it, and its changelog row in
   [`prompting.md`](./design/prompting.md#procedure-versions) has nothing to
   compare against. The first prompt edit after `0.1.0` ships is the one that
   tests whether the bump discipline holds.
 
 ## Log
+
+### 2026-09-19 — PR 5: tribunal construction
+
+**Did:** Implemented [`tribunal-construction.md`](./implementations/tribunal-construction.md)
+— `Tribunal`, `Judge`, `Advocate` in a new `_tribunal.py`, the four
+`ConfigurationError` checks that run at construction (in order: reserved verdict,
+missing/unknown bench keys, inherited `request_limit`), and
+`instructions_for(participant)`. The assembly itself —
+`instruction_parts()`, the four instruction headings, and `statute_heading()` —
+landed in `_prompting.py` instead, since that text is `p1` surface and splitting
+it across two files would make `_prompting.py`'s own module docstring false.
+43 new tests across three files (`test_tribunal.py`, `test_instructions.py`,
+`outcomes/test_05_misconfigured.py`), plus a `outcomes_kwargs` fixture in
+`tests/unit/conftest.py`. Corrected `packaging.md`, `prompting.md`, and
+`testing.md` in the same commit. Opened [PR #24](https://github.com/ohandyya/enbanc/pull/24)
+and stamped the implementation doc `current`.
+
+**Commits:** 1e41e86, 306103d, b658a79, 46765af.
 
 ### 2026-09-19 — PR 4: rendering
 

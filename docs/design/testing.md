@@ -1,6 +1,6 @@
 ---
-status: draft
-updated: 2026-09-13
+status: current
+updated: 2026-09-19
 ---
 
 # Testing
@@ -228,10 +228,19 @@ then every ending written out as concrete values, including a downed provider, a
 raising tool, and a misconfigured tribunal. The suite mirrors it, section for
 section.
 
-`tests/conftest.py` holds one factory building the tribunal from
+`tests/unit/conftest.py` holds one factory building the tribunal from
 [`outcomes.md`](./outcomes.md#the-tribunal-these-examples-use) — three verdicts,
 `max_rounds=5`, `psql` and `web_search` faked — and each module below varies only
-what its section varies.
+what its section varies. It lives in the tier's own conftest rather than the root
+one, which holds the tiering machinery and the network guard and nothing from
+`enbanc`: all four tiers load that file, and putting the bench there would import
+the library and stand up the fakes at collection time for the two live tiers that
+never ask for them.
+
+**The factory yields keyword arguments, not a built `Tribunal`.** § 5 tests a
+constructor that *raises*, so a factory returning the object would raise first. A
+module varies one key and calls `Tribunal(**kwargs)` itself; one that wants the
+object writes `Tribunal(**outcomes_kwargs())`.
 
 | `outcomes.md` § | Module |
 |---|---|

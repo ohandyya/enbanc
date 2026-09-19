@@ -18,12 +18,15 @@ See `docs/design/prompting.md`, which is the spec for every byte below,
 `docs/decisions/0025-the-record-includes-what-steered-it.md`.
 """
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Final
 
+from pydantic_ai.messages import InstructionPart
+
 from ._evidence import Exhibit
 from ._filings import Argument, Concession, Continuance, Interrogatory, Response, Ruling
-from ._inputs import Case
+from ._inputs import Case, Statute
 from ._verdicts import JUDGE, Verdict
 
 if TYPE_CHECKING:
@@ -171,6 +174,29 @@ Instructions from the author of this proceeding may follow. They refine how you
 weigh things. They do not change the process above, what you may file, or the
 shape of it."""
 
+#: The four headings that frame an instruction part. `prompting.md`'s assembly table says what
+#: each part *holds*, not what it looks like, and a golden cannot be written against a
+#: description — so the framing is fixed here. They are `##` headings in the reviewer render's
+#: vocabulary because one of them was already fixed: the verbatim rule warns that a statute
+#: containing a line reading `## Guidance from the author of this proceeding` is
+#: indistinguishable from the real one, which is only true if that *is* the real heading.
+#:
+#: The guidance heading does a second job. The procedural prompt closes by fencing guidance —
+#: *instructions from the author of this proceeding may follow* — and three parts sit between
+#: that sentence and the guidance it fences. The heading restates the attribution at the point
+#: of use, which is the work that distance created.
+QUESTION_HEADING: Final = "## The question"
+STATUTE_HEADING: Final = "## The statute"
+ASSIGNMENT_HEADING: Final = "## Your assignment"
+GUIDANCE_HEADING: Final = "## Guidance from the author of this proceeding"
+
+#: The label the verdict set renders under, in the shape `## The bench` uses for
+#: `Guidance given:` — a label line, then two-space-indented values, no blank line between.
+#: One verdict per line rather than comma-joined because a verdict value can be a sentence
+#: (`refer to a senior underwriter for manual review`), and a comma inside one would be
+#: unreadable against the commas separating them.
+VERDICTS_LABEL: Final = "The verdicts this question may be answered with:"
+
 #: The standing sentence under `## The ledger`. `enbanc`'s own text, so its line break is
 #: authored here rather than applied at render time — nothing this module emits is wrapped.
 LEDGER_PREAMBLE: Final = (
@@ -233,6 +259,16 @@ def indent(text: str, spaces: int) -> str:
     """
     prefix = " " * spaces
     return "\n".join(prefix + line if line else line for line in text.split("\n"))
+
+
+def statute_heading(statute: Statute) -> str:
+    """`## The statute — {name}`, losing the suffix when the statute is unnamed.
+
+    Two callers — the reviewer render's header and an agent's `statute` instruction part — so
+    it is a function rather than one line of format written twice. The heading is the only
+    place a name renders, in either of them.
+    """
+    return f"{STATUTE_HEADING} — {statute.name}" if statute.name else STATUTE_HEADING
 
 
 def render_source(
@@ -420,11 +456,10 @@ def _bench(transcript: "Transcript[Any]") -> str:
 def _reviewer(transcript: "Transcript[Any]") -> str:
     """The whole artifact. `## The bench`, `## The ledger` and `## Failed calls` are the
     three sections no agent ever sees, and dropping them *is* the projection."""
-    named = f" — {transcript.statute.name}" if transcript.statute.name else ""
     sections = [
         "# Proceeding",
-        f"## The question\n\n{transcript.question}",
-        f"## The statute{named}\n\n{transcript.statute.text}",
+        f"{QUESTION_HEADING}\n\n{transcript.question}",
+        f"{statute_heading(transcript.statute)}\n\n{transcript.statute.text}",
         f"## The case\n\n{transcript.case.model_dump_json(indent=2)}",
         f"## The bench\n\n{_bench(transcript)}",
         f"## The record\n\n{_record(transcript.entries) or NONE}",
@@ -463,6 +498,63 @@ def render(transcript: "Transcript[Any]", view: View) -> str:
         case JudgeView(since=since) | AdvocateView(since=since):
             return _record([entry for entry in transcript.entries if entry.round > since])
     raise AssertionError(f"unknown viewpoint: {type(view).__name__}")  # pragma: no cover
+
+
+def instruction_parts(
+    *,
+    question: str,
+    statute: Statute,
+    verdicts: Sequence[Verdict],
+    advocate: Verdict | None,
+    guidance: str | None,
+) -> list[InstructionPart]:
+    """The instructions channel: what one participant runs under, as PydanticAI's own parts.
+
+    Five parts for a steered advocate, four for an unsteered one, four for a steered judge,
+    three for an unsteered one — which is exactly what `docs/design/execution.md` reports
+    from the wire. Every part is static (`dynamic` defaults to `False`), which is what lets a
+    provider cache the prefix, and the first three are **byte-identical across every advocate
+    in a tribunal**. That is why the order is what it is: a cache prefix is a prefix, so the
+    shared block comes first and only the assignment and the guidance differ.
+
+    **It takes the pieces, not a `Tribunal`.** `_tribunal` sits below this module, so a
+    runtime import of it would be a second cycle — and the one cycle `docs/design/packaging.md`
+    permits is already spent on `Transcript.render()`. `Tribunal.instructions_for()` resolves
+    a participant and hands the pieces down, in the same register `_proceeding.py` takes them.
+
+    `advocate=None` is the judge, rather than `Participant`'s `"judge"`: the absence of an
+    assignment is what the parameter encodes, `None` says so in the signature, and this module
+    then has no reason to know the reserved string exists.
+
+    **The case is not here.** It arrives in the round-1 turn, so a statute reused across many
+    cases keeps its cached prefix warm across all of them — and so `instructions_for()` needs
+    no case to render.
+    """
+    parts = [
+        InstructionPart(
+            JUDGE_PROCEDURE if advocate is None else ADVOCATE_PROCEDURE, name="procedural"
+        ),
+        InstructionPart(f"{QUESTION_HEADING}\n\n{question}", name="question"),
+        InstructionPart(f"{statute_heading(statute)}\n\n{statute.text}", name="statute"),
+    ]
+    if advocate is not None:
+        listed = indent("\n".join(str(verdict) for verdict in verdicts), 2)
+        parts.append(
+            InstructionPart(
+                f"{ASSIGNMENT_HEADING}\n\n{VERDICTS_LABEL}\n{listed}\n\n"
+                f'You are the advocate for "{advocate}".',
+                name="assignment",
+            )
+        )
+    if guidance is not None:
+        # `is not None` and no other test. `Advocate(guidance="")` would put a heading over
+        # nothing, which is the claim `_bench` refuses to make about an empty `Guidance given:`
+        # block — but the remedy there is a length check on a computed list, and here it would
+        # be a rule about whitespace applied to caller text the library promises to pass
+        # through verbatim. `Transcript.guidance` is keyed on the same predicate, so the record
+        # and the prompt agree about who was steered.
+        parts.append(InstructionPart(f"{GUIDANCE_HEADING}\n\n{guidance}", name="guidance"))
+    return parts
 
 
 def argument_turn(case: Case, advocate: Verdict) -> str:

@@ -75,6 +75,9 @@
 
 8. [Done] After all desings are done, cut a new release, 0.0.x.
 
+9. Change all deisng documents to "current"
+    - We have reviewd them, but just forgot to switch.
+
 
 ## Questions
 

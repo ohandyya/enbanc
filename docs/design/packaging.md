@@ -45,8 +45,9 @@ src/enbanc/
   _evidence.py       Source, Exhibit, _Exhibit
   _filings.py        the five filings, the judge's private emit-pair,
                        Filing, Deliberation
-  _prompting.py      procedure p1, both procedural prompts, the turn templates,
-                       the three viewpoints, and Transcript.render()'s body
+  _prompting.py      procedure p1, both procedural prompts, the instruction
+                       parts, the turn templates, the three viewpoints, and
+                       Transcript.render()'s body
   _transcript.py     Entry, Retrieval, ToolFailure, Transcript
   _hearing.py        Undecided, Outcome, Hearing
   _errors.py         EnbancError and its three subclasses
