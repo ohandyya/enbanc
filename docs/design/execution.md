@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-09-13
+updated: 2026-09-20
 ---
 
 # Execution
@@ -169,6 +169,58 @@ Two things make it sufficient rather than merely available:
   alike**, so the `Tool(fn, timeout=…)` form
   [`0020`](../decisions/0020-tool-timeouts-ride-on-the-tool.md) prescribes needs
   no separate path.
+
+### A wrapper toolset is rebuilt for every run
+
+The toolset the agent was given is not the object its `call_tool` runs on.
+`CombinedToolset.for_run` returns `replace(self, toolsets=…)` **unconditionally**
+— it has no identity guard, unlike its own `for_run_step`, which returns `self`
+when every child is unchanged — so a `WrapperToolset` around one always sees a new
+`wrapped` and always replaces itself in turn, and `dataclasses.replace`
+re-constructs the instance from its fields, reading the *original's* values at run
+start.
+
+```text
+wrapper over CombinedToolset, two runs:
+  call_tool ran on the instance the agent was given: False
+  list field, shared by reference:                   ['_search', '_search']
+  int field, incremented on every call:              0
+
+wrapper over a bare FunctionToolset (for_run returns self):
+  call_tool ran on the instance the agent was given: True
+  int field:                                         1
+```
+
+Three consequences, and the ledgering toolset is built out of all three:
+
+- **Every piece of state is a dataclass field.** A subclass that sets attributes
+  in a hand-written `__init__` loses them the first time it is replaced.
+- **State that accumulates lives in a mutable container, shared by reference.**
+  `replace()` is shallow, so a `list` field is the *same list* in the copy while
+  an `int` field is a value the copy mutates alone. A ledger id counted into an
+  `int` would restart at `s1` at the top of every round, silently, and the id is
+  the join key an exhibit resolves through.
+- **A field written between runs reaches the next run's copy**, which is what
+  makes [Piece 2](#piece-2--the-ledgering-toolset)'s mutable `round` safe: it
+  flows one way, from the orchestrator into a run that never writes it back.
+
+This is [`0016`](../decisions/0016-exhibits-are-stamped-citations.md)'s closing
+constraint — *the ledger must be owned by the proceeding, not by the wrapper
+toolset instance* — as a property of the dependency rather than as a caution, and
+that ADR already said it was "true today and is not a documented guarantee".
+`tests/contract/test_a_wrapper_toolset_is_rebuilt_per_run.py` pins it, including
+the bare-`FunctionToolset` case above, which is the one that would let a wrong
+implementation look correct.
+
+**A related typing detail, forced by the same construction.**
+`Agent.__init__` declares `deps_type: type[AgentDepsT] = object` while
+`AgentDepsT` is also solved from `toolsets`, so handing it a toolset typed
+`AbstractToolset[None]` — which `enbanc`'s is, having no `deps` — and letting the
+default stand is a type error about a value neither call site wrote. Every agent
+built over a ledgering toolset therefore passes `deps_type=type(None)`. It is the
+same register as [the note on generic aliases](./api.md#a-note-on-generic-aliases):
+a detail forced by the tools, written down because the alternative is
+rediscovering it as a pyright error and reaching for the wrong fix.
 
 ### Usage accumulates into an object the caller owns
 
@@ -362,7 +414,7 @@ req 2   ToolReturnPart:
             s3://underwriting-docs/okonkwo/w2-2024.pdf
             wages: 131,400
 
-resp 2  ToolCallPart    final_result_ArgumentLoanDecision(
+resp 2  ToolCallPart    final_result__ArgumentLoanDecision(
                           kind="argument", advocate="approve",
                           claim="DTI is 0.38 on documented income.",
                           exhibits=[{source: "s1",
@@ -411,7 +463,7 @@ req 4   instructions=<4 parts, re-resolved, byte-identical>
 
           Round 2. Answer r1-q1 and file your response.
 
-resp 3  ToolCallPart    final_result_ResponseLoanDecision(
+resp 3  ToolCallPart    final_result__ResponseLoanDecision(
                           kind="response", advocate="approve",
                           answer="The Schedule C figure is gross; the W-2 is the "
                                  "reconciled number.",
@@ -443,7 +495,7 @@ Instruction parts: `procedural`, `question`, `statute`, `assignment`, `guidance`
 ```text
 RUN 1 — round 1
         As approve's run 1: the case turn, find_filings returning one source
-        (deny/s1, the W-2), then final_result_ArgumentLoanDecision citing s1.
+        (deny/s1, the W-2), then final_result__ArgumentLoanDecision citing s1.
         Five messages.
 
 RUN 2 — round 2, r1-q2, message_history=<the five above>
@@ -458,16 +510,16 @@ req 4   UserPromptPart:
 
           Round 2. Answer r1-q2 and file your response.
 
-resp 3  ToolCallPart    find_filings(applicant="A. Okonkwo", year=2024)
+resp 3  ToolCallPart    find_filings(applicant="A. Okonkwo")
 
 req 5   ToolReturnPart:
-          find_filings(applicant="A. Okonkwo", year=2024) returned 1 source.
+          find_filings(applicant="A. Okonkwo") returned 1 source.
 
           [s2] W-2, 2024
             s3://underwriting-docs/okonkwo/w2-2024.pdf
             wages: 131,400
 
-resp 4  ToolCallPart    final_result_ResponseLoanDecision(
+resp 4  ToolCallPart    final_result__ResponseLoanDecision(
                           answer="Yes — the statute's ceiling is on documented "
                                  "income.",
                           exhibits=[{source: "s2", content: "wages: 131,400"}])
@@ -499,7 +551,7 @@ req 7   UserPromptPart:
 
           Round 2. Answer r1-q3 and file your response.
 
-resp 5  ToolCallPart    final_result_ResponseLoanDecision(...)
+resp 5  ToolCallPart    final_result__ResponseLoanDecision(...)
 
 req 8   ToolReturnPart  'Final result processed.'
 ```
@@ -716,13 +768,23 @@ async def call_tool(self, name, tool_args, ctx, tool) -> Any:
                                          tool=name, reference=call, detail=str(e)))
         raise                                   # PydanticAI makes it a RetryPromptPart
     sources = as_sources(result, fallback_reference=call)
-    rows = [Retrieval(id=self.next_id(), round=self.round, advocate=self.advocate,
+    base = sum(1 for r in self.ledger if r.advocate == self.advocate)
+    rows = [Retrieval(id=f"s{base + n}", round=self.round, advocate=self.advocate,
                       tool=name, reference=s.reference, content=s.content,
                       label=s.label)
-            for s in sources]
+            for n, s in enumerate(sources, start=1)]
     self.ledger.extend(rows)
     return render_results(call, rows)           # prompting.md's format, verbatim
 ```
+
+**The id is counted out of the ledger rather than into a counter**, and that is
+forced: [a wrapper toolset is rebuilt for every run](#a-wrapper-toolset-is-rebuilt-for-every-run),
+so an `int` field would be incremented on a copy the orchestrator never sees and
+every round would start again at `s1`. The shared list is the state. `base` is
+read once, before any row is built, because a `next_id()` counting the list per
+row would give every source of a two-source call the same id — nothing is
+appended until the `extend`. The filter is this advocate's rows, because ids are
+numbered within an advocate and the join key is `(advocate, id)`.
 
 **The `except` catches `ModelRetry` specifically**, which is what a timeout
 becomes, and re-raises it untouched so the advocate is told exactly what
@@ -732,9 +794,19 @@ here: it propagates, ends the round, and surfaces as `ProceedingFailed`
 degraded advocate and an unheard one is one `except` clause, and it is this one.
 
 **`round` is set on the instance by the orchestrator before each dispatch.** The
-toolset outlives every round, because the id counter has to; `Retrieval.round` and
-`ToolFailure.round` do not. A mutable attribute is the seam between the two
-lifetimes, and it is safe to mutate because an advocate's runs are sequential.
+toolset outlives every round, because the id sequence has to; `Retrieval.round`
+and `ToolFailure.round` do not. A mutable attribute is the seam between the two
+lifetimes, and it is safe to mutate because an advocate's runs are sequential and
+because the value flows one way — into the run's copy, never back out of it.
+
+**The `ledger` and `failures` it writes are the transcript's own lists**, passed
+in by the orchestrator rather than built here. That is `0016`'s ownership
+constraint, and it is also what survives the per-run rebuild: a row is in the
+record the instant it is written, so a proceeding that fails mid-round still
+carries a ledger complete as far as it got. It does not go through the filing
+clerk, which exists for `0010`'s ordering promise about `entries`; nothing streams
+the ledger, and there is no `await` between the count and the `extend` for a
+concurrent advocate to interleave into.
 
 **`as_sources` is the `Source`-shape test.** A `Source`, or a sequence of them,
 is taken as written. Anything else — a string, a dict, a model, an MCP payload —

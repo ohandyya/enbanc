@@ -19,7 +19,9 @@ from enbanc import (
     Ruling,
     Verdict,
 )
-from enbanc._filings import _Continuance, _Interrogatory
+from enbanc import _filings as filings
+from enbanc._evidence import _Exhibit
+from enbanc._filings import _Argument, _Continuance, _Interrogatory, _Response
 
 
 class LoanDecision(Verdict):
@@ -157,6 +159,49 @@ def test_an_exhibit_rides_on_the_filings_that_can_carry_one() -> None:
     assert argued.exhibits[0].reference == "psql(...)"
     assert "exhibits" not in Concession.model_fields
     assert "exhibits" not in Ruling.model_fields
+
+
+def test_an_advocate_is_never_asked_for_a_reference() -> None:
+    """The emit-shapes carry `_Exhibit`, which holds only the two fields an advocate may
+    author. Four of the public `Exhibit`'s five are the tribunal's, resolved from the ledger
+    when the filing is made — so a fabricated reference is not a state the library can
+    reach."""
+    for emitted in (_Argument, _Response):
+        assert emitted.model_fields["exhibits"].annotation == list[_Exhibit]
+    for public in (Argument, Response):
+        assert public.model_fields["exhibits"].annotation == list[Exhibit]
+
+
+def test_the_emitted_filings_tag_themselves_as_their_public_counterparts() -> None:
+    """Same `kind`, because the conversion at the filing seam is a field copy and the tag is
+    one of the fields copied."""
+    emitted_argument = _Argument[LoanDecision](advocate=LoanDecision.APPROVE, claim="DTI is 0.38")
+    emitted_response = _Response[LoanDecision](
+        advocate=LoanDecision.APPROVE, answering="r1-q1", answer="§4.2 permits it"
+    )
+
+    assert (emitted_argument.kind, emitted_response.kind) == ("argument", "response")
+    assert emitted_argument.exhibits == []
+    assert emitted_response.exhibits == []
+
+
+def test_an_emitted_exhibit_is_an_id_and_an_excerpt() -> None:
+    emitted = _Argument[LoanDecision](
+        advocate=LoanDecision.APPROVE,
+        claim="DTI is 0.38",
+        exhibits=[_Exhibit(source="s1", content="net profit: 182,000")],
+    )
+
+    assert (emitted.exhibits[0].source, emitted.exhibits[0].content) == (
+        "s1",
+        "net profit: 182,000",
+    )
+
+
+def test_a_concession_has_no_private_counterpart() -> None:
+    """It carries nothing the tribunal stamps, so there is nothing to ask the model for
+    differently."""
+    assert not hasattr(filings, "_Concession")
 
 
 def test_the_emitted_continuance_nests_the_emitted_interrogatory() -> None:

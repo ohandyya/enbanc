@@ -1,4 +1,4 @@
-"""The five filings, the judge's private emit-pair, and two of the three generic aliases.
+"""The five filings, the private emit-shapes beside them, and two of the three aliases.
 
 An entry in the transcript is a filing, and there are exactly five: an advocate argues,
 concedes, or responds; the judge continues or rules. Each private emit-shape sits beside its
@@ -6,8 +6,15 @@ public counterpart, because the conversion between them happens at one seam — 
 clerk — and holding both shapes of one concept in one file is what keeps the pair from
 drifting apart.
 
+Four of those shapes are private, and they are all the same move: a model is asked only for
+what it knows, and every field whose correctness the record depends on is filled by the
+tribunal from something it observed. The judge emits `_Interrogatory` and `_Continuance`
+without ids; an advocate emits `_Argument` and `_Response` whose exhibits are a ledger id and
+an excerpt. A `Concession` has no private counterpart, because it carries nothing stamped.
+
 See `docs/design/api.md` ("What participants file", "The judge's output", "Where ids come
-from"), `docs/decisions/0015-interrogatory-ids-are-stamped-on-filing.md`, and
+from"), `docs/decisions/0015-interrogatory-ids-are-stamped-on-filing.md`,
+`docs/decisions/0016-exhibits-are-stamped-citations.md`, and
 `docs/decisions/0036-a-continuance-carries-at-least-one-interrogatory.md`.
 """
 
@@ -16,7 +23,7 @@ from typing import Annotated, Generic, Literal
 from pydantic import BaseModel, Field
 from typing_extensions import TypeAliasType
 
-from ._evidence import Exhibit
+from ._evidence import Exhibit, _Exhibit
 from ._verdicts import VerdictT
 
 
@@ -37,6 +44,25 @@ class Argument(BaseModel, Generic[VerdictT]):
     advocate: VerdictT
     claim: str
     exhibits: list[Exhibit] = []
+
+
+class _Argument(BaseModel, Generic[VerdictT]):
+    """What an advocate emits in round 1: an argument whose exhibits are bare citations.
+
+    The exact parallel of `_Continuance` below. An advocate cites a ledger id and writes the
+    excerpt it relies on; the tribunal resolves the id against that advocate's ledger and
+    stamps the tool, the reference and the label beside them. Four of the public `Exhibit`'s
+    five fields are therefore unaskable of the model, which is what this second shape buys —
+    a single class would have to default them, and a defaulted reference is a fabricated
+    citation the record cannot tell from a real one.
+
+    See `docs/decisions/0016-exhibits-are-stamped-citations.md`.
+    """
+
+    kind: Literal["argument"] = "argument"
+    advocate: VerdictT
+    claim: str
+    exhibits: list[_Exhibit] = []
 
 
 class Concession(BaseModel, Generic[VerdictT]):
@@ -104,6 +130,25 @@ class Response(BaseModel, Generic[VerdictT]):
     answering: str
     answer: str
     exhibits: list[Exhibit] = []
+
+
+class _Response(BaseModel, Generic[VerdictT]):
+    """What an advocate emits in round 2 and after: a response whose exhibits are bare ids.
+
+    `_Argument`'s counterpart, for the same reason and with the same two model-authored
+    fields on each exhibit.
+
+    `advocate` and `answering` are carried so that the conversion into the public `Response`
+    is a field copy rather than a merge of two sources. Neither is the model's to decide:
+    the tribunal dispatches one advocate run per interrogatory, so it knows whose run this is
+    and which question it answers, and it fills both from the dispatch.
+    """
+
+    kind: Literal["response"] = "response"
+    advocate: VerdictT
+    answering: str
+    answer: str
+    exhibits: list[_Exhibit] = []
 
 
 class Ruling(BaseModel, Generic[VerdictT]):

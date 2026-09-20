@@ -54,7 +54,7 @@ laid out because tests import them.
 
 ## Files
 
-One new module, one pair of models added to an existing one, and three design
+One new module, one pair of models added to an existing one, and four design
 documents corrected. The module map
 ([`packaging.md`](../design/packaging.md#the-modules)) puts `_ledgering.py`
 ninth, between `_errors.py` and `_tribunal.py`, so every import it makes runs
@@ -120,6 +120,15 @@ so pinning identity would buy deterministic ids by breaking the toolsets
 `evidence.md` promises work unchanged. PydanticAI documents the hook as *"return
 a fresh instance for per-run state isolation"*; the shared list costs nothing and
 does not fight it.
+
+**One typing consequence, found by building and owed by the next PR.**
+`Agent.__init__` declares `deps_type: type[AgentDepsT] = object` while also
+solving `AgentDepsT` from `toolsets`, so `Agent(model, toolsets=[ledgering])` is a
+pyright error: the toolset says `None` and the default says `object`. Every agent
+built over one passes `deps_type=type(None)`. The tests' agent helper carries the
+line and says why, and the finding in `execution.md` records it so
+[`proceeding-core.md`](./proceeding-core.md) does not rediscover it as a
+type-check failure and reach for the wrong fix.
 
 ### The fields, and who owns the lists
 
@@ -216,22 +225,16 @@ async def call_tool(
             )
         )
         raise
-    base = sum(1 for row in self.ledger if row.advocate == self.advocate)
-    rows = [
-        Retrieval[VerdictT](
-            id=f"s{base + n}",
-            round=self.round,
-            advocate=self.advocate,
-            tool=name,
-            reference=source.reference,
-            content=source.content,
-            label=source.label,
-        )
-        for n, source in enumerate(as_sources(result, fallback_reference=call), start=1)
-    ]
+    rows = self._ledger_rows(name, as_sources(result, fallback_reference=call))
     self.ledger.extend(rows)
     return render_results(call, rows)
 ```
+
+`_ledger_rows` is the numbering [above](#ids-are-counted-out-of-the-ledger-not-into-a-counter),
+kept as its own method so that the three rules it obeys have somewhere to be
+written down and so that `call_tool` reads as the five steps it is. It builds the
+rows and does not write them: the `extend` stays at the call site, next to the
+`return` that renders what was written.
 
 `call` is rendered before the `try`, because both arms need it: it is the failed
 call's `reference` and it is the anonymous source's `reference` and the tool
@@ -506,7 +509,7 @@ implicated.
 
 ### Design documents
 
-Five edits, all of them `CLAUDE.md` rule 2 paid in this commit.
+Seven edits, all of them `CLAUDE.md` rule 2 paid in this commit.
 
 [`execution.md` § What PydanticAI already does](../design/execution.md#what-pydanticai-already-does)
 gains a twelfth finding, **A wrapper toolset is rebuilt for every run**, with the
@@ -543,6 +546,16 @@ example in
 which is the contract test's own classes. No `PROCEDURE` bump: that section says
 outright that the tool names are PydanticAI's and are not covered by
 `Transcript.procedure`.
+
+[`packaging.md` § The modules](../design/packaging.md#the-modules) — the
+`_filings.py` line and the paragraph on private emit-shapes name four of them
+rather than the judge's two.
+
+[`evidence.md` § How a source becomes an exhibit](../design/evidence.md#how-a-source-becomes-an-exhibit)
+— one sentence beside the anonymous reference: the arguments are the ones the
+call actually ran with, so a parameter the tool defaults appears even when the
+model omitted it. That is what makes *a reviewer re-runs it* mean something, and
+it is the fact the trace correction above follows from.
 
 [`evidence.md` § A call that returned nothing is recorded too](../design/evidence.md#a-call-that-returned-nothing-is-recorded-too)
 — one paragraph on the empty return: a tool that comes up empty produces no
