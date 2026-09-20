@@ -1,5 +1,6 @@
 ---
-status: draft
+status: current
+pr: 25
 updated: 2026-09-20
 ---
 
