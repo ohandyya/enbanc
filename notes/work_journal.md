@@ -48,6 +48,12 @@
 
     - In Tavily, it can support retrieve image and include an impage description. This should be the default beahvior.
 
+    - How to implement it?
+
+        - Modify `web_search`
+            - Add additona image related configurations (e.g., include_images, include_image_descriptions) in the constructor.
+            - In the inner `web_search`, get values from images, and then append to `sources`
+
 ## To Dos
 
 1. [Done] How to design tools an how to allow user to extend the tool?
