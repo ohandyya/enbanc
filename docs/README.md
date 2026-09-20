@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-09-12
+updated: 2026-09-20
 ---
 
 # Documentation
@@ -59,6 +59,7 @@ and its table for the order they land in.
 | [`implementations/proceeding-core.md`](./implementations/proceeding-core.md) | The first half of piece 3: agents, the filing clerk, history, `since`, snapshots, usage, `hear_stream()` and `hear()` — a proceeding that runs one round |
 | [`implementations/round-loop.md`](./implementations/round-loop.md) | What a continuance starts: stamped ids, dispatch to the advocates named, an advocate's questions answered in order, and the two ways a proceeding ends without ruling |
 | [`implementations/failures.md`](./implementations/failures.md) | The failure half of piece 3: the first-failure slot, cancellation, `ProceedingFailed`, `ProceedingUnfinished`, and abandoning a stream |
+| [`implementations/guides.md`](./implementations/guides.md) | `docs/guides/` as single-file runnable scripts, one per use case, each executed by the `e2e` tier |
 | [`implementations/zero-one-zero.md`](./implementations/zero-one-zero.md) | The `e2e` tier, the design documents' `draft` → `current` sweep, and the version bump that makes the library true |
 
 ### Decisions — ADRs

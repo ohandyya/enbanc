@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-09-19
+updated: 2026-09-20
 ---
 
 # Testing
@@ -43,7 +43,7 @@ the awkward paths reachable at all: a real Tavily cannot be asked to return a
 result with no `url`.
 
 **`contract` is not about `enbanc`.** [`execution.md`](./execution.md#what-pydanticai-already-does)
-records eleven findings about `pydantic-ai 2.36.0`, verified by reading the
+records twelve findings about `pydantic-ai 2.36.0`, verified by reading the
 installed source and running it, and says outright that "these are claims about a
 dependency, and they are worth re-checking when the pin moves." They were
 verified by throwaway scripts. This tier is where those scripts live so a version
@@ -52,7 +52,7 @@ its failures mean something different: a red `contract` test says the dependency
 moved, not that `enbanc` broke, and the fix is usually to change a design
 document rather than to change code.
 
-Two of the eleven findings are derivations rather than probes and have no module
+Two of the twelve findings are derivations rather than probes and have no module
 here. *Three channels reach a model* is a summary of the two findings above it.
 *What lands in history that no rendered turn contains* is the whitelist the
 invariant helper encodes, and is tested [there](#the-transcript-invariant)
@@ -64,6 +64,7 @@ instead.
 | Instructions are re-resolved every run | Instructions reappear per request and never enter history |
 | A filing lands in history as a tool call | One output tool per union member, named from the class; no `TextPart` on the path |
 | Intercepting a tool call is one method | `WrapperToolset.call_tool` return becomes `ToolReturnPart` verbatim; a `Tool` timeout surfaces as `ModelRetry` inside it; `FunctionToolset(tools=…)` takes bare functions and `Tool`s alike |
+| A wrapper toolset is rebuilt for every run | `CombinedToolset.for_run` replaces unconditionally, so `call_tool` runs on a `replace()` copy; a `list` field is shared and an `int` field is not; a field written between runs reaches the next run; a wrapper over a bare `FunctionToolset` keeps its identity |
 | Usage accumulates into an object the caller owns | `run(usage=u)` mutates in place, `result.usage is u`, and a run that dies mid-flight leaves its partial spend |
 | Two retry budgets, not one | Both default to `1`, they are independent, tool retries key on tool name, `Tool(max_retries=…)` overrides |
 | A failing output schema spends the `output` budget | Attempts track `output` alone; the constraint reaches the model as `minItems` |

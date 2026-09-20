@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-09-13
+updated: 2026-09-20
 ---
 
 # Evidence
@@ -147,9 +147,12 @@ reference='dti_for(applicant="A. Okonkwo")'
 ```
 
 That is reproducible — a reviewer re-runs it — and for a database or an internal
-API it genuinely is the locator, because there is no URL to point at. This
-branch is what keeps every existing PydanticAI tool and every MCP server usable
-with no adaptation at all. Returning `Source` is an upgrade, not an entry fee.
+API it genuinely is the locator, because there is no URL to point at. **The
+arguments are the ones the call actually ran with**, which is what makes
+re-running it mean anything: they arrive validated, so a parameter your tool
+defaults appears in the reference even when the model omitted it. This branch is
+what keeps every existing PydanticAI tool and every MCP server usable with no
+adaptation at all. Returning `Source` is an upgrade, not an entry fee.
 
 **2. The advocate sees the ids.** What reaches the model is the content it would
 have seen anyway, with an id attached to each source:
@@ -317,6 +320,16 @@ nothing and can never be cited, and the absent id is the type saying so. It is
 also why failures are a separate list rather than `Retrieval`s with an `outcome`
 flag: a successful call yields a row per source and a failed call yields none,
 so folding them together would make the ledger's rows mean two different things.
+
+**A call that came up empty is neither.** A tool that searched and found nothing
+produced no source, so it produces no `Retrieval` — and it did not fail, so it
+produces no `ToolFailure` either. That is the one outcome the record does not
+carry, and it is the right reading of both halves rather than an oversight: a
+`Retrieval` exists per source, and a `failures` row is a claim that something
+went wrong. A tool author who wants the empty search in the record has the same
+lever as everywhere else — return a `Source` saying so, and it is ledgered like
+any other. The advocate is told either way: its tool result reads *returned 0
+sources*.
 
 **Why this is not just tidiness.** [`0011`](../decisions/0011-exhaustion-is-an-outcome-failure-is-an-error.md)
 and [`0012`](../decisions/0012-a-failure-cancels-the-round.md) turn on the

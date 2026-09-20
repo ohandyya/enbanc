@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-09-19
+updated: 2026-09-20
 ---
 
 # Packaging
@@ -43,8 +43,8 @@ src/enbanc/
   _verdicts.py       Verdict, VerdictT, the reserved "judge", Participant
   _inputs.py         Statute, Case
   _evidence.py       Source, Exhibit, _Exhibit
-  _filings.py        the five filings, the judge's private emit-pair,
-                       Filing, Deliberation
+  _filings.py        the five filings, the four private emit-shapes beside
+                       them, Filing, Deliberation
   _prompting.py      procedure p1, both procedural prompts, the instruction
                        parts, the turn templates, the three viewpoints, and
                        Transcript.render()'s body
@@ -77,8 +77,8 @@ constructed and called directly by a test, and so is the round loop. These paths
 are part of the layout whether or not a user may reach them.
 
 **Each private emit-shape sits beside its public counterpart.** `_Exhibit` is in
-`_evidence.py` with `Exhibit`; `_Interrogatory` and `_Continuance` are in
-`_filings.py` with `Interrogatory` and `Continuance`. The conversion between them
+`_evidence.py` with `Exhibit`; `_Interrogatory`, `_Continuance`, `_Argument` and
+`_Response` are in `_filings.py` with the public shapes they convert into. The conversion between them
 happens at one seam — [the filing clerk](./execution.md#the-filing-clerk) — and
 holding both shapes of one concept in one file is what keeps the pair from
 drifting apart. Splitting them into a `_private.py` would put the two halves of

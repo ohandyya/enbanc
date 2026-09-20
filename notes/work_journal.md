@@ -33,6 +33,8 @@
         - Labeling
         - Decision making (loan)
 
+    - For each use case, we shoudl add a stand-alone script that user can `run as-is`. This will give user a concrete example of how to use it.
+
 8. Can we puiblish API references ?
 
 9. Accuracy / Performance measurement
@@ -41,6 +43,16 @@
         - Can we use AI to search for Kaggle and find a relevant dataset?
     - What kind of algorihtm can we compare?
         - Maybe compare with a single LLM prompt?
+
+10. Include image in web search tool
+
+    - In Tavily, it can support retrieve image and include an impage description. This should be the default beahvior.
+
+    - How to implement it?
+
+        - Modify `web_search`
+            - Add additona image related configurations (e.g., include_images, include_image_descriptions) in the constructor.
+            - In the inner `web_search`, get values from images, and then append to `sources`
 
 ## To Dos
 

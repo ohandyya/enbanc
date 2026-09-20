@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-09-19
+updated: 2026-09-20
 ---
 
 # Progress
@@ -22,37 +22,43 @@ spec: [`design/`](./design/) is.
 
 ## Current state
 
-**Phase:** Design complete, and four of the ten-PR plan's PRs are `current`
+**Phase:** Design complete, and five of the ten-PR plan's PRs are `current`
 and merged: [`schemas.md`](./implementations/schemas.md)
 ([PR #19](https://github.com/ohandyya/enbanc/pull/19)),
 [`contract-probes.md`](./implementations/contract-probes.md)
 ([PR #20](https://github.com/ohandyya/enbanc/pull/20)),
 [`web-search-tool.md`](./implementations/web-search-tool.md)
-([PR #21](https://github.com/ohandyya/enbanc/pull/21)), and
+([PR #21](https://github.com/ohandyya/enbanc/pull/21)),
 [`rendering.md`](./implementations/rendering.md)
-([PR #23](https://github.com/ohandyya/enbanc/pull/23)).
-[`tribunal-construction.md`](./implementations/tribunal-construction.md)'s
-code is done too — `Tribunal`, `Judge`, `Advocate`, the four
-`ConfigurationError` checks, and `instructions_for()` — and
-[PR #24](https://github.com/ohandyya/enbanc/pull/24) is open against it with
-the document stamped `current`, but it has not merged yet. The implementation
-doc records 43 new tests, 204 → 247, all in `tests/unit/`; that count was not
-re-verified by running the suite this session — run `make check-all` before
-merging #24. `Tribunal`, `Judge`, and `Advocate` are exported now (25 → 28
-names); `Proceeding` is the only one of the twenty-nine left, still waiting on
-[`proceeding-core.md`](./implementations/proceeding-core.md) (PR 7). The
-README's WIP banner is still accurate — `hear()` doesn't exist, so nothing in
-the published surface can actually run a proceeding yet. The published `0.0.5`
-on PyPI still reserves the name and nothing more.
+([PR #23](https://github.com/ohandyya/enbanc/pull/23)), and
+[`tribunal-construction.md`](./implementations/tribunal-construction.md)
+([PR #24](https://github.com/ohandyya/enbanc/pull/24)) — #24 merged since the
+last entry. [`ledgering-toolset.md`](./implementations/ledgering-toolset.md)'s
+code is done too — `Ledgering`, `as_sources`, `render_call`/`render_results`,
+the citation validator, and the `_Argument`/`_Response` pair it validates —
+and [PR #25](https://github.com/ohandyya/enbanc/pull/25) is open against it
+with the document stamped `current`, but it has not merged yet. `make test`
+passes at 303 (247 → 303 this session); that count was re-verified by running
+the suite. **No public name moved** — `Ledgering` is internal, so `__all__`
+stays at 28 and `test_export_surface.py`'s twenty-nine-name literal still
+waits on [`proceeding-core.md`](./implementations/proceeding-core.md) (PR 7),
+the only one of the twenty-nine names left. The README's WIP banner is still
+accurate — `hear()` doesn't exist, so nothing in the published surface can
+actually run a proceeding yet. The published `0.0.5` on PyPI still reserves
+the name and nothing more.
 
 Settled and binding across
-[`0001`](./decisions/0001-statute-carries-no-model.md)–[`0035`](./decisions/0035-testing-holds-technique-not-an-index.md).
+[`0001`](./decisions/0001-statute-carries-no-model.md)–[`0037`](./decisions/0037-a-conceded-advocate-stays-addressable.md).
 Eight design documents under [`design/`](./design/) carry **no open questions**:
 every public type, every way a proceeding can *end*, its *behaviour*, how
 evidence becomes a checkable exhibit, everything a participant reads, how the
 whole thing maps onto PydanticAI, how any of it is known to be true, and how it
-is laid out as an importable package. There are **no placeholders left** —
-`degenerate-deliberations.md` was deleted once its three holes were answered by
+is laid out as an importable package. [`execution.md`](./design/execution.md#what-pydanticai-already-does)
+now records **twelve** `pydantic-ai` findings rather than eleven — a wrapper
+toolset is rebuilt for every run, found while building the ledgering toolset —
+and every probe-shaped one has a `tests/contract/` module pinning it. There are
+**no placeholders left** — `degenerate-deliberations.md` was deleted once its
+three holes were answered by
 [`0036`](./decisions/0036-a-continuance-carries-at-least-one-interrogatory.md),
 [`0037`](./decisions/0037-a-conceded-advocate-stays-addressable.md), and
 [`0027`](./decisions/0027-an-advocate-answers-its-interrogatories-in-order.md),
@@ -78,22 +84,36 @@ asked — [`live-tests.yml`](../.github/workflows/live-tests.yml), fired by a
 
 The path from here to `0.1.0` is a ten-PR plan in
 [`implementations/`](./implementations/), ordered by
-[its README table](./implementations/README.md#the-plan). PRs 1–4 are
-`current` and merged; PR 5's code is done and open as #24 but not yet merged;
-[`ledgering-toolset.md`](./implementations/ledgering-toolset.md) (PR 6)'s plan
-doc is written but no code exists yet (`_ledgering.py` is not in the tree); the
-other four are still `draft` with no plan or code.
+[its README table](./implementations/README.md#the-plan). PRs 1–6 are
+`current`; #24 (PR 5) has merged and #25 (PR 6) is open but not yet merged;
+the other four are still `draft` with no plan or code.
 
-**Next up:** Get #24 reviewed and merged, then start PR 6,
-[`ledgering-toolset.md`](./implementations/ledgering-toolset.md) — its plan is
-already written, it depends only on PR 1 and PR 4 (both merged), and nothing
-in PR 5 changed its scope. It's `execution.md`'s piece 2: the `WrapperToolset`
-that intercepts every tool call an advocate makes so the ledger can record it.
-PR 7, [`proceeding-core.md`](./implementations/proceeding-core.md), needs both
-5 and 6 and is where `hear()` finally exists.
+**Next up:** Get #25 reviewed and merged, then start PR 7,
+[`proceeding-core.md`](./implementations/proceeding-core.md) — it depends on
+PRs 5 and 6, both of which now have code, and it is where `hear()` and
+`hear_stream()` finally exist. Its own `Scope` was checked against what PR 6's
+build taught and still reads true as written; two build details it will need
+but does not name explicitly are that every `Agent` built over a `Ledgering`
+toolset requires `deps_type=type(None)` (a `pydantic-ai` typing quirk, not a
+design choice — see
+[`execution.md`](./design/execution.md#a-wrapper-toolset-is-rebuilt-for-every-run)),
+and that `Ledgering.check_citations` needs registering as that agent's output
+validator. `__all__` completes with this PR — `Tribunal`, `Judge`, `Advocate`,
+and `Proceeding` are exported, and `test_export_surface.py` pins the
+twenty-nine-name literal for the first time.
 
 Things the next session should carry:
 
+- **A wrapper toolset is rebuilt on every `agent.run()`, not reused.**
+  `CombinedToolset.for_run` returns a new object unconditionally, so a
+  `WrapperToolset` around one is `dataclasses.replace()`d per run and its
+  `call_tool` never runs on the instance the caller holds. Every piece of
+  state on such a toolset has to be a dataclass field, and anything that must
+  accumulate across runs (a ledger, a counter) has to live in a mutable
+  container shared by reference — a scalar field mutates only the discarded
+  copy. `Ledgering`'s ids are counted out of the shared ledger list rather
+  than held in a counter for exactly this reason. Anything future that wraps
+  another toolset needs to hold this in mind from the first line.
 - **`live-tests.yml` has now run for real, on both triggers.** A
   `workflow_dispatch` on `main` (2026-09-10) and the `live-tests` label on
   [PR #21](https://github.com/ohandyya/enbanc/pull/21) (2026-09-13) both went
@@ -102,27 +122,22 @@ Things the next session should carry:
   tier is no longer empty: `test_web_search.py` ran one real Tavily call and
   passed. The e2e tier is still `test_placeholder.py` — it only asserts the
   runner's model builds, and waits on `api.md`'s example to exist.
-- **Every probe-shaped `pydantic-ai` finding in `execution.md` now has a
-  test.** [`design/execution.md`](./design/execution.md#what-pydanticai-already-does)'s
-  eleven findings are down to zero unpinned: nine are probes with a
-  `tests/contract/` module each, two are derivations tested elsewhere. A
-  version bump now has something to fail loudly rather than going unnoticed.
-- **Piece 2 is small and piece 3 is not.** The ledgering toolset is a
-  `WrapperToolset` with `call_tool` overridden. Round orchestration is the
-  largest piece: the filing clerk, the task group, the snapshot construction,
-  and the round loop.
+- **Piece 2 is done; piece 3 is not.** The ledgering toolset (piece 2) is
+  built and tested. Round orchestration (piece 3) is the largest remaining
+  piece: the filing clerk, the task group, the snapshot construction, and the
+  round loop — all of PR 7 and PR 8.
 - **The network guard is a tripwire, not a sandbox.** It catches `asyncio`, and
   so every HTTP client the library will actually use, but raw `_socket`,
   subprocesses, and anything connecting at import time go straight past it. The
   import-time half now has a rule and a test named for it in
   [`packaging.md`](./design/packaging.md#what-import-enbanc-may-do); the rest of
   the gap stands.
-- **The shared conftest pattern held up for PR 5, and PR 6 should follow it
-  too.** `tests/unit/conftest.py` now also has `outcomes_kwargs` — a factory
+- **The shared conftest pattern held up for PR 5 and PR 6.**
+  `tests/unit/conftest.py` now also has `outcomes_kwargs` — a factory
   returning keyword arguments rather than a built `Tribunal`, because
   [`outcomes.md`](./design/outcomes.md#5-the-tribunal-is-misconfigured) § 5
   needs a constructor that *raises*, and a fixture that pre-built the object
-  would raise before a test body ran. PR 6 varies the same bench further; grow
+  would raise before a test body ran. PR 7 varies the same bench further; grow
   this fixture rather than rebuilding it.
 - **A reserved-value check over an enum needs `member.value == X`, not
   `X in SomeEnum`.** `EnumType.__contains__` raised `TypeError` for a
@@ -139,13 +154,39 @@ Things the next session should carry:
 - `procedure` version `p1` is now implemented and pinned by goldens
   (`tests/unit/test_procedural_prompts.py`,
   `tests/unit/test_transcript_render.py`, `tests/unit/test_turns.py`,
-  `tests/unit/test_instructions.py`), but still unshipped — no `hear()` exists
-  yet to actually run a proceeding under it, and its changelog row in
+  `tests/unit/test_instructions.py`, `tests/unit/test_tool_results.py`), but
+  still unshipped — no `hear()` exists yet to actually run a proceeding under
+  it, and its changelog row in
   [`prompting.md`](./design/prompting.md#procedure-versions) has nothing to
   compare against. The first prompt edit after `0.1.0` ships is the one that
   tests whether the bump discipline holds.
 
 ## Log
+
+### 2026-09-20 — PR 6: the ledgering toolset
+
+**Did:** Implemented [`ledgering-toolset.md`](./implementations/ledgering-toolset.md)
+— `_ledgering.py`: `Ledgering` (one `WrapperToolset` per advocate over one
+`CombinedToolset`), `as_sources`'s shape-sniff, `render_call`/`render_results`,
+and the `check_citations` output validator. `_filings.py` gained `_Argument`
+and `_Response`, the advocate's private emit-shapes `_Exhibit` had been waiting
+for since `schemas.md`. Verified against the installed `pydantic-ai` that
+`CombinedToolset.for_run` rebuilds the toolset on every run, which forced the
+ledger id to be counted out of the shared list rather than held in a counter
+field — recorded as `execution.md`'s twelfth finding, with a new
+`tests/contract/` module pinning it. 56 new tests, 247 → 303. `__all__` stays
+at 28; `Ledgering` is internal. PR #24 (tribunal construction) merged since the
+last entry. PR #25 opened for this work and is stamped `current` in the
+implementation doc and the plan table.
+
+**Why this way:** The `pydantic-ai` finding and the reasoning for rejecting
+`for_run`-identity-pinning as a fix are written into
+[`execution.md` § A wrapper toolset is rebuilt for every run](./design/execution.md#a-wrapper-toolset-is-rebuilt-for-every-run)
+rather than a separate journal entry — it binds how every future
+`WrapperToolset`-based module in this package must hold state, which made it
+design prose rather than session narrative.
+
+**Commits:** a965202, 6139623, e91ffb8, 394778b, e3af203
 
 ### 2026-09-19 — PR 5: tribunal construction
 
