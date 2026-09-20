@@ -5,11 +5,23 @@ multi-round proceeding belongs here, not in `e2e`: ADR 0003 makes the model inje
 whole proceeding runs with no provider in the loop.
 """
 
+import re
 from collections.abc import Callable
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
 import pytest
+from pydantic_ai.messages import (
+    ModelMessage,
+    ModelRequest,
+    ModelResponse,
+    RetryPromptPart,
+    ToolCallPart,
+    ToolReturnPart,
+    UserPromptPart,
+)
+from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.models.test import TestModel
 
 from enbanc import (
@@ -99,12 +111,12 @@ def case() -> LoanApplication:
 async def psql(query: str) -> list[Source]:
     """The warehouse tool every advocate in `outcomes.md` is given.
 
-    Never called in this tier yet — a tribunal holds its tools and nothing runs them until
-    there is a proceeding — but it has to be a real async function with a docstring, because
-    that is what PydanticAI derives a tool schema from and what an `Advocate` is annotated to
-    take.
+    A real async function with a docstring, because that is what PydanticAI derives a tool
+    schema from and what an `Advocate` is annotated to take. It returns one source, so an
+    advocate that searches is issued `s1` and the exhibit it files resolves against a ledger
+    row the proceeding actually wrote — rather than against a row a test hand-built.
     """
-    return []
+    return [Source(reference=W2, content="wages: 131,400", label="W-2, 2024")]
 
 
 @pytest.fixture
@@ -354,3 +366,232 @@ def proceeding(case: LoanApplication) -> Transcript[LoanDecision]:
             )
         ],
     )
+
+
+# ---------------------------------------------------------------------------------------------
+# A proceeding, faked: the bench that scripts every participant, and the invariant it is
+# checked against. Both are fixtures rather than importable helpers because a `conftest.py` is
+# not a module a test may import from — see `deny` above.
+# ---------------------------------------------------------------------------------------------
+
+#: How a participant is identified from the turn it was handed. The fake reads the same prompt
+#: a real model reads, rather than being told out of band which agent it is standing in for, so
+#: a turn template that stopped naming the advocate would break the bench loudly.
+_ADVOCATE_TURN = re.compile(r'File your argument for "(?P<verdict>.+)", or concede\.')
+
+#: Message parts that carry something no rendered turn contains, and are accounted for rather
+#: than derived. `docs/design/execution.md` ("What lands in history that no rendered turn
+#: contains") enumerates exactly these: tool traffic covered by `Transcript.ledger`, retry
+#: prompts (`0021`), the output tool's receipt, and the agent's own pre-stamp output — which is
+#: a `ToolCallPart`, because a filing lands in history as a tool call.
+#:
+#: `TextPart` is deliberately absent. `execution.md` claims there is none on the path an
+#: `enbanc` participant takes, ever, so one appearing is a claim to re-check rather than an
+#: escape to widen.
+_ESCAPES = (ToolCallPart, ToolReturnPart, RetryPromptPart)
+
+#: Lines a turn template contributes that the transcript does not hold. They are procedure, not
+#: record: `docs/design/prompting.md` owns them and `Transcript.procedure` versions them, which
+#: is why the invariant is about the facts around them.
+_TURN_SCAFFOLDING = (
+    re.compile(r"^## (The case|Round \d+|Addressed to you)$"),
+    re.compile(r"^## Filed since you last (filed|deliberated)$"),
+    re.compile(r'^Round \d+\. File your argument for ".+", or concede\.$'),
+    re.compile(r"^Round \d+\. Answer \S+ and file your response\.$"),
+    re.compile(r"^Deliberation \d+ of \d+\. Rule, or issue a continuance\.$"),
+)
+
+
+def _turn(messages: list[ModelMessage]) -> str:
+    """The last user prompt: the turn this request is answering."""
+    prompts = [
+        part.content
+        for message in messages
+        for part in getattr(message, "parts", ())
+        if isinstance(part, UserPromptPart)
+    ]
+    return str(prompts[-1]) if prompts else ""
+
+
+def _participant(messages: list[ModelMessage]) -> Any:
+    """Whose turn this is — a verdict member, or the string `"judge"`."""
+    named = _ADVOCATE_TURN.search(_turn(messages))
+    return LoanDecision(named.group("verdict")) if named else "judge"
+
+
+def _output_tool(info: AgentInfo, kind: str) -> str:
+    """The output tool for one filing shape, found by the class name PydanticAI derived it from.
+
+    Matched on a substring rather than spelled out, because the full names are the
+    dependency's. `test_agents.py` is where they are pinned as text; everywhere else a bench
+    that kept working after a rename is the right behaviour.
+    """
+    return next(tool.name for tool in info.output_tools or () if kind in tool.name)
+
+
+@dataclass
+class Bench:
+    """Every participant in one faked proceeding, scripted and capturing.
+
+    `model` is one `FunctionModel` standing in for the whole bench: it reads the turn to work
+    out whose run it is in, which is what lets a single object play four agents. `captured`
+    holds every `ModelMessage` list each participant was handed, in order, which is the exact
+    context it ran under and the only thing that can settle whether the invariant held.
+    """
+
+    concedes: frozenset[Any] = frozenset()
+    searches: frozenset[Any] = frozenset()
+    cites: frozenset[Any] = frozenset()
+    continues: bool = False
+    verdict: Any = None
+    captured: dict[Any, list[list[ModelMessage]]] = field(default_factory=dict)
+
+    @property
+    def model(self) -> FunctionModel:
+        return FunctionModel(self._respond)
+
+    def _respond(self, messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        who = _participant(messages)
+        self.captured.setdefault(who, []).append(messages)
+        if who == "judge":
+            return self._deliberate(info)
+        return self._file(who, messages, info)
+
+    def _deliberate(self, info: AgentInfo) -> ModelResponse:
+        if self.continues:
+            return ModelResponse(
+                parts=[
+                    ToolCallPart(
+                        _output_tool(info, "Continuance"),
+                        {
+                            "interrogatories": [
+                                {"to": LoanDecision.DENY.value, "question": "Is that documented?"}
+                            ]
+                        },
+                    )
+                ]
+            )
+        verdict = self.verdict if self.verdict is not None else LoanDecision.DENY
+        return ModelResponse(
+            parts=[
+                ToolCallPart(
+                    _output_tool(info, "Ruling"),
+                    {
+                        "verdict": verdict.value,
+                        "reasoning": "Documented income governs; the stated figure is unverified.",
+                    },
+                )
+            ]
+        )
+
+    def _file(self, who: Any, messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        if who in self.concedes:
+            return ModelResponse(
+                parts=[
+                    ToolCallPart(
+                        _output_tool(info, "Concession"),
+                        {
+                            "advocate": who.value,
+                            "reason": "The ratios are unambiguous; nothing calls for review.",
+                        },
+                    )
+                ]
+            )
+        if who in self.searches and not self._searched(messages):
+            return ModelResponse(parts=[ToolCallPart("psql", {"query": "select wages from w2"})])
+        exhibits = [{"source": "s1", "content": "wages: 131,400"}] if who in self.cites else []
+        return ModelResponse(
+            parts=[
+                ToolCallPart(
+                    _output_tool(info, "Argument"),
+                    {
+                        "advocate": who.value,
+                        "claim": f"The record supports {who.value}.",
+                        "exhibits": exhibits,
+                    },
+                )
+            ]
+        )
+
+    @staticmethod
+    def _searched(messages: list[ModelMessage]) -> bool:
+        return any(
+            isinstance(part, ToolReturnPart) and part.tool_name == "psql"
+            for message in messages
+            for part in getattr(message, "parts", ())
+        )
+
+
+@pytest.fixture
+def bench() -> Callable[..., Bench]:
+    """A factory for the faked bench above, so each test scripts only what it varies.
+
+        proceeding_bench = bench(searches={deny}, cites={deny}, concedes={refer})
+        tribunal = Tribunal(**(outcomes_kwargs() | {"model": proceeding_bench.model}))
+
+    A factory rather than a value because `captured` accumulates: two tests sharing one
+    instance would read each other's runs.
+    """
+    return Bench
+
+
+@pytest.fixture
+def assert_invariant_held() -> Callable[..., None]:
+    """*Nothing enters an agent's context that is not also in the transcript*, checked.
+
+    Takes what the capturing bench recorded, the transcript that resulted, and the tribunal's
+    own `instructions_for`, and requires every part of every message to be one of:
+
+    * the instructions — asserted equal to `instructions_for(participant)`, so the string a
+      caller can preview is the string the agent actually ran under;
+    * a user prompt whose every line is either in `render(transcript, ReviewerView())` or is
+      turn scaffolding, which is procedure rather than record;
+    * one of the four escapes `docs/design/execution.md` enumerates.
+
+    **It cannot be a substring test**, which is why it compares line by line and accepts the
+    escapes by type: an advocate emits a bare `_Exhibit` while the transcript holds the stamped
+    public `Exhibit` (`0016`), so the record is a *superset* of what the agent wrote and a
+    byte-for-byte containment check fails on a proceeding that is perfectly correct.
+
+    An assertion rather than a test: any proceeding-level test can call it, so every future
+    test of every other behaviour also happens to check that nothing leaked.
+    """
+
+    def check(
+        captured: dict[Any, list[list[ModelMessage]]],
+        transcript: Transcript[Any],
+        instructions_for: Callable[[Any], str],
+    ) -> None:
+        record = transcript.render()
+        for participant, runs in captured.items():
+            expected = instructions_for(participant)
+            for messages in runs:
+                for message in messages:
+                    _check_message(message, participant, expected, record)
+
+    def _check_message(
+        message: ModelMessage, participant: Any, instructions: str, record: str
+    ) -> None:
+        if isinstance(message, ModelRequest) and message.instructions is not None:
+            assert message.instructions == instructions, (
+                f"{participant} ran under instructions that are not the ones "
+                f"instructions_for({participant!r}) returns"
+            )
+        for part in getattr(message, "parts", ()):
+            if isinstance(part, UserPromptPart):
+                _check_prompt(str(part.content), participant, record)
+            else:
+                assert isinstance(part, _ESCAPES), (
+                    f"{participant}'s context holds a {type(part).__name__}, which is neither "
+                    f"derived from the transcript nor one of execution.md's four escapes"
+                )
+
+    def _check_prompt(prompt: str, participant: Any, record: str) -> None:
+        for line in prompt.splitlines():
+            if not line.strip() or any(shape.match(line) for shape in _TURN_SCAFFOLDING):
+                continue
+            assert line in record, (
+                f"{participant} was shown a line the transcript does not hold: {line!r}"
+            )
+
+    return check

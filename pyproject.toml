@@ -15,6 +15,12 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
+    # Task groups, memory object streams, and the cancelled-exception class the round's fan-out
+    # is built on (docs/design/execution.md, "Piece 3 — round orchestration"). It arrives
+    # anyway through pydantic-ai, which runs on it — but `_proceeding.py` imports it directly,
+    # and a package declares what it imports rather than relying on a transitive it does not
+    # control. Same argument as typing-extensions below.
+    "anyio>=4.14.2",
     "pydantic-ai>=2.36.0",
     # `web_search` is the default tool docs/design/evidence.md ships, and it calls Tavily's SDK
     # directly rather than wrapping PydanticAI's built-in. It is core rather than an extra because

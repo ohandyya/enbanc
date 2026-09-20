@@ -53,8 +53,8 @@ src/enbanc/
   _errors.py         EnbancError and its three subclasses
   _ledgering.py      Ledgering, as_sources, render_call, render_results
   _tribunal.py       Tribunal, Judge, Advocate
-  _proceeding.py     Proceeding, the filing clerk, the round's task group,
-                       the round loop, the budget check
+  _proceeding.py     Proceeding, the orchestrator, the filing clerk, the
+                       round's task group, the round loop, the budget check
   tools/
     __init__.py      re-exports web_search
     _web_search.py
@@ -96,8 +96,8 @@ reserved `"judge"` string it is half of, and it stays off `__all__` because
 
 ## What imports what
 
-Runtime imports run down the list above and never back up it, with **one
-exception**, and the exception is forced.
+Runtime imports run down the list above and never back up it. **Two annotation-only
+imports run the other way**, and both are forced.
 
 [`0026`](../decisions/0026-one-renderer-serves-both-audiences.md) puts one
 renderer behind both the agents' views and `Transcript.render()`. So the renderer
@@ -129,6 +129,26 @@ class Transcript(BaseModel, Generic[VerdictT]):
 it imports `_transcript` only for annotations. `_transcript` imports `_prompting`
 for real. One direction at runtime, and `Transcript.render()` is a delegation
 rather than a function-local import apologizing for a cycle.
+
+The second is the same shape, one module further down. `_proceeding` takes the
+pieces a `Tribunal` holds — including a `Judge` and a `Mapping[VerdictT,
+Advocate]` — so it needs those two names for its signatures while `_tribunal`
+imports it for real:
+
+```python
+# _proceeding.py
+if TYPE_CHECKING:
+    from ._tribunal import Advocate, Judge                                   # annotation only
+```
+
+It is safe for the property that keeps the first one safe: nothing in
+`_proceeding` constructs a `Judge` or an `Advocate` and nothing dispatches on
+either type. The orchestrator reads `.model`, `.guidance`, `.tools` and
+`.toolsets`, and that is all.
+
+Both are *annotation-only*, which is what makes them breaks rather than cycles:
+neither runs at import time, and `tests/unit/test_cycle_break.py` is what says so
+rather than a comment claiming it.
 
 This is the same register as
 [the note on generic aliases](./api.md#a-note-on-generic-aliases): a detail

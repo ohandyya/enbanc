@@ -117,16 +117,52 @@ traces show, the same schemas, and PydanticAI's own generic description rather
 than the class docstring. What changes is only where the check is attached:
 
 ```python
-def _file_argument(argument: _Argument[VerdictT]) -> _Argument[VerdictT]:
-    ledgering.check_citations(argument)
-    return argument
+def _filing_output(filing_type, check):
+    def file(filing):
+        check(filing)
+        return filing
+
+    file.__annotations__ = {"filing": filing_type, "return": filing_type}
+    return file
+
 
 agent = Agent(
     advocate.model or model,
-    output_type=[_file_argument, Concession[VerdictT]],
+    output_type=[
+        _filing_output(_Argument[self.verdicts], ledgering.check_citations),
+        Concession[self.verdicts],
+    ],
     ...
 )
 ```
+
+**Two traps, both found by building and neither guessable from the design.** The
+obvious spelling of that function — `def file_argument(argument:
+_Argument[VerdictT])`, with a docstring saying what it does — is wrong twice over:
+
+- **A bare `TypeVar` collapses, and the collapse reaches the model.** Pydantic
+  returns the origin class for a generic parameterized with a bare `TypeVar`, and
+  PydanticAI evaluates the parameter's annotation at runtime — so
+  `_Argument[VerdictT]` is `_Argument`, whose `advocate` field is typed by the
+  *unsubclassed* `Verdict`. That enum declares no members, so the schema carries
+  `enum: []`:
+
+  ```text
+  bare TypeVar:       'verdict': {'enum': [], 'description': '<the Verdict docstring>'}
+  runtime enum class: 'verdict': {'$ref': '#/$defs/LoanDecision'}  → ['approve', 'deny', …]
+  ```
+
+  No verdict the caller declared is a valid answer, every attempt fails
+  validation, and the run dies having spent the output budget explaining it. The
+  fix is the annotation being *assigned* from a type resolved against the
+  tribunal's own enum — which is why `_Orchestrator.verdicts` is the enum class
+  rather than the list of members `instruction_parts` wants.
+- **A docstring on it becomes the output tool's description.** Verified: the
+  model reads it. So the functions `enbanc` builds carry a comment instead, and
+  PydanticAI's own generic sentence is what reaches the wire.
+
+Both are now findings in `execution.md` and rows in the contract test, because
+both are claims about the dependency rather than about `enbanc`.
 
 Three properties were verified rather than assumed, because the whole point of
 the move is that it changes nothing:
@@ -181,9 +217,12 @@ limiter = normalize_to_limiter(max_concurrency)        # once, per proceeding
 
 agent = Agent(
     advocate.model or model,
-    output_type=[_file_argument, Concession[VerdictT]],
+    output_type=[
+        _filing_output(_Argument[self.verdicts], ledgering.check_citations),
+        Concession[self.verdicts],
+    ],
     instructions=instruction_parts(
-        question=question, statute=statute, verdicts=verdicts,
+        question=question, statute=statute, verdicts=list(verdicts),
         advocate=verdict, guidance=advocate.guidance,
     ),
     toolsets=[ledgering],
@@ -225,10 +264,13 @@ agent = Agent(
   is why the latter may not be inherited
   ([`0029`](../decisions/0029-a-budgets-request-limit-must-be-chosen.md)).
 
-The judge's agent is the same shape with `output_type=[Ruling[VerdictT],
-_Continuance[VerdictT]]`, no `toolsets`, no limiter, and `advocate=None` into
+The judge's agent is the same shape with `output_type=[Ruling[verdicts],
+_Continuance[verdicts]]`, no `toolsets`, no limiter, and `advocate=None` into
 `instruction_parts` — which is how that function already spells *the judge is
-seated for no verdict*.
+seated for no verdict*. It needs no output function, because a judge cites
+nothing; it is parameterized from the enum for the same reason an advocate's is,
+and that is what `tribunal-construction.md` meant by *the judge learns the verdict
+set from the output schema*.
 
 ### The toolset, and the callable form of one
 
@@ -514,9 +556,22 @@ hearing after abandon: unfinished
 ```
 
 On the finished path the cancel is a no-op — every task has already returned, and
-the hearing was bound before the last entry was received, because a rendezvous
-send returns after the consumer takes the value and the orchestrator runs on to
-the end before the consumer asks for another.
+the hearing is bound *before* the ruling is acknowledged, because `_file` waits on
+an acknowledgment the clerk sets only after the consumer has taken the entry. So a
+caller reading `proceeding.hearing` the moment its `async for` ends finds one.
+
+**Both stream ends are closed on the way out, on every path.** A memory object
+stream collected without being closed warns from `__del__`, and a library that
+leaves a `ResourceWarning` in a caller's test suite has a leak the caller's
+process reports. `async with send, receive:` around the task group is the whole
+fix, and `filterwarnings = ["error"]` in `pyproject.toml` is what turned it from
+invisible into a failing test.
+
+**A raise from inside the proceeding arrives as an `ExceptionGroup`** until
+[`failures.md`](./failures.md) adds the first-failure slot — the task group here
+is the plain one, which is what this PR's scope says it is. The tests that assert
+a failure assert the group, so making it singular later shows up as a diff on
+them rather than as a silent widening.
 
 `Proceeding` itself is the handle [`api.md`](../design/api.md#watching-it-live)
 specifies and nothing more: `transcript`, `hearing`, and an `__aiter__` that
@@ -531,8 +586,11 @@ is never serialized, and never appears on a result — and `hearing` raises
 [`packaging.md`](../design/packaging.md#what-imports-what) fixes the direction:
 `_tribunal` imports `_proceeding` and never the reverse, so the round loop is
 constructible from a test without building a `Tribunal` first. `proceed()`
-therefore takes the question, the statute, the case, the verdict list, the judge,
-the advocates, the model and the three limits as keyword arguments.
+therefore takes the question, the statute, the case, the verdict **enum**, the
+judge, the advocates, the model and the three limits as keyword arguments — the
+enum class rather than a list of members, because the output types are
+parameterized with it ([above](#an-output-validator-forbids-a-per-run-output-type))
+and `list(verdicts)` is what the two callers that want members write.
 
 Two of those are `Judge` and `Advocate`, which live in `_tribunal.py` — so
 `_proceeding.py` imports them **under `TYPE_CHECKING` only**, which is a second
@@ -579,21 +637,24 @@ Both were written to be deleted here.
 
 ### Design documents
 
-Five edits, all of them `CLAUDE.md` rule 2 paid in this commit.
+Six edits, all of them `CLAUDE.md` rule 2 paid in this commit.
 
 [`execution.md` § What PydanticAI already does](../design/execution.md#what-pydanticai-already-does)
 gains a thirteenth finding, **An output validator forbids a per-run
 `output_type`**, with the `UserError`, the output-function shape that resolves
-it, and the three properties verified of it — the tool name and schema derived
-from the parameter's type, the `output` budget, and the `RetryPromptPart`.
+it, the three properties verified of it — the tool name and schema derived from
+the parameter's type, the `output` budget, and the `RetryPromptPart` — and the two
+traps the build found: a bare `TypeVar` reaching the schema as `enum: []`, and a
+docstring reaching the model as the tool's description. It also records that a
+sole output type is named `final_result`.
 [`testing.md`](../design/testing.md#the-four-tiers) carries the count in two
 sentences — *records twelve findings* and *two of the twelve findings are
 derivations* — and both move to thirteen, with its findings table gaining the
 matching row.
 
-[`execution.md` § The output validator resolves ids](../design/execution.md#the-output-validator-resolves-ids)
-— the section says the check is an output validator, and it becomes an output
-function over the same `check_citations`, for the reason the finding above gives.
+[`execution.md` § The output validator resolves ids](../design/execution.md#the-citation-check-resolves-ids)
+— retitled *The citation check resolves ids*, because the check becomes an output
+function over the same `check_citations` for the reason the finding above gives.
 The budget it spends, and the sentence about what that buys, do not move.
 [`evidence.md` § An unresolvable id is a validation failure](../design/evidence.md#an-unresolvable-id-is-a-validation-failure)
 keeps its prose — *rejected by an output validator* becomes *rejected when the
@@ -612,9 +673,11 @@ so it stops contradicting
 dispatched* and `outcomes.md` § 4's missing `'judge'` key.
 
 [`packaging.md` § What imports what](../design/packaging.md#what-imports-what) —
-the second annotation-only break, `_proceeding` → `_tribunal`, with the property
-that keeps it safe, and the module map's `_proceeding.py` line gains the handle
-and the orchestrator.
+*one exception* becomes *two annotation-only imports*, with the second one
+(`_proceeding` → `_tribunal`) spelled out and the property that keeps it safe.
+`tests/unit/test_cycle_break.py` grows the matching assertion, so the claim is
+checked rather than stated. The module map's `_proceeding.py` line gains the
+orchestrator.
 
 **No `PROCEDURE` bump.** Every word a model reads in this PR is text
 [`prompting.md`](../design/prompting.md) already fixed and
@@ -634,9 +697,9 @@ broken library.
 
 | Module | Tier | Pins |
 |---|---|---|
-| `test_proceeding.py` | unit | round 1 end to end against a `FunctionModel` bench: three advocates dispatched concurrently, one conceding; every filing in `entries` with `round=1` and a stamped `filed_at`; an `_Argument`'s exhibits resolved from the ledger with `tool`, `reference` and `label` filled and `content` left as written; `history` holding one entry per participant and the judge's first run passing `message_history=None`; `since` still `0` for every advocate after round 1 |
-| `test_agents.py` | unit | what the agents are built with, read off the wire: the instruction parts matching `tribunal.instructions_for(participant)` byte for byte; `retries={'tools': 3, 'output': 2}`; the output tools offered per participant; one limiter object shared by every advocate agent and none on the judge's; no `usage_limits` passed into a run; a callable toolset reaching the ledger through `DynamicToolset` |
-| `test_filing_clerk.py` | unit | the clerk alone, driven directly: the entry sent is the entry appended; `transcript[-1]` is that same object at the moment it is yielded; the ack carrying the stamped `Entry` back; a `Concession` and a `Ruling` passing through unconverted; an unresolvable id reaching the clerk raising `AssertionError` |
+| `test_proceeding.py` | unit | round 1 end to end against a `FunctionModel` bench: three advocates dispatched concurrently, one conceding; every filing in `entries` with `round=1` and a stamped `filed_at`; an `_Argument`'s exhibits resolved from the ledger with `tool`, `reference` and `label` filled and `content` left as written; the judge's first run passing `message_history=None` and reading all three round-1 filings; round 1 blind and no peer filing in an advocate's turn; the ledger being the transcript's own list; the invariant; a continuance raising; one tribunal heard twice and twice at once; and the record it produced validating back |
+| `test_agents.py` | unit | what the agents are built with, read off the wire: the instruction parts matching `tribunal.instructions_for(participant)` byte for byte; `retries={'tools': 3, 'output': 2}`; the output tools offered per participant, by name; the verdict values reaching the model in the output schema; no `enbanc`-authored tool description; one limiter object shared by every advocate agent and none on the judge's; the inherited fifty-request ceiling standing, asserted where it bites; a per-advocate and per-judge `model` override; a callable toolset reaching the ledger through `DynamicToolset` |
+| `test_filing_clerk.py` | unit | the clerk alone, driven directly: the entry sent is the entry appended; `transcript[-1]` is that same object at the moment it is yielded; the ack carrying the stamped `Entry` back; a `Concession` and a `Ruling` passing through unconverted; an exhibit resolving against its own advocate's rows; an unresolvable id reaching the clerk raising `AssertionError`; the toolsets writing into the transcript's own lists; a snapshot that stops growing; the orchestrator built with no `Tribunal` at all |
 | `test_hear_stream.py` | unit | `hear()` returning what the exhausted stream returns, over one scripted bench; `proceeding.hearing` raising `ProceedingUnfinished` before the end; breaking out of the loop leaving the transcript intact and the block exiting rather than hanging; `hearing.outcome is hearing.transcript[-1].filing` |
 | `test_usage.py` | unit | one `RunUsage` per participant, mutated in place across runs; `hearing.usage` equal to the sum of the breakdown; a key appearing only once its participant is dispatched |
 | `test_export_surface.py` | unit | the twenty-nine-name literal, replacing the placeholder |
@@ -719,7 +782,10 @@ provider then caches them is the provider's.
 the prose above: an output validator forbids a per-run `output_type`, so the
 citation check rides on [the output type](#an-output-validator-forbids-a-per-run-output-type)
 instead — with a second agent per advocate and a three-shape union both written
-out and rejected there. Four smaller ones were settled the same way and each
+out and rejected there. Building it added two traps to that section rather than
+reopening it: a filing parameterized with a bare `TypeVar` reaches the model as
+`enum: []`, and a docstring on an output function reaches it as the tool's
+description. Four smaller ones were settled the same way and each
 answer carries its reasoning: the transcript is
 [built before](#the-transcript-is-built-before-the-toolsets-are) the toolsets that
 write into it, usage is [minted at dispatch](#usage-is-minted-at-dispatch), a

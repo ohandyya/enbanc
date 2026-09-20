@@ -299,6 +299,60 @@ whose output will not validate. This is what
 rests on, and
 `tests/contract/test_output_validation_spends_the_output_budget.py` pins it.
 
+### An output validator forbids a per-run `output_type`
+
+`Agent._prepare_output_schema` refuses **any** run-level `output_type` once
+`agent.output_validator(...)` has been called — including an override identical to
+the agent's own:
+
+```text
+override raised: UserError Cannot set a custom run `output_type` when the agent has output validators
+```
+
+That collides with two things this design fixes independently: an advocate's
+output shape varies by round — `_Argument | Concession` in round 1, `_Response`
+after — while there is **one agent per participant**
+([Also in scope](#also-in-scope)). Both cannot hold while the citation check is an
+agent-level validator.
+
+**So the check rides on the output type, as an output function.** A plain
+function whose single parameter is the filing model is accepted as an output
+type, and PydanticAI derives the output tool from the *parameter's* type rather
+than from the function:
+
+```text
+output tools: ['final_result__ArgumentLoanDecision', 'final_result_ConcessionLoanDecision']
+desc:         '_Argument[LoanDecision]: The final response which ends this conversation'
+schema:       the model's own, unchanged
+```
+
+Nothing the model sees moves, and three properties make that true rather than
+merely plausible: a `ModelRetry` raised inside the function spends the **output**
+budget exactly as a validator's does, it reaches the model as a
+`RetryPromptPart`, and with no agent-level validator the per-run override is
+legal again. `tests/contract/test_an_output_validator_forbids_a_run_output_type.py`
+pins all of it.
+
+Two things about such a function are load-bearing and neither is guessable:
+
+- **The parameter's annotation must carry the caller's verdict enum.** Pydantic
+  returns the origin class for a generic parameterized with a bare `TypeVar`, so
+  a literal `_Argument[VerdictT]` annotation — evaluated at runtime — collapses to
+  `_Argument`, and the verdict field reaches the model as `enum: []`: no verdict
+  the caller declared is a valid answer, and every run exhausts the output budget
+  being told so. The orchestrator therefore resolves the type from the tribunal's
+  own enum and assigns the annotation. This is
+  [the note on generic aliases](./api.md#a-note-on-generic-aliases) one level
+  down, with the failure landing in a JSON schema instead of an `ImportError`.
+- **A docstring on it becomes the output tool's description.** That is prompt text
+  [`prompting.md`](./prompting.md) does not own and `Transcript.procedure` does not
+  version, so the functions `enbanc` builds carry none and the model reads
+  PydanticAI's own generic sentence.
+
+**A sole output type is named `final_result`**, not `final_result_<Class>` — the
+per-member naming above is what a *union* gets. So an advocate's round-2 agent,
+offered `_Response` alone, sees the bare name.
+
 ### `max_concurrency` is set at construction
 
 It is an `Agent.__init__` parameter and not a `run()` argument, normalized once
@@ -739,10 +793,22 @@ small.
 Ledgering(
     wrapped=CombinedToolset([
         FunctionToolset(tools=advocate.tools),   # plain functions and Tool(...) alike
-        *advocate.toolsets,                      # MCP servers, FunctionToolset, anything
+        *(                                       # MCP servers, FunctionToolset, anything
+            toolset
+            if isinstance(toolset, AbstractToolset)
+            else DynamicToolset(toolset_func=toolset)
+            for toolset in advocate.toolsets
+        ),
     ])
 )
 ```
+
+**A toolset may be the callable form**, which PydanticAI resolves per run —
+`AgentToolset` is `AbstractToolset | ToolsetFunc`, and `Advocate.toolsets` admits
+both. A callable handed straight to the agent would have its calls resolved
+outside the wrapper, so *intercepts every call* would quietly stop being true. It
+is wrapped in the same `DynamicToolset` `Agent.__init__` would have wrapped it in,
+which keeps the promise without narrowing what an advocate may be given.
 
 That object is the agent's **only** `toolsets=` argument, and no `tools=` is
 passed. Routing everything through one wrapper is what makes "intercepts every
@@ -816,11 +882,14 @@ requiring a declaration, which is what keeps every existing PydanticAI tool
 usable with no adaptation
 ([`evidence.md`](./evidence.md#a-reference-is-what-makes-an-exhibit-auditable)).
 
-### The output validator resolves ids
+### The citation check resolves ids
 
-An advocate's `_Exhibit.source` is checked against the same instance's ledger by
-an output validator, which raises `ModelRetry` for an id the advocate was never
-issued. That spends the **`output`** budget, not the `tools` one — so an advocate
+An advocate's `_Exhibit.source` is checked against the same instance's ledger when
+its filing is validated, and `ModelRetry` is raised for an id the advocate was
+never issued. The check is carried by the **output type** rather than registered
+on the agent — an agent-level validator would forbid the per-run `output_type`
+an advocate's changing shape needs, which
+[the finding above](#an-output-validator-forbids-a-per-run-output_type) records. That spends the **`output`** budget, not the `tools` one — so an advocate
 whose search tool is flapping still has its full citation budget, and an advocate
 inventing citations cannot be masked by a healthy tool. This is
 [`evidence.md`](./evidence.md#an-unresolvable-id-is-a-validation-failure) with the
@@ -921,8 +990,12 @@ gets none: it runs alone, and the fan-out is the only place concurrency exists
 
 ### Usage
 
-**One `RunUsage` per participant, minted at the start of the proceeding**, passed
-as `run(usage=…)` to every run that participant makes. The dict of them *is*
+**One `RunUsage` per participant, minted at its first dispatch and owned by the
+proceeding**, passed as `run(usage=…)` to every run that participant makes. Minted
+at dispatch rather than up front because **absence means never dispatched**
+([`api.md`](./api.md#when-something-goes-wrong)) — a pre-populated dict would put a
+judge row of zeroes on a `ProceedingFailed` from round 1 and make that absence
+unreadable. The dict of them *is*
 `usage_by_participant`; `Hearing.usage` is its sum, computed rather than
 accumulated beside it, so the two cannot disagree
 ([`0014`](../decisions/0014-usage-is-broken-down-per-participant.md)).

@@ -4,12 +4,9 @@
 names this module in the paragraph that does it. Adding a public name is then a deliberate
 act with a diff on it.
 
-**Partial, deliberately.** One of the twenty-nine — `Proceeding` — does not exist yet, so
-the literal-list assertion cannot land until `docs/implementations/proceeding-core.md`
-completes the surface. What lands here is the half that is assertable today and catches a typo
-in a re-export the moment it is made.
-
-The *second* list is whole, and asserted literally below.
+Both lists are whole and both are asserted literally below. `Proceeding` completed the
+twenty-nine in `docs/implementations/proceeding-core.md`; before that this module pinned what
+was assertable and said which name was still missing.
 """
 
 import enbanc
@@ -38,16 +35,45 @@ def test_nothing_exported_is_private() -> None:
     assert [name for name in enbanc.__all__ if name.startswith("_")] == []
 
 
-def test_the_one_name_that_does_not_exist_yet_is_not_claimed() -> None:
-    """The list grows in `proceeding-core.md`, not by accident before it.
+def test_the_list_is_the_one_packaging_md_fixes() -> None:
+    """Twenty-nine names, asserted as a literal.
 
-    `Tribunal`, `Judge` and `Advocate` joined the surface in
-    `docs/implementations/tribunal-construction.md`, taking it from twenty-five names to
-    twenty-eight. `Proceeding` is the last one, and it arrives with `hear_stream()`.
+    This is `docs/design/packaging.md` ("The export surface") mirrored, which is what makes
+    adding a public name a deliberate act with a diff on it rather than a side effect of an
+    import. If this fails, either the document or the package moved — and whichever it was,
+    the other one is now wrong.
     """
-    assert len(enbanc.__all__) == 28
-    assert "Proceeding" not in enbanc.__all__
-    assert not hasattr(enbanc, "Proceeding")
+    assert list(enbanc.__all__) == [
+        "Advocate",
+        "Argument",
+        "Case",
+        "Concession",
+        "ConfigurationError",
+        "Continuance",
+        "Deliberation",
+        "EnbancError",
+        "Entry",
+        "Exhibit",
+        "Filing",
+        "Hearing",
+        "Interrogatory",
+        "Judge",
+        "Outcome",
+        "Proceeding",
+        "ProceedingFailed",
+        "ProceedingUnfinished",
+        "Response",
+        "Retrieval",
+        "Ruling",
+        "Source",
+        "Statute",
+        "ToolFailure",
+        "Transcript",
+        "Tribunal",
+        "Undecided",
+        "Verdict",
+        "VerdictT",
+    ]
 
 
 def test_the_tools_namespace_holds_exactly_one_name() -> None:

@@ -43,7 +43,7 @@ the awkward paths reachable at all: a real Tavily cannot be asked to return a
 result with no `url`.
 
 **`contract` is not about `enbanc`.** [`execution.md`](./execution.md#what-pydanticai-already-does)
-records twelve findings about `pydantic-ai 2.36.0`, verified by reading the
+records thirteen findings about `pydantic-ai 2.36.0`, verified by reading the
 installed source and running it, and says outright that "these are claims about a
 dependency, and they are worth re-checking when the pin moves." They were
 verified by throwaway scripts. This tier is where those scripts live so a version
@@ -52,7 +52,7 @@ its failures mean something different: a red `contract` test says the dependency
 moved, not that `enbanc` broke, and the fix is usually to change a design
 document rather than to change code.
 
-Two of the twelve findings are derivations rather than probes and have no module
+Two of the thirteen findings are derivations rather than probes and have no module
 here. *Three channels reach a model* is a summary of the two findings above it.
 *What lands in history that no rendered turn contains* is the whitelist the
 invariant helper encodes, and is tested [there](#the-transcript-invariant)
@@ -70,6 +70,7 @@ instead.
 | A failing output schema spends the `output` budget | Attempts track `output` alone; the constraint reaches the model as `minItems` |
 | `max_concurrency` is set at construction | It is an `__init__` parameter, not a `run()` argument |
 | A failing fan-out need not raise an `ExceptionGroup` | A child that records and cancels lets the group exit cleanly; the cancelled-exception re-raise is what keeps an *external* cancellation from naming a participant |
+| An output validator forbids a per-run `output_type` | The refusal is unconditional; an output function is named and shaped by its single parameter, its `ModelRetry` spends the `output` budget and arrives as a `RetryPromptPart`, its docstring becomes the tool's description, and a sole output type is named `final_result` |
 
 **`integration` proves the wire, not the logic.** One happy path per external
 seam: `web_search` against real Tavily returning real `Source`s, and one short
