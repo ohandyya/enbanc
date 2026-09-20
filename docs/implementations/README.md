@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-09-12
+updated: 2026-09-20
 ---
 
 # Implementations
@@ -33,7 +33,8 @@ hunt for inbound links.
 | 7 | [`proceeding-core.md`](./proceeding-core.md) | 5, 6 | | `draft` |
 | 8 | [`round-loop.md`](./round-loop.md) | 7 | | `draft` |
 | 9 | [`failures.md`](./failures.md) | 7, 8 | | `draft` |
-| 10 | [`zero-one-zero.md`](./zero-one-zero.md) | all | | `draft` |
+| 10 | [`guides.md`](./guides.md) | 9 | | `draft` |
+| 11 | [`zero-one-zero.md`](./zero-one-zero.md) | all | | `draft` |
 
 ## Naming
 
