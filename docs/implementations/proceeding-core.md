@@ -1,6 +1,7 @@
 ---
-status: draft
-updated: 2026-09-20
+status: current
+pr: 26
+updated: 2026-09-25
 ---
 
 # A proceeding that runs once
