@@ -30,7 +30,7 @@ See `docs/design/execution.md` ("Piece 3 — round orchestration"),
 `docs/decisions/0028-usage-accumulates-per-participant.md`.
 """
 
-from collections.abc import AsyncIterator, Callable, Mapping, Sequence
+from collections.abc import AsyncGenerator, AsyncIterator, Callable, Mapping, Sequence
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -605,7 +605,7 @@ async def proceed(
     max_rounds: int,
     budget: UsageLimits | None = None,
     max_concurrency: AnyConcurrencyLimit = None,
-) -> AsyncIterator[Proceeding[VerdictT]]:
+) -> AsyncGenerator[Proceeding[VerdictT], None]:
     """Run one proceeding, handing back the live record while it runs.
 
     `Tribunal.hear_stream()` is this with a tribunal's fields unpacked into it, and
