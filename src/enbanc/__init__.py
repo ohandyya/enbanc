@@ -12,11 +12,6 @@ there is no supported path to anything inside one: internal reorganization canno
 caller, because there was never a name for the caller to reach. `__all__` below is the
 contract, and `docs/design/api.md` is the list.
 
-**This is a partial surface.** `Proceeding` is the last of the twenty-nine names
-`docs/design/packaging.md` fixes that does not exist yet, and the `Tribunal` exported here
-has no `hear()` — a caller can build one, read `instructions_for()`, and do nothing else. See
-`docs/implementations/` for the order the rest arrives in.
-
 Importing this module does no I/O, imports no provider SDK, and does not reach
 `enbanc.tools`. That is a packaging rule rather than a convention, because an import happens
 at collection time, before any test fixture can guard it — see `docs/design/packaging.md`
@@ -42,6 +37,7 @@ from ._filings import (
 )
 from ._hearing import Hearing, Outcome, Undecided
 from ._inputs import Case, Statute
+from ._proceeding import Proceeding
 from ._transcript import Entry, Retrieval, ToolFailure, Transcript
 from ._tribunal import Advocate, Judge, Tribunal
 from ._verdicts import Verdict, VerdictT
@@ -66,6 +62,7 @@ __all__ = [
     "Interrogatory",
     "Judge",
     "Outcome",
+    "Proceeding",
     "ProceedingFailed",
     "ProceedingUnfinished",
     "Response",

@@ -12,8 +12,10 @@ nothing to record and no transcript to carry, so the four checks run at construc
 edited afterwards, which is what the frozen dataclasses and the copies in `__post_init__` are
 for.
 
-**This class lands without its main methods.** `hear()` and `hear_stream()` arrive with
-`_proceeding.py`; what works today is construction, its refusals, and `instructions_for()`.
+**`hear()` and `hear_stream()` are one method and its exhaustion.** Both hand this tribunal's
+fields to `_proceeding.proceed()` — which takes the pieces rather than a `Tribunal`, so the
+import runs one way and a proceeding is constructible from a test without building one of
+these first.
 
 See `docs/design/api.md` ("What each piece carries", "The governors"),
 `docs/design/execution.md` ("`ConfigurationError` has four cases"),
@@ -24,6 +26,7 @@ See `docs/design/api.md` ("What each piece carries", "The governors"),
 """
 
 from collections.abc import Mapping, Sequence
+from contextlib import AbstractAsyncContextManager
 from dataclasses import dataclass
 from types import MappingProxyType
 from typing import Final, Generic
@@ -36,7 +39,9 @@ from pydantic_ai.toolsets import AgentToolset
 from pydantic_ai.usage import UsageLimits
 
 from ._errors import ConfigurationError
-from ._inputs import Statute
+from ._hearing import Hearing
+from ._inputs import Case, Statute
+from ._proceeding import Proceeding, proceed
 from ._prompting import instruction_parts
 from ._verdicts import JUDGE, Participant, Verdict, VerdictT
 
@@ -125,8 +130,9 @@ class Tribunal(Generic[VerdictT]):
     the whole proceeding rather than to one run, checked between rounds. `max_concurrency`
     bounds how many advocates run at once; the judge is never given a slot.
 
-    **`hear()` and `hear_stream()` do not exist yet.** See `docs/design/api.md` for the surface
-    being built toward, and `docs/implementations/` for the order the rest of it arrives in.
+    **A tribunal parks no state.** `hear()` builds every agent inside the proceeding and
+    discards them with it, so one tribunal is safe to call twice and safe to run concurrently
+    over several cases.
     """
 
     question: str
@@ -267,3 +273,53 @@ class Tribunal(Generic[VerdictT]):
             # always present and never empty.
             raise AssertionError("instruction parts joined to nothing")
         return joined
+
+    def hear_stream(self, case: Case) -> AbstractAsyncContextManager[Proceeding[VerdictT]]:
+        """The proceeding, watched as it happens.
+
+            async with tribunal.hear_stream(case) as proceeding:
+                async for entry in proceeding:
+                    print(f"round {entry.round}: {entry.filing.kind}")
+
+            hearing = proceeding.hearing
+
+        An async context manager over a `Proceeding`, which yields each `Entry` at the moment
+        it is filed — the same object the transcript just received, and nothing else.
+
+        The tribunal's fields go in and no state comes back out: the agents, the message
+        histories, the ledgering toolsets and the usage accumulators are created inside and
+        discarded when the block exits. That is what makes this safe to run concurrently over
+        several cases.
+        """
+        return proceed(
+            question=self.question,
+            statute=self.statute,
+            case=case,
+            verdicts=self.verdicts,
+            judge=self.judge,
+            advocates=self.advocates,
+            model=self.model,
+            max_rounds=self.max_rounds,
+            budget=self.budget,
+            max_concurrency=self.max_concurrency,
+        )
+
+    async def hear(self, case: Case) -> Hearing[VerdictT]:
+        """Run the proceeding and return the `Hearing`.
+
+            hearing = await tribunal.hear(Case(applicant=..., income=...))
+
+        **This is `hear_stream()` driven to exhaustion, literally** — it opens the context
+        manager, consumes the iterator, discards the entries, and returns the hearing. There
+        is one implementation of a proceeding, so the two entry points cannot come apart
+        (`docs/decisions/0010-streaming-yields-the-record.md`).
+
+        A `Hearing` comes back when the tribunal reached the end of its own process, whether
+        or not it decided. When it could not — a participant that cannot be heard — this
+        raises `ProceedingFailed` and there is no `Hearing` at all
+        (`docs/decisions/0011-exhaustion-is-an-outcome-failure-is-an-error.md`).
+        """
+        async with self.hear_stream(case) as proceeding:
+            async for _ in proceeding:
+                pass
+        return proceeding.hearing

@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-09-20
+updated: 2026-09-25
 ---
 
 # Progress
@@ -22,7 +22,7 @@ spec: [`design/`](./design/) is.
 
 ## Current state
 
-**Phase:** Design complete, and five of the ten-PR plan's PRs are `current`
+**Phase:** Design complete, and six of the ten-PR plan's PRs are `current`
 and merged: [`schemas.md`](./implementations/schemas.md)
 ([PR #19](https://github.com/ohandyya/enbanc/pull/19)),
 [`contract-probes.md`](./implementations/contract-probes.md)
@@ -30,35 +30,42 @@ and merged: [`schemas.md`](./implementations/schemas.md)
 [`web-search-tool.md`](./implementations/web-search-tool.md)
 ([PR #21](https://github.com/ohandyya/enbanc/pull/21)),
 [`rendering.md`](./implementations/rendering.md)
-([PR #23](https://github.com/ohandyya/enbanc/pull/23)), and
+([PR #23](https://github.com/ohandyya/enbanc/pull/23)),
 [`tribunal-construction.md`](./implementations/tribunal-construction.md)
-([PR #24](https://github.com/ohandyya/enbanc/pull/24)) — #24 merged since the
-last entry. [`ledgering-toolset.md`](./implementations/ledgering-toolset.md)'s
-code is done too — `Ledgering`, `as_sources`, `render_call`/`render_results`,
-the citation validator, and the `_Argument`/`_Response` pair it validates —
-and [PR #25](https://github.com/ohandyya/enbanc/pull/25) is open against it
-with the document stamped `current`, but it has not merged yet. `make test`
-passes at 303 (247 → 303 this session); that count was re-verified by running
-the suite. **No public name moved** — `Ledgering` is internal, so `__all__`
-stays at 28 and `test_export_surface.py`'s twenty-nine-name literal still
-waits on [`proceeding-core.md`](./implementations/proceeding-core.md) (PR 7),
-the only one of the twenty-nine names left. The README's WIP banner is still
-accurate — `hear()` doesn't exist, so nothing in the published surface can
-actually run a proceeding yet. The published `0.0.5` on PyPI still reserves
-the name and nothing more.
+([PR #24](https://github.com/ohandyya/enbanc/pull/24)), and
+[`ledgering-toolset.md`](./implementations/ledgering-toolset.md)
+([PR #25](https://github.com/ohandyya/enbanc/pull/25)) — #25 merged since the
+last entry. [`proceeding-core.md`](./implementations/proceeding-core.md)'s
+code is done too: `Proceeding`, `Tribunal.hear()`, and `Tribunal.hear_stream()`
+now exist and run a proceeding for real — round 1's fan-out, the filing clerk,
+and the judge's first deliberation. [PR #26](https://github.com/ohandyya/enbanc/pull/26)
+is open against it, stamped `current`, but has not merged yet. A judge that
+continues rather than rules still raises `NotImplementedError` naming
+[`round-loop.md`](./implementations/round-loop.md) — that boundary is
+deliberate, not a gap found late. `make test` passes at 375 (303 → 375 this
+session); re-verified by running the suite. **`__all__` is complete at
+twenty-nine names** — `Proceeding` was the last one, and
+`test_export_surface.py` pins the full literal rather than the placeholder
+count. The README's WIP banner is still accurate for an outside reader: the
+published `0.0.5` on PyPI is unchanged and reserves the name and nothing more,
+`0.1.0` hasn't shipped, and the round-2 case the "A taste" sample's
+`max_rounds=5` implies still raises `NotImplementedError` from source — so the
+banner was left as it is rather than partially walked back.
 
 Settled and binding across
-[`0001`](./decisions/0001-statute-carries-no-model.md)–[`0037`](./decisions/0037-a-conceded-advocate-stays-addressable.md).
-Eight design documents under [`design/`](./design/) carry **no open questions**:
-every public type, every way a proceeding can *end*, its *behaviour*, how
-evidence becomes a checkable exhibit, everything a participant reads, how the
-whole thing maps onto PydanticAI, how any of it is known to be true, and how it
-is laid out as an importable package. [`execution.md`](./design/execution.md#what-pydanticai-already-does)
-now records **twelve** `pydantic-ai` findings rather than eleven — a wrapper
-toolset is rebuilt for every run, found while building the ledgering toolset —
-and every probe-shaped one has a `tests/contract/` module pinning it. There are
-**no placeholders left** — `degenerate-deliberations.md` was deleted once its
-three holes were answered by
+[`0001`](./decisions/0001-statute-carries-no-model.md)–[`0038`](./decisions/0038-the-citation-check-rides-on-the-output-type.md).
+[`0038`](./decisions/0038-the-citation-check-rides-on-the-output-type.md) is
+new this session: the citation check moved from an agent-level output
+validator to an output function riding on the output type, because PydanticAI
+refuses any per-run `output_type` override once an agent carries a validator —
+found while building PR 7, where it collided head-on with *one agent per
+participant*. Eight design documents under [`design/`](./design/) still carry
+**no open questions**. [`execution.md`](./design/execution.md#what-pydanticai-already-does)
+now records **thirteen** `pydantic-ai` findings rather than twelve — the
+output-validator-vs-per-run-`output_type` refusal above — and every
+probe-shaped one has a `tests/contract/` module pinning it. There are **no
+placeholders left** — `degenerate-deliberations.md` was deleted once its three
+holes were answered by
 [`0036`](./decisions/0036-a-continuance-carries-at-least-one-interrogatory.md),
 [`0037`](./decisions/0037-a-conceded-advocate-stays-addressable.md), and
 [`0027`](./decisions/0027-an-advocate-answers-its-interrogatories-in-order.md),
@@ -85,35 +92,40 @@ asked — [`live-tests.yml`](../.github/workflows/live-tests.yml), fired by a
 The path from here to `0.1.0` is a ten-PR plan in
 [`implementations/`](./implementations/), ordered by
 [its README table](./implementations/README.md#the-plan). PRs 1–6 are
-`current`; #24 (PR 5) has merged and #25 (PR 6) is open but not yet merged;
-the other four are still `draft` with no plan or code.
+`current` and merged; #26 (PR 7) is open but not yet merged; the other three
+are still `draft` with no plan or code.
 
-**Next up:** Get #25 reviewed and merged, then start PR 7,
-[`proceeding-core.md`](./implementations/proceeding-core.md) — it depends on
-PRs 5 and 6, both of which now have code, and it is where `hear()` and
-`hear_stream()` finally exist. Its own `Scope` was checked against what PR 6's
-build taught and still reads true as written; two build details it will need
-but does not name explicitly are that every `Agent` built over a `Ledgering`
-toolset requires `deps_type=type(None)` (a `pydantic-ai` typing quirk, not a
-design choice — see
-[`execution.md`](./design/execution.md#a-wrapper-toolset-is-rebuilt-for-every-run)),
-and that `Ledgering.check_citations` needs registering as that agent's output
-validator. `__all__` completes with this PR — `Tribunal`, `Judge`, `Advocate`,
-and `Proceeding` are exported, and `test_export_surface.py` pins the
-twenty-nine-name literal for the first time.
+**Next up:** Get #26 reviewed and merged, then start PR 8,
+[`round-loop.md`](./implementations/round-loop.md) — what a continuance
+starts: the `_Continuance` → `Continuance` conversion with `r{round}-q{n}`
+stamped in emission order, one task per *addressed* advocate with its
+interrogatories queued and answered in order, `Response.answering` filled
+from the dispatch, `since`'s per-run advance, the snapshot extension that run
+7 of [the worked proceeding](./design/execution.md#since-and-the-snapshot-run-by-run)
+needs, the `max_rounds` check, and the budget check whose
+`UsageLimitExceeded` is a stop signal rather than an error. Its own `Scope`
+was checked against what PR 7's build actually produced this session and
+still reads true as written — PR 7 deliberately built the plain task group
+and left the first-failure slot to [`failures.md`](./implementations/failures.md)
+(PR 9), exactly as `round-loop.md` and `failures.md` both assume. One thing
+PR 8 gets for free rather than having to build: the advocate agent, the
+`_filing_output()` output-function pattern, and the `DynamicToolset` callable
+wrapper already exist in `_proceeding.py` — dispatching a `_Response` is a
+per-run `output_type` override on the *same* `advocate_agents[verdict]`
+([`0038`](./decisions/0038-the-citation-check-rides-on-the-output-type.md)),
+not a new agent or a new mechanism.
 
 Things the next session should carry:
 
-- **A wrapper toolset is rebuilt on every `agent.run()`, not reused.**
-  `CombinedToolset.for_run` returns a new object unconditionally, so a
-  `WrapperToolset` around one is `dataclasses.replace()`d per run and its
-  `call_tool` never runs on the instance the caller holds. Every piece of
-  state on such a toolset has to be a dataclass field, and anything that must
-  accumulate across runs (a ledger, a counter) has to live in a mutable
-  container shared by reference — a scalar field mutates only the discarded
-  copy. `Ledgering`'s ids are counted out of the shared ledger list rather
-  than held in a counter for exactly this reason. Anything future that wraps
-  another toolset needs to hold this in mind from the first line.
+- **The output-function pattern is now load-bearing for every future
+  per-run output shape, not just round 1's.** `_filing_output()` in
+  `_proceeding.py` is what let one agent survive a per-round output-shape
+  change at all
+  ([`0038`](./decisions/0038-the-citation-check-rides-on-the-output-type.md)).
+  A `_Response` output type for round 2 needs the same two traps respected:
+  the annotation assigned from the tribunal's resolved verdict enum (a
+  literal `_Response[VerdictT]` collapses to `enum: []`), and no docstring on
+  the wrapping function (PydanticAI surfaces one as the tool's description).
 - **`live-tests.yml` has now run for real, on both triggers.** A
   `workflow_dispatch` on `main` (2026-09-10) and the `live-tests` label on
   [PR #21](https://github.com/ohandyya/enbanc/pull/21) (2026-09-13) both went
@@ -122,46 +134,64 @@ Things the next session should carry:
   tier is no longer empty: `test_web_search.py` ran one real Tavily call and
   passed. The e2e tier is still `test_placeholder.py` — it only asserts the
   runner's model builds, and waits on `api.md`'s example to exist.
-- **Piece 2 is done; piece 3 is not.** The ledgering toolset (piece 2) is
-  built and tested. Round orchestration (piece 3) is the largest remaining
-  piece: the filing clerk, the task group, the snapshot construction, and the
-  round loop — all of PR 7 and PR 8.
+- **Piece 3's round-1 half is done; the round loop itself is not.** The
+  filing clerk, the round's task group, round 1's fan-out, and the first
+  deliberation are built and tested. What is left of piece 3 is entirely
+  round 2 and after — PR 8's scope above.
 - **The network guard is a tripwire, not a sandbox.** It catches `asyncio`, and
   so every HTTP client the library will actually use, but raw `_socket`,
   subprocesses, and anything connecting at import time go straight past it. The
   import-time half now has a rule and a test named for it in
   [`packaging.md`](./design/packaging.md#what-import-enbanc-may-do); the rest of
   the gap stands.
-- **The shared conftest pattern held up for PR 5 and PR 6.**
-  `tests/unit/conftest.py` now also has `outcomes_kwargs` — a factory
-  returning keyword arguments rather than a built `Tribunal`, because
-  [`outcomes.md`](./design/outcomes.md#5-the-tribunal-is-misconfigured) § 5
-  needs a constructor that *raises*, and a fixture that pre-built the object
-  would raise before a test body ran. PR 7 varies the same bench further; grow
-  this fixture rather than rebuilding it.
-- **A reserved-value check over an enum needs `member.value == X`, not
-  `X in SomeEnum`.** `EnumType.__contains__` raised `TypeError` for a
-  non-member value until Python 3.12, and `requires-python` is `>=3.11` — the
-  natural spelling passes on the newer interpreter and fails on the floor leg
-  of `ci.yml` alone. `Tribunal`'s reserved-`"judge"` check
-  ([`_tribunal.py`](../src/enbanc/_tribunal.py)) hit this; anything else that
-  validates a value against an enum should check it before writing the
-  obvious version.
+- **The shared conftest pattern held up again.** `tests/unit/conftest.py` now
+  also has the capturing `FunctionModel` and `assert_invariant_held`, the
+  transcript-invariant helper [`testing.md`](./design/testing.md#the-transcript-invariant)
+  specified with no caller until this session. `test_proceeding.py` and
+  `outcomes/test_02_rules_in_round_1.py` both call it, so every proceeding
+  test written after this PR gets the invariant checked for free. PR 8 varies
+  the same bench further into round 2; grow these fixtures rather than
+  rebuilding them.
 
 **Open questions:**
 
 - None, anywhere in [`design/`](./design/).
-- `procedure` version `p1` is now implemented and pinned by goldens
-  (`tests/unit/test_procedural_prompts.py`,
-  `tests/unit/test_transcript_render.py`, `tests/unit/test_turns.py`,
-  `tests/unit/test_instructions.py`, `tests/unit/test_tool_results.py`), but
-  still unshipped — no `hear()` exists yet to actually run a proceeding under
-  it, and its changelog row in
-  [`prompting.md`](./design/prompting.md#procedure-versions) has nothing to
-  compare against. The first prompt edit after `0.1.0` ships is the one that
-  tests whether the bump discipline holds.
+- `procedure` version `p1` is pinned by goldens and now actually runs a
+  proceeding under `hear()`/`hear_stream()` for the first time — but only the
+  round-1-through-first-ruling slice of it, driven by scripted
+  `FunctionModel`s in the test suite, not yet by a live model. The parts of
+  `p1` that talk about interrogatories, responses, and later rounds stay
+  unexercised until [`round-loop.md`](./implementations/round-loop.md) lands,
+  and its changelog row in
+  [`prompting.md`](./design/prompting.md#procedure-versions) still has
+  nothing to compare against — that needs `0.1.0` shipped and a real prompt
+  edit after it. The bump-discipline question stays open until then.
 
 ## Log
+
+### 2026-09-25 — PR 7: the proceeding runs, round 1 through a ruling
+
+**Did:** Implemented [`proceeding-core.md`](./implementations/proceeding-core.md)
+— `_proceeding.py`: one `Agent` per participant built inside the proceeding
+and discarded with it, the filing clerk coroutine that is the sole writer of
+`Transcript.entries`, the round-1 fan-out, and the judge's first
+deliberation. `Tribunal.hear()` and `hear_stream()` now exist; `hear()` is
+`hear_stream()` driven to exhaustion, literally. The citation check moved off
+`agent.output_validator` onto an output function riding on the output type,
+because PydanticAI refuses a per-run `output_type` override once an agent
+carries a validator — a collision with *one agent per participant* found
+while building this PR, not anticipated by the design. `__all__` completes at
+twenty-nine names with `Proceeding`. A judge continuance still raises
+`NotImplementedError` naming `round-loop.md`, by design. 72 new tests,
+303 → 375. [PR #26](https://github.com/ohandyya/enbanc/pull/26) opened for
+this work and is stamped `current` in the implementation doc and the plan
+table; #25 (ledgering toolset) merged since the last entry.
+
+**Why this way:** [`0038`](./decisions/0038-the-citation-check-rides-on-the-output-type.md)
+— the output-function decision, with a second agent per advocate and an
+always-offered three-shape union both written out and rejected.
+
+**Commits:** 3f6c120, 0fcb2ab, 42a05f8, 23362cd.
 
 ### 2026-09-20 — PR 6: the ledgering toolset
 

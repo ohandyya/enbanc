@@ -553,6 +553,7 @@ name = "enbanc"
 version = "0.0.5"
 source = { editable = "." }
 dependencies = [
+    { name = "anyio" },
     { name = "pydantic-ai" },
     { name = "tavily-python" },
     { name = "typing-extensions" },
@@ -570,6 +571,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "anyio", specifier = ">=4.14.2" },
     { name = "pydantic-ai", specifier = ">=2.36.0" },
     { name = "tavily-python", specifier = ">=0.8.1" },
     { name = "typing-extensions", specifier = ">=4.14.1" },

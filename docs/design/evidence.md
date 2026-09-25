@@ -350,7 +350,7 @@ reviewer's call; the record's job is to make it askable.
 
 An advocate that cites an id the ledger does not hold has invented a citation,
 which is the failure this whole mechanism exists to prevent. The `_Exhibit` is
-rejected by an output validator; PydanticAI retries against the library's
+rejected when the filing is validated; PydanticAI retries against the library's
 **`output`** retry budget, and a budget that runs out surfaces as
 `ProceedingFailed` — the path
 [`api.md`](./api.md#when-something-goes-wrong) already documents for output that
