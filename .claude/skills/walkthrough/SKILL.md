@@ -1,6 +1,6 @@
 ---
 name: walkthrough
-description: Walk the user through code an agent wrote, one logical step at a time, pausing after each step so they can read the files and ask follow-ups. Use when asked to walk through, explain, or step through recent changes, a commit, a branch, or uncommitted work — or when the user says they want to understand what was just written.
+description: Walk the user through code an agent wrote, one logical step at a time — opening with a mental-model diagram of the change, then pausing after each step so they can read the files and ask follow-ups. Use when asked to walk through, explain, or step through recent changes, a commit, a branch, or uncommitted work — or when the user says they want to understand what was just written.
 ---
 
 # Walk a human through the changes
@@ -131,41 +131,92 @@ Rules that hold:
   is worth more than it looks: a design-doc edit *is* a behavior change under `CLAUDE.md`
   rule 2, and an ADR is the reasoning the code cannot carry.
 - **Collapse mechanical churn.** `uv.lock`, ruff reformatting, import reshuffles, and
-  version bumps are one step at most, often a single line in the map saying they exist and
+  version bumps are one step at most, often a single line in Step 0 saying they exist and
   can be skimmed. Never spend a real step on a lockfile.
 
 Write the step plan to a file in the session scratchpad directory before starting — never
 inside the repo. A walkthrough spans many turns and may outlive this context window; the
-plan is what lets you resume mid-way without renumbering or losing a step.
+plan is what lets you resume mid-way without renumbering or losing a step. The plan holds
+the steps, the Mermaid source of the mental model from [§4](#4-step-0--the-mental-model),
+and which diagram tags each step owns — so a resumed walkthrough redraws the *same* picture
+with the *same* numbering.
 
-## 4. Step 0 — the map
+## 4. Step 0 — the mental model
 
-Open with the shape of the whole thing, so the user knows what they are committing to and
-can jump:
+The user gets lost in a walkthrough when they hold the steps but not the picture they fit
+into. Step 0 hands them the picture first: a diagram of the change, a few sentences on the
+key idea, and the steps keyed to the diagram. Every later step points back at it.
 
-1. **One paragraph**: what this change set does and why it exists, and which
-   `docs/design/` area it serves. Not a file inventory.
-2. **Vocabulary, but only if it is load-bearing.** If the change introduces domain terms the
+### Draw the diagram
+
+**Draw the part of the system the change lives in, not the diff.** Boxes are components,
+types, or actors; arrows are calls, data, or ordering. A diagram of files is a file list
+with extra steps.
+
+Pick the form by the shape of the change:
+
+| The change is mostly about… | Draw |
+| --- | --- |
+| Ordering, a protocol, who-calls-whom-when | `sequenceDiagram` |
+| Data or control flow through components | `flowchart` |
+| New types and how they relate | `classDiagram` |
+| *Replacing* a behavior | A **before / after** pair — two sections of a sequence diagram (`Note over … : BEFORE`), or two `subgraph`s of a flowchart. Often the most useful form: the point of the change *is* the difference |
+
+Rules that hold:
+
+- **Mark what changed.** New or changed parts are styled (`classDef changed …` in a
+  flowchart, a `rect` block in a sequence diagram); untouched context stays plain. The user
+  should see at a glance where the change sits in the system.
+- **Tag each changed part with the step that explains it** — `①`, `②`, `③` in the node or
+  message label. These tags are the link between the diagram and the steps.
+  One step may own several tags; every step owns at least one, except a closing docs step.
+- **About 12 nodes or messages at most.** A diagram that needs more is a scope that needs
+  splitting — the same signal as more than seven steps in [§3](#3-break-it-into-steps).
+- **Labels are short.** Real names (`Proceeding.__anext__`, `transcript`) beat
+  descriptions; the key idea below carries the explanation.
+
+### Where it goes
+
+Mermaid does not render in the chat panel, but it does in VS Code's Markdown preview. So:
+
+1. **Write the diagram to `walkthrough-model.md` in the session scratchpad** — never in the
+   repo. The file holds a title, the Mermaid block, and the key idea.
+2. **Link it in the chat** and tell the user to open it with **⇧⌘V**, or **⌘K V** to pin
+   the preview beside the code they will be reading.
+3. **Keep the chat self-sufficient.** The key idea and the step list go in the chat too; the
+   diagram is the picture, not the only copy of the explanation.
+
+### What Step 0 says
+
+1. **The diagram link**, with the one-line instruction to open the preview.
+2. **The key idea — two to four sentences** saying what the picture shows and what changed in
+   it, and which `docs/design/` area it serves. For a before / after diagram: what was
+   wrong with *before*, and what *after* makes true. Not a file inventory.
+3. **Vocabulary, but only if it is load-bearing.** If the change introduces domain terms the
    user may not hold — *continuance*, *interrogatory*, *filing*, *exhibit* — give them one
    line each from [`docs/glossary.md`](../../../docs/glossary.md) here. Three terms at most;
    this is a courtesy, not a lecture, and a term the user already uses does not need
    defining back at them.
-3. **The numbered step list**, one line each, titles only.
-4. **The count** — "5 steps" — and a note that they can say *"skip to step 3"* or *"stop"*
-   at any point.
+4. **The numbered step list**, one line each: the title and the diagram tags it covers —
+   `2. The clerk waits for a ready token — ②`.
+5. **The count** — "5 steps" — and a note that they can say *"skip to step 3"*, *"map"*
+   to see where they are on the diagram, or *"stop"* at any point.
 
-Then pause. Do not run step 1 in the same turn. The map is itself a step the user gets to
-react to, and it is where they redirect you if you carved the change up wrong.
+Then pause. Do not run step 1 in the same turn. The mental model is itself a step the user
+gets to react to, and it is where they redirect you if you drew or carved the change up
+wrong. If they correct the picture, rewrite the file and the plan before step 1.
 
 ## 5. The shape of each step
 
 Every step, without exception, has these five parts in this order:
 
-**1 — Where you are.** `**Step 2 of 5 — <short title>**`. Always. The user has been reading
-files between turns and has lost the thread; this is one line and it restores it.
+**1 — Where you are.** `**Step 2 of 5 — <short title>** · on the model: ② <tag label>`.
+Always. The user has been reading files between turns and has lost the thread; this is one
+line, and it restores both their place in the list and their place in the picture.
 
-**2 — Purpose.** What problem this step solves, in two or three sentences, and the design
-section or ADR it comes from. Lead with the *why*. A user who understands why a change
+**2 — Purpose.** Open with what this step adds to the picture — *"this is the ② arrow:
+the token that lets the clerk write"*. Then what problem it solves, in two or three
+sentences, and the design section or ADR it comes from. Lead with the *why*. A user who understands why a change
 exists can read the code themselves; one who doesn't is just proofreading syntax.
 
 **3 — The change itself.** Prose, plus the **three to ten lines that carry the idea** — the
@@ -214,12 +265,20 @@ Concretely:
   to ask for.
 - **Only these advance the walkthrough: an explicit "next", "continue", "go on", or a jump
   like "skip to step 4".** A follow-up question is not permission to advance. Silence is not
-  permission. A "thanks, that makes sense" is not permission — answer, then wait.
+  permission. A "thanks, that makes sense" is not permission — answer, then wait. Neither
+  is *"map"* — see [§7](#7-follow-up-questions).
 
 ## 7. Follow-up questions
 
 Answer them fully, then **stay in the current step**. End by restoring position: *"Still on
 step 2 of 5 — say next when you're ready."*
+
+**"Map" is a follow-up.** Rewrite `walkthrough-model.md` with the current step's tags
+highlighted — a `classDef current` on its nodes in a flowchart, a brighter `rect` around
+its messages in a sequence diagram — and everything already covered marked as done. A
+pinned preview refreshes in place, so this is a "you are here" without a diagram in the
+chat. Say in one line which tags lit up, and stay on the step. Do not redraw on every step
+unasked; the text anchor in each header is the default link back.
 
 Follow-ups are the walkthrough working, not an interruption of it. A question that pulls in
 a file outside the current scope is fine — go read it and answer. Do not steer back to the
@@ -260,8 +319,10 @@ Bugs are not the job here. A walkthrough that turns into an audit stops being a 
 
 After the last step, close in a few lines:
 
-- **The through-line** — the one or two sentences that tie the steps together, now that
-  they've seen all of them. This is the part they'll remember a week from now.
+- **The through-line** — the one or two sentences that tie the steps together, told against
+  the diagram now that they've seen every tag on it (*"①–③ are one move: the consumer's
+  request became the clerk's permission to write"*). This is the part they'll remember a
+  week from now.
 - **What you skipped** and why (lockfiles, churn, anything out of scope).
 - **Any ⚠️ flags** from [§8](#8-when-the-code-looks-wrong), gathered in one place, so they
   aren't scattered across turns. Separate the design-doc contradictions from the rest — those
@@ -277,7 +338,9 @@ checkpoint.
 
 ## Rules
 
-- Read-only. Never edit, stage, or commit during a walkthrough.
+- Read-only. Never edit, stage, or commit during a walkthrough. The plan and the
+  mental-model diagram live in the session scratchpad, never in the repo.
+- Open with the mental model. Every step names its tag on the diagram.
 - Never run the live test tiers. They cost money.
 - Never read `notes/` or `local/`.
 - One step per turn, and end the turn. A question is not permission to advance.

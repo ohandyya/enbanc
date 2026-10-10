@@ -107,9 +107,14 @@
 
 ### Oct 10
 
-1. Modify the `walkthrough` skill to first create a mental model of the code change
+1. [Done] Modify the `walkthrough` skill to first create a mental model of the code change
     - Draw mergaid diagram. Human usualyl understnd visualization better than words
     - Then the steps should be building upon the diagram
+
+- To Dos
+
+    - [ ] Use the new walkthrough skill to review the PR
+    - [ ] Call `wrap-up`
 
 ### Sep 13
 
