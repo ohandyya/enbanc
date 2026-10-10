@@ -1,6 +1,6 @@
 ---
 status: draft
-updated: 2026-09-20
+updated: 2026-10-10
 ---
 
 # Guides that run
@@ -93,6 +93,12 @@ is the last one that changes the public surface** — `__all__` completes in
 [`round-loop.md`](./round-loop.md), and the error types complete in
 `failures.md`. A guide written before that is a map of a target that is still
 moving, and it would be rewritten by every PR that landed after it.
+
+[`stream-ordering.md`](./stream-ordering.md) too. It changes no surface, but
+until it lands `proceeding.transcript[-1]` runs ahead of the stream for any
+consumer that `await`s inside its loop. That is the kind of consumer a guide
+shows, so a streaming guide written first would be demonstrating a broken
+promise.
 
 ## Files
 
