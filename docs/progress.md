@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-09-25
+updated: 2026-10-10
 ---
 
 # Progress
@@ -11,9 +11,119 @@ at the start of the next one.
 
 Two halves, two different guarantees:
 
-- `## Current state` is **current truth**, rewritten in place every session.
-  Anything stale here is a bug.
-- `## Log` is **history**, prepended newest-first and never edited. Entries are
+- `## Current state
+
+**Phase:** Design complete, and PRs 1–8 of the ten-PR plan are `current`:
+[`schemas.md`](./implementations/schemas.md) (#19),
+[`contract-probes.md`](./implementations/contract-probes.md) (#20),
+[`web-search-tool.md`](./implementations/web-search-tool.md) (#21),
+[`rendering.md`](./implementations/rendering.md) (#23),
+[`tribunal-construction.md`](./implementations/tribunal-construction.md) (#24),
+[`ledgering-toolset.md`](./implementations/ledgering-toolset.md) (#25),
+[`proceeding-core.md`](./implementations/proceeding-core.md) (#26, merged) and
+[`round-loop.md`](./implementations/round-loop.md)
+([PR #28](https://github.com/ohandyya/enbanc/pull/28), **open, not yet
+merged**). With #28 a proceeding runs end to end offline: any number of rounds,
+interrogatories stamped and dispatched, and all three endings inside the
+envelope — a ruling, `Undecided('rounds')`, `Undecided('budget')`. What it does
+not do is fail well: a participant that cannot be heard still surfaces as an
+`ExceptionGroup`, not a `ProceedingFailed`. `make check-all` passes at 416
+tests (375 before #28). `__all__` is complete at twenty-nine names. The README's
+WIP banner is still accurate: the published `0.0.5` on PyPI reserves the name
+and nothing more, and `0.1.0` hasn't shipped.
+
+Settled and binding across
+[`0001`](./decisions/0001-statute-carries-no-model.md)–[`0039`](./decisions/0039-a-response-is-asked-for-its-answer-alone.md).
+[`0039`](./decisions/0039-a-response-is-asked-for-its-answer-alone.md) is new:
+a round-2 advocate is asked for `answer` and `exhibits` alone and
+`advocate`/`answering` are filled from the dispatch, because handing
+`_Response` over as the output type made `answering` a required field the model
+could write. Eight design documents under [`design/`](./design/) still carry
+**no open questions**, and there are no placeholders left.
+
+[`design/packaging.md`](./design/packaging.md) and
+[`design/testing.md`](./design/testing.md) describe things that exist: the
+module map, the twenty-nine-name `__all__`, four tier directories with
+path-derived markers and a socket guard on the offline two, and
+[`live-tests.yml`](../.github/workflows/live-tests.yml) for the live two
+([`0033`](./decisions/0033-live-tiers-run-in-ci-on-demand.md)).
+
+The path to `0.1.0` is a ten-PR plan in [`implementations/`](./implementations/),
+ordered by [its README table](./implementations/README.md#the-plan). #28 is
+open; [`failures.md`](./implementations/failures.md),
+[`guides.md`](./implementations/guides.md) and
+[`zero-one-zero.md`](./implementations/zero-one-zero.md) are still `draft` with
+no plan or code.
+
+**Next up:** Get #28 reviewed and merged, then start PR 9,
+[`failures.md`](./implementations/failures.md) — the first-failure slot and the
+cancelled-exception re-raise on the round's task group (the re-raise comes
+*first* and is load-bearing), `ProceedingFailed` naming one participant, and
+`ProceedingUnfinished`/abandonment. Two things from #28 bear on it: the plain
+task group now runs in **every** round, so its tests must cover a failure in
+round 2 and after, not only round 1; and `UsageLimitExceeded` raised from
+*inside* a run (PydanticAI's own fifty-request ceiling) is deliberately not
+caught by `_budget_spent` — it is a participant that could not be heard, and
+this is the PR that wraps it. `test_hear_stream.py` and `test_proceeding.py`
+assert the `ExceptionGroup` today, so making it singular shows up as a diff.
+
+Things the next session should carry:
+
+- **`since` is the last round a participant was *shown*, not the last it
+  ran.** `_answer()` sets it to `snapshot.entries[-1].round`. The plan had
+  `since = round` and the forced run-7 test caught it as an empty delta; the
+  same rule would also have shown a round-3 turn nothing from round 2.
+  `execution.md` was right, the plan was wrong.
+- **The test bench scripts rounds now.** `Bench` in `tests/unit/conftest.py`
+  takes `continuances`, per-turn `calls`/`exhibits`, per-participant `costs` (a
+  `FunctionModel` is unpriceable, so any `cost_limit` test needs them) and
+  `gates` (an `anyio.Event` that forces an ordering). Grow it rather than
+  rebuilding it for PR 9's failure scenarios.
+- **`max_rounds` stops on `>=`.** `Tribunal(...)` does not validate it, and `==`
+  would never stop a `max_rounds=0` tribunal. Added during the build; if you
+  would rather reject 0 at construction, that is a fifth `ConfigurationError`
+  case and a design change.
+- **Round 1's `Argument` and `Concession` still ask the model to write
+  `advocate`**, so a model could file under a peer's verdict. `0039` covers only
+  the interrogatory link. Not filed anywhere yet.
+- **`live-tests.yml` has run for real, on both triggers**, and the integration
+  tier holds one real Tavily call (`test_web_search.py`). The e2e tier is still
+  `test_placeholder.py` and waits on `api.md`'s example to exist.
+- **The network guard is a tripwire, not a sandbox.** It catches `asyncio`, and
+  so every HTTP client the library will actually use, but raw `_socket`,
+  subprocesses, and anything connecting at import time go straight past it. The
+  import-time half has a rule and a test in
+  [`packaging.md`](./design/packaging.md#what-import-enbanc-may-do).
+
+**Open questions:**
+
+- None, anywhere in [`design/`](./design/).
+- `procedure` version `p1` now runs multi-round proceedings, but only under
+  scripted `FunctionModel`s, never a live model. Its changelog row in
+  [`prompting.md`](./design/prompting.md#procedure-versions) still has nothing
+  to compare against — that needs `0.1.0` shipped and a real prompt edit after
+  it. The bump-discipline question stays open until then.
+
+## Log
+
+### 2026-10-10 — PR 8: the round loop
+
+**Did:** Implemented [`round-loop.md`](./implementations/round-loop.md) in
+`_proceeding.py` — interrogatory ids stamped at the clerk, one task per
+addressed advocate answering in id order, the run-7 snapshot, and the
+`max_rounds` and budget endings as `Undecided`. Opened as
+[PR #28](https://github.com/ohandyya/enbanc/pull/28); the plan doc is stamped
+`current`.
+
+**Stopped at:** #28 is open and unmerged. The `since` rule and `>=` against
+`max_rounds` were both corrected during the build and recorded in place in the
+plan doc.
+
+**Why this way:** [`0039`](./decisions/0039-a-response-is-asked-for-its-answer-alone.md).
+
+**Commits:** `c019b1a`..`5d07cb0` on `round-loop`.
+
+is **history**, prepended newest-first and never edited. Entries are
   true as of their date and go stale by design.
 
 The log says *what* changed and *where it stopped*. It does not say *why* —

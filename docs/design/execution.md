@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-09-20
+updated: 2026-10-10
 ---
 
 # Execution
@@ -351,7 +351,15 @@ Two things about such a function are load-bearing and neither is guessable:
 
 **A sole output type is named `final_result`**, not `final_result_<Class>` — the
 per-member naming above is what a *union* gets. So an advocate's round-2 agent,
-offered `_Response` alone, sees the bare name.
+offered one output function alone, sees the bare name.
+
+**A function of several parameters is offered as an object of exactly those
+parameters**, a defaulted one optional, and a `ModelRetry` raised inside it spends
+the `output` budget as the single-parameter form's does. That is how an advocate's
+response is asked for `answer` and `exhibits` and nothing else, with `advocate`
+and `answering` filled from the dispatch: a field the function does not take is a
+field the model is never asked for
+([`0039`](../decisions/0039-a-response-is-asked-for-its-answer-alone.md)).
 
 ### `max_concurrency` is set at construction
 
@@ -517,8 +525,7 @@ req 4   instructions=<4 parts, re-resolved, byte-identical>
 
           Round 2. Answer r1-q1 and file your response.
 
-resp 3  ToolCallPart    final_result__ResponseLoanDecision(
-                          kind="response", advocate="approve",
+resp 3  ToolCallPart    final_result(
                           answer="The Schedule C figure is gross; the W-2 is the "
                                  "reconciled number.",
                           exhibits=[])
@@ -573,7 +580,7 @@ req 5   ToolReturnPart:
             s3://underwriting-docs/okonkwo/w2-2024.pdf
             wages: 131,400
 
-resp 4  ToolCallPart    final_result__ResponseLoanDecision(
+resp 4  ToolCallPart    final_result(
                           answer="Yes — the statute's ceiling is on documented "
                                  "income.",
                           exhibits=[{source: "s2", content: "wages: 131,400"}])
@@ -605,7 +612,7 @@ req 7   UserPromptPart:
 
           Round 2. Answer r1-q3 and file your response.
 
-resp 5  ToolCallPart    final_result__ResponseLoanDecision(...)
+resp 5  ToolCallPart    final_result(...)
 
 req 8   ToolReturnPart  'Final result processed.'
 ```
@@ -1015,7 +1022,7 @@ while True:
     deliberation = await deliberate(round_no)
     if isinstance(deliberation, Ruling):
         outcome = deliberation;                              break
-    if round_no == max_rounds:
+    if round_no >= max_rounds:
         outcome = Undecided(reason="rounds");                break
     if budget_exceeded(usage_by_participant):
         outcome = Undecided(reason="budget");                break
@@ -1031,6 +1038,12 @@ unreachable rather than tolerated. The loop needs no guard for it.
 **`max_rounds` is tested before the budget.** A proceeding that hit both is
 recorded as having run out of rounds — the limit every tribunal has, and the one
 that needs no measurement to establish.
+
+**`>=`, not `==`.** `Tribunal(...)` does not validate `max_rounds` — it is not one
+of [the four `ConfigurationError` cases](#configurationerror-has-four-cases) — and
+`max_rounds` is what makes a proceeding terminate at all. So a tribunal built with
+`0` runs one round and ends `Undecided(reason='rounds')`, the same shape a ceiling
+of zero takes below, rather than running for as long as the judge keeps asking.
 
 **There is no budget check before round 1.** Nothing has been spent, and a
 proceeding always runs at least one round; a caller who set a ceiling of zero gets

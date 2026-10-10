@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-09-20
+updated: 2026-10-10
 ---
 
 # Testing
@@ -70,7 +70,7 @@ instead.
 | A failing output schema spends the `output` budget | Attempts track `output` alone; the constraint reaches the model as `minItems` |
 | `max_concurrency` is set at construction | It is an `__init__` parameter, not a `run()` argument |
 | A failing fan-out need not raise an `ExceptionGroup` | A child that records and cancels lets the group exit cleanly; the cancelled-exception re-raise is what keeps an *external* cancellation from naming a participant |
-| An output validator forbids a per-run `output_type` | The refusal is unconditional; an output function is named and shaped by its single parameter, its `ModelRetry` spends the `output` budget and arrives as a `RetryPromptPart`, its docstring becomes the tool's description, and a sole output type is named `final_result` |
+| An output validator forbids a per-run `output_type` | The refusal is unconditional; an output function is named and shaped by its single parameter, its `ModelRetry` spends the `output` budget and arrives as a `RetryPromptPart`, its docstring becomes the tool's description, a sole output type is named `final_result`, and a function of several parameters is offered as an object of exactly those parameters with its `ModelRetry` spending the `output` budget too |
 
 **`integration` proves the wire, not the logic.** One happy path per external
 seam: `web_search` against real Tavily returning real `Source`s, and one short

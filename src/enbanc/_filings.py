@@ -133,15 +133,19 @@ class Response(BaseModel, Generic[VerdictT]):
 
 
 class _Response(BaseModel, Generic[VerdictT]):
-    """What an advocate emits in round 2 and after: a response whose exhibits are bare ids.
+    """An advocate's round-2+ response before it enters the record: its exhibits are bare ids.
 
     `_Argument`'s counterpart, for the same reason and with the same two model-authored
     fields on each exhibit.
 
-    `advocate` and `answering` are carried so that the conversion into the public `Response`
-    is a field copy rather than a merge of two sources. Neither is the model's to decide:
-    the tribunal dispatches one advocate run per interrogatory, so it knows whose run this is
-    and which question it answers, and it fills both from the dispatch.
+    **The model does not emit this whole shape.** It is asked for `answer` and `exhibits`
+    alone, and the tribunal builds the `_Response` from those plus the dispatch: it runs one
+    advocate per interrogatory, so it knows whose run this is and which question it answers.
+    `advocate` and `answering` are carried here so that the conversion into the public
+    `Response` is a field copy rather than a merge of two sources. Handing this class to the
+    agent as its output type would put `answering` in the schema as a required field, and
+    whatever the model wrote there would reach the record. See
+    `docs/decisions/0039-a-response-is-asked-for-its-answer-alone.md`.
     """
 
     kind: Literal["response"] = "response"

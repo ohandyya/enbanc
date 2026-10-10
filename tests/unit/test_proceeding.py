@@ -14,7 +14,6 @@ from datetime import UTC, datetime
 from typing import Any
 
 import anyio
-import pytest
 
 from enbanc import (
     Argument,
@@ -304,29 +303,6 @@ async def test_the_transcript_invariant_holds_over_the_whole_proceeding(
     hearing = await tribunal.hear(case)
 
     assert_invariant_held(scripted.captured, hearing.transcript, tribunal.instructions_for)
-
-
-async def test_a_continuance_is_the_round_loops_and_says_so(
-    outcomes_kwargs: Kwargs, bench: Callable[..., Any], case: Case
-) -> None:
-    """The stated boundary of this PR. A judge that declines to rule needs a round to dispatch
-    into, and there is none yet — filing the continuance and reporting
-    `Undecided(reason='rounds')` would be a false record for any tribunal whose rounds had not
-    actually run out.
-
-    **It arrives inside an `ExceptionGroup`**, because the task group here is the plain one.
-    Turning what a proceeding raises into a singular exception is the first-failure slot
-    `docs/implementations/failures.md` adds, and asserting the group now is what makes that
-    change show up as a diff on this test rather than as a silent widening.
-    """
-    kwargs = outcomes_kwargs()
-    scripted = bench(concedes=set(kwargs["verdicts"]), continues=True)
-    tribunal = Tribunal(**(kwargs | {"model": scripted.model}))
-
-    with pytest.RaisesGroup(
-        pytest.RaisesExc(NotImplementedError, match="round-loop.md"), flatten_subgroups=True
-    ):
-        await tribunal.hear(case)
 
 
 async def test_a_tribunal_parks_no_state_between_proceedings(

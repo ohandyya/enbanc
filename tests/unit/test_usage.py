@@ -136,3 +136,27 @@ async def test_two_proceedings_do_not_share_accumulators(
 
     assert first.usage.requests == second.usage.requests
     assert first.usage_by_participant is not second.usage_by_participant
+
+
+async def test_an_accumulator_carries_a_participant_across_rounds(
+    outcomes_kwargs: Kwargs, bench: Callable[..., Any], case: Case
+) -> None:
+    """Round 2 runs into the object round 1 minted, not a fresh one. `DENY` argues (1 request),
+    answers two questions (1 each), and the judge deliberates three times — and the total is
+    still the sum of the breakdown after three rounds."""
+    kwargs = outcomes_kwargs()
+    approve, deny, refer = list(kwargs["verdicts"])
+    scripted = bench(
+        concedes={refer},
+        continuances=[[(deny, "First?"), (deny, "Second?")], [(approve, "Third?")]],
+    )
+    tribunal = Tribunal(**(kwargs | {"model": scripted.model}))
+
+    hearing = await tribunal.hear(case)
+
+    assert hearing.rounds == 3
+    assert hearing.usage_by_participant[deny].requests == 3
+    assert hearing.usage_by_participant[approve].requests == 2
+    assert hearing.usage_by_participant[refer].requests == 1
+    assert hearing.usage_by_participant["judge"].requests == 3
+    assert hearing.usage.requests == 9
