@@ -105,6 +105,12 @@
 
 ## Daily Log
 
+### Oct 10
+
+1. Modify the `walkthrough` skill to first create a mental model of the code change
+    - Draw mergaid diagram. Human usualyl understnd visualization better than words
+    - Then the steps should be building upon the diagram
+
 ### Sep 13
 
 1.[DON'T CHANGE] Change the default web_search max_results to 10
