@@ -385,11 +385,28 @@ filed: ['approve']          transcript: ['filing from approve']
 ```
 
 That is [`outcomes.md`](./outcomes.md#an-advocates-provider-is-down) reproduced
-exactly. **Re-raising the cancelled-exception class before the general handler is
-load-bearing** — though not for the scenario above, where the failing task fills
-the slot before it cancels and both variants behave identically. What it protects
-is a proceeding cancelled from outside; see
-[Piece 3](#the-rounds-task-group).
+exactly. **A general handler that catches `BaseException` must re-raise the
+cancelled-exception class first.** That is not because of the scenario above,
+where the failing task fills the slot before it cancels and both variants behave
+identically. It is because of a proceeding cancelled from outside. `enbanc`'s
+handler catches `Exception`, which cancellation never reaches, so the hazard is
+closed by the exception hierarchy; see [Piece 3](#the-rounds-task-group).
+
+**A clean exit is necessary, not sufficient.** anyio does not tell an exception
+raised in a group's *body* from one a child raised. Verified against
+**`anyio 4.14.2`**:
+
+```text
+raise in a task group's body, one healthy child   -> ExceptionGroup
+raise in a task group's body, no children at all  -> ExceptionGroup
+raise after the group has exited                  -> the exception, bare
+```
+
+So the slot keeps the round's group clean, but a `ProceedingFailed` raised
+anywhere lexically inside a group — the round's, the clerk's around it, or the
+one `hear_stream()` runs the proceeding in — would still reach the caller
+wrapped. The failure is held while the groups unwind and raised after the last
+one. See [Piece 3](#the-rounds-task-group).
 
 ## The proceeding, as messages
 
@@ -925,7 +942,14 @@ entry just received is the last entry of `proceeding.transcript`*. If each task
 appended and then sent, a sibling could append between the two operations and a
 consumer would receive entry 5 while `transcript[-1]` was entry 6 — the live view
 and the record disagreeing about a proceeding whose whole product is that they do
-not. With a single owner there is no interleaving to reason about.
+not. With a single owner there is no interleaving *between filers* to reason
+about.
+
+**That is not yet the whole sentence.** A single owner rules out a sibling
+appending between another filer's append and send. It does not rule out the
+clerk appending entry 6 while the consumer is still busy with entry 5, which the
+sketch above permits. Which of the two appends, and when, is
+[open](#open-questions).
 
 The acknowledgment is not overhead bought for this guarantee; `0027` needs it
 independently. `DENY`'s run 3 must not be dispatched until entry 6 is in the
@@ -952,18 +976,33 @@ Each task holds:
 try:
     ...run, file, await the ack, run again for the next interrogatory...
 except anyio.get_cancelled_exc_class():
-    raise                                     # a peer failed; die where we stand
-except BaseException as e:
+    raise                                     # cancellation is never a failure
+except Exception as e:
     if first.participant is None:
         first.participant, first.exc = participant, e
     tg.cancel_scope.cancel()
 ```
 
-**The cancelled-exception re-raise comes first and is load-bearing** — but not
-for the case it looks like it is for. When a *child fails*, dropping it changes
-nothing: the failing task assigns `first` **before** it calls
-`tg.cancel_scope.cancel()`, with no `await` between the two statements, so there
-is no point at which a cancelled sibling runs in between and no race to win.
+**The general arm catches `Exception`, and the class hierarchy is what keeps a
+cancellation from being recorded as a failure.** The hazard is **an outer cancel
+scope firing while every child is healthy**. A caller cancelling `hear()`, or a
+timeout wrapped around a proceeding, reaches exactly this. A handler that caught
+the cancellation would record the first advocate to notice it as the failure, and
+`ProceedingFailed` would name an advocate that was merely stopped when nothing
+had failed at all. anyio's cancellation is `asyncio.CancelledError` or
+`trio.Cancelled`, and both are `BaseException`, so neither can reach this arm.
+
+`KeyboardInterrupt`, `SystemExit` and `GeneratorExit` pass through for the same
+reason. None of them is anything a participant did, and wrapping one in
+`ProceedingFailed` would turn a stop signal into an ordinary `Exception` that a
+caller's `except` logs and moves past. Every failure this document names is an
+`Exception`, so all of them are still caught. See
+[`0040`](../decisions/0040-a-participant-failure-is-an-exception.md).
+
+**The re-raise arm stays first, though under `Exception` it decides nothing.** It
+is the explicit statement that cancellation is not a failure, and it becomes
+load-bearing again the moment the general arm is widened. What it would then
+decide, probed under a `BaseException` arm:
 
 ```text
 a child fails:
@@ -975,19 +1014,31 @@ cancelled from outside (nothing failed):
   no re-raise   clean; first=approve (CancelledError)
 ```
 
-What it protects is **an outer cancel scope firing while every child is
-healthy**. Without the re-raise, the first advocate to notice it was cancelled is
-caught by the general handler and records *itself* as the failure, and
-`ProceedingFailed` names an advocate that was merely stopped — when nothing
-failed at all. A caller cancelling `hear()`, or a timeout wrapped around a
-proceeding, reaches exactly this, so it is a live hazard rather than a
-hypothetical. `tests/contract/test_a_failing_fan_out_need_not_raise_a_group.py`
-pins the discriminating case.
+When a *child fails* it changes nothing: the failing task assigns `first`
+**before** it calls `tg.cancel_scope.cancel()`, with no `await` between the two
+statements, so there is no point at which a cancelled sibling runs in between.
+Only the external cancel discriminates.
+`tests/contract/test_a_failing_fan_out_need_not_raise_a_group.py` pins that case,
+and it pins anyio's behaviour rather than which arm `enbanc` writes.
 
 **The group exits cleanly and the orchestrator raises afterwards**, with
 `first.exc` as `__cause__`. So `ProceedingFailed.participant` is singular because
 only one slot is ever filled — not because `enbanc` picked one out of an
 `ExceptionGroup`. That is `0012`'s guarantee held structurally.
+
+*Afterwards* means after the **outermost** group, because a raise inside any
+group's body is grouped too
+([above](#a-failing-fan-out-need-not-raise-an-exceptiongroup)). The round raises
+once its own group has exited; the loop that holds the clerk's group catches that
+and records the failure where it would have bound the hearing, before the stream
+closes; and `hear_stream()`'s context manager raises it once its own group has
+exited — out of the `async with`, not the `async for`, which by then has simply
+ended. An exception the consumer raises inside the loop is held past that group
+for the same reason and handed back as itself.
+
+**The judge's guard has no slot.** The judge runs alone, so its run is wrapped in
+the same two arms and the general one raises `ProceedingFailed` directly: there is
+no sibling to cancel and no group of its own to keep clean.
 
 **The concurrency limiter is normalized once and shared.**
 `normalize_to_limiter(max_concurrency)` at the start of the proceeding, and the
@@ -998,8 +1049,10 @@ gets none: it runs alone, and the fan-out is the only place concurrency exists
 ### Usage
 
 **One `RunUsage` per participant, minted at its first dispatch and owned by the
-proceeding**, passed as `run(usage=…)` to every run that participant makes. Minted
-at dispatch rather than up front because **absence means never dispatched**
+proceeding**, passed as `run(usage=…)` to every run that participant makes. An
+advocate's is minted before its task is started rather than inside it, so
+*dispatched* and *has a key* are one event however soon a sibling's failure
+cancels the task. Minted at dispatch rather than up front because **absence means never dispatched**
 ([`api.md`](./api.md#when-something-goes-wrong)) — a pre-populated dict would put a
 judge row of zeroes on a `ProceedingFailed` from round 1 and make that absence
 unreadable. The dict of them *is*
@@ -1145,5 +1198,36 @@ commit: the answer goes into the prose above, an ADR in
 [`../decisions/`](../decisions/) records why, and then the bullet leaves this
 list. See rule 7 in [`../../CLAUDE.md`](../../CLAUDE.md).
 
-*None open.* This was the last document required before `0.1.0`, and
-[`docs/design/`](./) now describes a complete system.
+- **Who appends an entry to the transcript, and when, so that a consumer
+  holding entry *N* never finds *N*+1 at `transcript[-1]`?** The clerk above
+  appends and then blocks on the rendezvous send. A consumer that `await`s inside
+  its loop body, which is the consumer the stream exists for, sees the record run
+  one entry ahead of what it was yielded:
+
+  ```text
+  slow consumer (len, entry is transcript[-1]): [(2, False), (3, False), (4, False), (4, True)]
+  abandoned after seeing 1, transcript holds: 2
+  ```
+
+  So [`0010`](../decisions/0010-streaming-yields-the-record.md)'s *the entry just
+  received is the last entry of `proceeding.transcript`*, and
+  [`api.md`](./api.md#watching-it-live)'s *live: the entry just yielded is its
+  last*, both fail. Abandoning inherits it: walking away can leave an entry
+  the consumer never received. Swapping the append and the send does not fix it,
+  because a receiver taking from a blocked sender may run its body before the
+  clerk appends.
+
+  Two options, neither probed yet:
+  - **The consumer's side appends on receipt.** `Proceeding.__anext__` appends
+    the entry before yielding it, and the clerk waits on that before
+    acknowledging the filer. The record and the stream cannot disagree, but the
+    clerk no longer owns the transcript alone, and `hear()` writes the record by
+    consuming it.
+  - **The clerk waits for a consumer to be ready before appending.** The clerk
+    keeps sole ownership, but needs a second channel or a handshake, because a
+    rendezvous stream has no "wait for a receiver" of its own.
+
+  Either way the acknowledgment must still mean *in the record*, because
+  [`0027`](../decisions/0027-an-advocate-answers-its-interrogatories-in-order.md)
+  dispatches an advocate's next run on it. Planned as
+  [`stream-ordering.md`](../implementations/stream-ordering.md).

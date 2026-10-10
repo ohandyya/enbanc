@@ -18,7 +18,9 @@ wrong. Fix the document, then decide whether the design it forced still makes se
 
 This one pins `anyio` rather than `pydantic-ai` itself. `anyio` arrives transitively, and the
 task group is the shape `execution.md` designs the round around, so a change in its
-cancellation semantics falsifies that document just as surely.
+cancellation semantics falsifies that document just as surely. The last two tests pin the
+finding's second half: a raise in a group's *body* is grouped too, so `enbanc` raises its
+failure only after every group has exited.
 """
 
 from dataclasses import dataclass, field
@@ -115,6 +117,35 @@ async def test_the_re_raise_is_what_survives_an_external_cancellation(
     first = await _fan_out(reraise=reraise, cancel_from_outside=True)
 
     assert (first.participant is None) == (expected is None)
+
+
+async def test_a_raise_in_a_groups_body_is_grouped_even_with_no_failing_child() -> None:
+    # The second half of the finding, and the one `proceed()`'s shape rests on. A clean exit
+    # is necessary and not sufficient: anyio does not tell a body's exception from a child's,
+    # so a `ProceedingFailed` raised anywhere inside a group comes out wrapped — even here,
+    # where the group has no children at all.
+    class Failed(Exception):
+        pass
+
+    with pytest.raises(BaseExceptionGroup) as caught:
+        async with anyio.create_task_group():
+            raise Failed
+
+    assert isinstance(caught.value.exceptions[0], Failed)
+
+
+async def test_the_same_raise_after_the_group_has_exited_is_bare() -> None:
+    # Which is why the failure is held while the groups unwind and raised after the last one.
+    class Failed(Exception):
+        pass
+
+    held: Failed | None = None
+    with pytest.raises(Failed):
+        async with anyio.create_task_group() as tg:
+            tg.start_soon(anyio.sleep, 0)
+            held = Failed()
+        assert held is not None
+        raise held
 
 
 async def _fan_out(*, reraise: bool, cancel_from_outside: bool) -> _First:

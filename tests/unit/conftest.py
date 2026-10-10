@@ -505,6 +505,11 @@ class Bench:
       unpriceable, and every `cost_limit` would trip `CostNotFoundWarning`.
     * `gates` — an `anyio.Event` a turn waits on before it files, which is how a test forces
       an ordering the scheduler would otherwise choose.
+    * `raises` — an exception a turn's model raises instead of responding, after its gate (if
+      any) has opened, so a test chooses the moment as well as the participant. The instance
+      itself is raised, so a test can assert `__cause__ is` it.
+
+    The judge's turns are keyed `("judge", n)` for deliberation *n*, for `gates` and `raises`.
     """
 
     concedes: frozenset[Any] = frozenset()
@@ -516,6 +521,7 @@ class Bench:
     verdict: Any = None
     costs: Mapping[Any, Decimal] = field(default_factory=dict)
     gates: Mapping[Any, anyio.Event] = field(default_factory=dict)
+    raises: Mapping[Any, BaseException] = field(default_factory=dict)
     captured: dict[Any, list[list[ModelMessage]]] = field(default_factory=dict)
 
     @property
@@ -526,7 +532,7 @@ class Bench:
         who = _participant(messages)
         self.captured.setdefault(who, []).append(messages)
         if who == "judge":
-            parts = self._deliberate(messages, info)
+            parts = await self._deliberate(messages, info)
         else:
             parts = await self._advocate(who, messages, info)
         cost = self.costs.get(who)
@@ -536,9 +542,10 @@ class Bench:
             parts=parts, usage=RequestUsage(input_tokens=100, output_tokens=10, cost=cost)
         )
 
-    def _deliberate(self, messages: list[ModelMessage], info: AgentInfo) -> list[Any]:
+    async def _deliberate(self, messages: list[ModelMessage], info: AgentInfo) -> list[Any]:
         matched = _DELIBERATION_TURN.search(_turn(messages))
         n = int(matched.group("n")) if matched else 1
+        await self._held(("judge", n))
         if n <= len(self.continuances):
             interrogatories = [
                 {"to": to.value, "question": question} for to, question in self.continuances[n - 1]
@@ -577,8 +584,7 @@ class Bench:
         if made < len(calls):
             name, args = calls[made]
             return [ToolCallPart(name, args)]
-        if key in self.gates:
-            await self.gates[key].wait()
+        await self._held(key)
         cited = [
             {"source": source, "content": "wages: 131,400"}
             for source in self._exhibits(who, key, answering is None)
@@ -600,6 +606,13 @@ class Bench:
                 },
             )
         ]
+
+    async def _held(self, key: Any) -> None:
+        """Wait on this turn's gate, then raise what it is scripted to raise, if anything."""
+        if key in self.gates:
+            await self.gates[key].wait()
+        if key in self.raises:
+            raise self.raises[key]
 
     def _calls(self, who: Any, key: Any, round_one: bool) -> Sequence[tuple[str, dict[str, Any]]]:
         if key in self.calls:

@@ -874,6 +874,12 @@ participant went silent. `proceeding.hearing` then re-raises that same
 which is reserved for a proceeding still running or one the caller walked away
 from.
 
+**An exception the consumer raises inside the loop comes back as itself.**
+Raising out of the loop is walking away, so the in-flight runs are cancelled and
+the exception leaves the `async with` unwrapped. `proceeding.hearing` then
+reports the proceeding's own state: the `ProceedingFailed` if a participant had
+already gone silent, `ProceedingUnfinished` if not.
+
 ## When something goes wrong
 
 A proceeding has two endings and one interruption. It rules, it runs out of

@@ -19,7 +19,7 @@ from pydantic_ai import UsageLimitExceeded
 from pydantic_ai.messages import ModelMessage, ModelRequest, ModelResponse, ToolCallPart
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 
-from enbanc import Advocate, Case, Judge, Tribunal
+from enbanc import Advocate, Case, Judge, ProceedingFailed, Tribunal
 
 Kwargs = Callable[[], dict[str, Any]]
 
@@ -32,13 +32,6 @@ def _turn(messages: list[ModelMessage]) -> str:
         for part in getattr(message, "parts", ())
         if type(part).__name__ == "UserPromptPart"
     )
-
-
-def _leaves(error: BaseException) -> list[BaseException]:
-    """Every non-group exception inside a possibly nested `ExceptionGroup`."""
-    if isinstance(error, BaseExceptionGroup):
-        return [leaf for exc in error.exceptions for leaf in _leaves(exc)]
-    return [error]
 
 
 def _recording(seen: list[tuple[str, AgentInfo, list[ModelMessage]]]) -> FunctionModel:
@@ -238,16 +231,14 @@ async def test_no_usage_limit_is_passed_into_a_run(outcomes_kwargs: Kwargs, case
 
     tribunal = Tribunal(**{**outcomes_kwargs(), "model": FunctionModel(never_files)})
 
-    with pytest.raises(BaseExceptionGroup) as caught:
+    with pytest.raises(ProceedingFailed) as caught:
         await tribunal.hear(case)
 
-    # Every advocate that got that far hits it, because the task group here is the plain one:
-    # nothing cancels the siblings until `docs/implementations/failures.md` adds the
-    # first-failure slot. How many is scheduling, so the assertion is about what they are.
-    stopped = _leaves(caught.value)
-    assert stopped
-    assert all(isinstance(exc, UsageLimitExceeded) for exc in stopped)
-    assert all("request_limit of 50" in str(exc) for exc in stopped)
+    # Which advocate reaches fifty first is scheduling — all three loop identically — so the
+    # assertion is that one is named and that the ceiling is what stopped it.
+    assert caught.value.participant in set(outcomes_kwargs()["verdicts"])
+    assert isinstance(caught.value.__cause__, UsageLimitExceeded)
+    assert "request_limit of 50" in str(caught.value.__cause__)
 
 
 async def test_a_per_advocate_model_overrides_the_tribunals(
