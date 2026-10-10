@@ -10,9 +10,10 @@ transcript does not contain would be watching a second channel.
 from collections.abc import Callable
 from typing import Any
 
+import anyio
 import pytest
 
-from enbanc import Case, Entry, Hearing, ProceedingUnfinished, Ruling, Tribunal
+from enbanc import Case, Entry, Hearing, Proceeding, ProceedingUnfinished, Ruling, Tribunal
 
 Kwargs = Callable[[], dict[str, Any]]
 
@@ -164,3 +165,52 @@ async def test_nothing_but_entries_is_yielded(
 
     assert sorted(kinds) == ["argument", "argument", "concession", "ruling"]
     assert all(isinstance(entry, Entry) for entry in proceeding.transcript)
+
+
+async def test_a_consumers_own_exception_comes_back_as_itself(
+    outcomes_kwargs: Kwargs, bench: Callable[..., Any], case: Case
+) -> None:
+    """Raising out of the loop is walking away, and the caller gets its own exception back —
+    not an `ExceptionGroup`, which is what anyio makes of anything raised in a task group's
+    body. `proceeding.hearing` then reports the proceeding's own state: nothing failed, so
+    there was no hearing."""
+    kwargs = outcomes_kwargs()
+    scripted = bench(concedes=set(kwargs["verdicts"]))
+    tribunal = Tribunal(**(kwargs | {"model": scripted.model}))
+    mine = ValueError("the consumer's own")
+    handle: Proceeding[Any] | None = None
+
+    with pytest.raises(ValueError) as caught:
+        async with tribunal.hear_stream(case) as handle:
+            async for _entry in handle:
+                raise mine
+
+    assert caught.value is mine
+    assert handle is not None
+    with pytest.raises(ProceedingUnfinished):
+        _ = handle.hearing
+
+
+async def test_an_external_cancel_leaves_no_hearing(
+    outcomes_kwargs: Kwargs, bench: Callable[..., Any], case: Case
+) -> None:
+    """A caller's timeout around the stream is not a failure: the scope sees its own cancel,
+    and `hearing` raises `ProceedingUnfinished` rather than naming a participant that was
+    merely stopped."""
+    kwargs = outcomes_kwargs()
+    approve, deny, refer = list(kwargs["verdicts"])
+    scripted = bench(concedes={approve, refer}, gates={deny: anyio.Event()})
+    tribunal = Tribunal(**(kwargs | {"model": scripted.model}))
+
+    handle: Proceeding[Any] | None = None
+
+    with anyio.fail_after(5):
+        with anyio.move_on_after(0.1) as scope:
+            async with tribunal.hear_stream(case) as handle:
+                async for _entry in handle:
+                    pass
+
+    assert scope.cancelled_caught
+    assert handle is not None
+    with pytest.raises(ProceedingUnfinished):
+        _ = handle.hearing

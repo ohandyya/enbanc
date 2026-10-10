@@ -1,8 +1,9 @@
 """One proceeding, running: the agents, the round loop, the filing clerk, and the live handle.
 
-`execution.md`'s piece 3: round 1's fan-out, every round a continuance starts after it, and
-the three ways a proceeding ends inside its envelope — a ruling, the rounds spent, the budget
-spent. Everything here is built
+`execution.md`'s piece 3: round 1's fan-out, every round a continuance starts after it, the
+three ways a proceeding ends inside its envelope — a ruling, the rounds spent, the budget
+spent — and the one way it is interrupted: a participant that cannot be heard, which cancels
+the round and raises `ProceedingFailed`. Everything here is built
 when a proceeding starts and discarded when it ends — one `Agent` per participant, one
 `Ledgering` per advocate, one `RunUsage` per participant, the history dict and the `since`
 dict. That split is what makes `hear()` safe to call twice and safe to run concurrently over
@@ -31,17 +32,20 @@ See `docs/design/execution.md` ("Piece 3 — round orchestration"),
 `docs/decisions/0016-exhibits-are-stamped-citations.md`,
 `docs/decisions/0024-a-budget-stops-the-proceeding-between-rounds.md`,
 `docs/decisions/0027-an-advocate-answers-its-interrogatories-in-order.md`,
-`docs/decisions/0028-usage-accumulates-per-participant.md`, and
-`docs/decisions/0039-a-response-is-asked-for-its-answer-alone.md`.
+`docs/decisions/0028-usage-accumulates-per-participant.md`,
+`docs/decisions/0039-a-response-is-asked-for-its-answer-alone.md`, and
+`docs/decisions/0040-a-participant-failure-is-an-exception.md`.
 """
 
-from collections.abc import AsyncGenerator, AsyncIterator, Callable, Mapping, Sequence
+from collections.abc import AsyncGenerator, AsyncIterator, Awaitable, Callable, Mapping, Sequence
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
+from functools import partial
 from typing import TYPE_CHECKING, Final, Generic, TypeVar
 
 import anyio
+from anyio import CancelScope
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
 from pydantic import BaseModel
 from pydantic_ai import Agent, AgentRetries, AnyConcurrencyLimit
@@ -53,7 +57,7 @@ from pydantic_ai.toolsets import AbstractToolset, CombinedToolset, DynamicToolse
 from pydantic_ai.usage import RunUsage, UsageLimits
 from typing_extensions import TypeAliasType
 
-from ._errors import ProceedingUnfinished
+from ._errors import ProceedingFailed, ProceedingUnfinished
 from ._evidence import Exhibit, _Exhibit
 from ._filings import (
     Argument,
@@ -194,6 +198,20 @@ class _Filed(Generic[VerdictT]):
     entry: Entry[VerdictT] | None = None
 
 
+@dataclass(slots=True)
+class _Unheard(Generic[VerdictT]):
+    """The one slot a round's first failure is recorded in.
+
+    **Singular because only one is ever filled**, not because `enbanc` picked one out of an
+    `ExceptionGroup` — `docs/decisions/0012-a-failure-cancels-the-round.md`'s guarantee held
+    structurally. A task fills it only when it is empty, and cancels the round in the same
+    step with no `await` between, so no sibling runs in between to compete for it.
+    """
+
+    participant: Participant[VerdictT] | None = None
+    exc: Exception | None = None
+
+
 class Proceeding(Generic[VerdictT]):
     """The live handle: the record as it is written, and the hearing once there is one.
 
@@ -234,12 +252,16 @@ class Proceeding(Generic[VerdictT]):
 
     @property
     def hearing(self) -> Hearing[VerdictT]:
-        """The `Hearing` `hear()` would have returned, or `ProceedingUnfinished`.
+        """The `Hearing` `hear()` would have returned — or the reason there is none.
 
-        Raised by a proceeding that is still running, and by one the caller walked away from.
-        A proceeding that *died* re-raises its own `ProceedingFailed` from here instead —
-        that half arrives with `docs/implementations/failures.md`.
+        A proceeding that *died* re-raises its own `ProceedingFailed` — the same object that
+        came out of the `async with` — rather than the blander `ProceedingUnfinished`, so the
+        reason is never downgraded. `ProceedingUnfinished` is for a proceeding still running
+        and for one the caller walked away from.
         """
+        failure = self._orchestrator.failure
+        if failure is not None:
+            raise failure
         hearing = self._orchestrator.hearing
         if hearing is None:
             raise ProceedingUnfinished(
@@ -292,6 +314,9 @@ class _Orchestrator(Generic[VerdictT]):
     #: slots. `None` when the caller set no ceiling.
     limiter: AbstractConcurrencyLimiter | None = field(init=False, default=None)
     hearing: Hearing[VerdictT] | None = field(init=False, default=None)
+    #: The participant that could not be heard, once one could not. Bound where `hearing`
+    #: would have been, and raised by `proceed()` only after every task group has exited.
+    failure: "ProceedingFailed[VerdictT] | None" = field(init=False, default=None)
     rounds: int = field(init=False, default=0)
 
     def __post_init__(self) -> None:
@@ -491,12 +516,47 @@ class _Orchestrator(Generic[VerdictT]):
     async def run(self, out: MemoryObjectSendStream[Entry[VerdictT]]) -> None:
         """One proceeding, start to finish: the clerk, and the round loop.
 
-        `docs/design/execution.md`'s loop, almost literally. A round, a deliberation, and then
-        three tests in a fixed order: a ruling ends it; `max_rounds` spent ends it; the budget
-        spent ends it. `max_rounds` is tested before the budget, so a proceeding that hit both
-        is recorded as having run out of rounds — the limit every tribunal has, and the one
-        that needs no measurement to establish. There is no budget check before round 1:
-        nothing has been spent, and a proceeding always runs at least one round.
+        The clerk runs for as long as the inbox is open, so closing the send end is what ends
+        it — and the task group below is what makes the two lifetimes one. `out` is closed
+        **after** the hearing or the failure is bound, which is what lets a consumer read
+        `proceeding.hearing` the moment its `async for` ends.
+
+        **A failure is held here, not raised.** anyio groups an exception raised anywhere in a
+        task group's body, even one no child raised, so a `ProceedingFailed` that left this
+        group would reach the caller wrapped. `proceed()` raises it once every group has
+        exited. See `docs/design/execution.md` ("The round's task group").
+        """
+        inbox_send, inbox_receive = anyio.create_memory_object_stream[_Filed[VerdictT]](0)
+        async with anyio.create_task_group() as tg:
+            tg.start_soon(self._clerk, inbox_receive, out)
+            async with inbox_send:
+                try:
+                    outcome = await self._loop(inbox_send)
+                except ProceedingFailed as failed:
+                    self.failure = failed
+                else:
+                    # Bound here rather than after the group. `_deliberate` returns only once
+                    # the clerk has appended *and* delivered the last filing — so the record
+                    # is complete at this line, and a consumer that reads
+                    # `proceeding.hearing` the moment its iteration ends finds one. An
+                    # `Undecided` is filed by nobody, so it needs no acknowledgment.
+                    self.hearing = Hearing[VerdictT](
+                        outcome=outcome,
+                        transcript=self.transcript,
+                        usage_by_participant=self.usage_by_participant,
+                        rounds=self.rounds,
+                    )
+        await out.aclose()
+
+    async def _loop(self, inbox: MemoryObjectSendStream[_Filed[VerdictT]]) -> Outcome[VerdictT]:
+        """`docs/design/execution.md`'s loop, almost literally.
+
+        A round, a deliberation, and then three tests in a fixed order: a ruling ends it;
+        `max_rounds` spent ends it; the budget spent ends it. `max_rounds` is tested before
+        the budget, so a proceeding that hit both is recorded as having run out of rounds —
+        the limit every tribunal has, and the one that needs no measurement to establish.
+        There is no budget check before round 1: nothing has been spent, and a proceeding
+        always runs at least one round.
 
         **Round *N*+1 is dispatched from the record.** `_deliberate` returns the public
         `Continuance` the clerk stamped, so the ids an advocate is asked to answer are the
@@ -504,53 +564,28 @@ class _Orchestrator(Generic[VerdictT]):
         the next round is taken at the same moment — the continuance filed, nothing in flight,
         and the clerk the only writer — which is exactly *the transcript as the continuance
         closed round N−1*.
-
-        The clerk runs for as long as the inbox is open, so closing the send end is what ends
-        it — and the task group below is what makes the two lifetimes one. `out` is closed
-        **after** the hearing is bound, which is what lets a consumer read
-        `proceeding.hearing` the moment its `async for` ends.
         """
-        inbox_send, inbox_receive = anyio.create_memory_object_stream[_Filed[VerdictT]](0)
-        async with anyio.create_task_group() as tg:
-            tg.start_soon(self._clerk, inbox_receive, out)
-            async with inbox_send:
-                round = 1
-                addressed: dict[VerdictT, list[Interrogatory[VerdictT]]] | None = None
-                base: Transcript[VerdictT] | None = None
-                outcome: Outcome[VerdictT]
-                while True:
-                    await self._round(round, addressed, base, inbox_send)
-                    deliberation = await self._deliberate(round, inbox_send)
-                    if isinstance(deliberation, Ruling):
-                        outcome = deliberation
-                        break
-                    # `>=` rather than `==`: `Tribunal(...)` does not validate `max_rounds`, and
-                    # with `==` a tribunal built with 0 would never stop. This way it runs one
-                    # round — a proceeding always runs at least one — exactly as a zero budget
-                    # does, and is identical to `==` for every `max_rounds` of 1 or more.
-                    if round >= self.max_rounds:
-                        outcome = Undecided(reason="rounds")
-                        break
-                    # Round 1's is the first boundary whenever there is one at all: the check
-                    # runs only after a continuance with rounds remaining.
-                    if self._budget_spent(first=round == 1):
-                        outcome = Undecided(reason="budget")
-                        break
-                    base = self._snapshot()
-                    addressed = _addressed(deliberation)
-                    round += 1
-                # Bound here rather than after the group. `_deliberate` returns only once the
-                # clerk has appended *and* delivered the last filing — so the record is
-                # complete at this line, and a consumer that reads `proceeding.hearing` the
-                # moment its iteration ends finds one. An `Undecided` is filed by nobody, so
-                # it needs no acknowledgment.
-                self.hearing = Hearing[VerdictT](
-                    outcome=outcome,
-                    transcript=self.transcript,
-                    usage_by_participant=self.usage_by_participant,
-                    rounds=self.rounds,
-                )
-        await out.aclose()
+        round = 1
+        addressed: dict[VerdictT, list[Interrogatory[VerdictT]]] | None = None
+        base: Transcript[VerdictT] | None = None
+        while True:
+            await self._round(round, addressed, base, inbox)
+            deliberation = await self._deliberate(round, inbox)
+            if isinstance(deliberation, Ruling):
+                return deliberation
+            # `>=` rather than `==`: `Tribunal(...)` does not validate `max_rounds`, and with
+            # `==` a tribunal built with 0 would never stop. This way it runs one round — a
+            # proceeding always runs at least one — exactly as a zero budget does, and is
+            # identical to `==` for every `max_rounds` of 1 or more.
+            if round >= self.max_rounds:
+                return Undecided(reason="rounds")
+            # Round 1's is the first boundary whenever there is one at all: the check runs
+            # only after a continuance with rounds remaining.
+            if self._budget_spent(first=round == 1):
+                return Undecided(reason="budget")
+            base = self._snapshot()
+            addressed = _addressed(deliberation)
+            round += 1
 
     async def _clerk(
         self,
@@ -673,18 +708,72 @@ class _Orchestrator(Generic[VerdictT]):
         out: it stays addressable
         (`docs/decisions/0037-a-conceded-advocate-stays-addressable.md`).
 
-        The task group here is the plain one: a child that fails propagates an
-        `ExceptionGroup` and cancels its siblings, and the first-failure slot that turns that
-        into a singular `ProceedingFailed` arrives with
-        `docs/implementations/failures.md`.
+        **The first failure cancels the round.** Every task runs inside `_heard`, which records
+        a failure into one slot and cancels its siblings where they stand, so the group exits
+        cleanly and this raises `ProceedingFailed` *after* it — naming the one participant the
+        slot holds, with its error as `__cause__`
+        (`docs/decisions/0012-a-failure-cancels-the-round.md`).
+
+        **Usage is minted at dispatch**, before the task is started rather than inside it, so
+        *dispatched* and *has a key* are one event however soon a sibling's failure cancels
+        the task (`docs/decisions/0028-usage-accumulates-per-participant.md`).
         """
+        first = _Unheard[VerdictT]()
         async with anyio.create_task_group() as tg:
             if addressed is None or base is None:
                 for verdict in self.advocates:
-                    tg.start_soon(self._argue, verdict, round, inbox)
+                    self._usage(verdict)
+                    start = partial(self._argue, verdict, round, inbox)
+                    tg.start_soon(self._heard, first, tg.cancel_scope, verdict, start)
             else:
                 for verdict, questions in addressed.items():
-                    tg.start_soon(self._answer, verdict, questions, round, base, inbox)
+                    self._usage(verdict)
+                    start = partial(self._answer, verdict, questions, round, base, inbox)
+                    tg.start_soon(self._heard, first, tg.cancel_scope, verdict, start)
+        if first.participant is not None:
+            raise self._failed(first.participant, round) from first.exc
+
+    async def _heard(
+        self,
+        first: _Unheard[VerdictT],
+        scope: CancelScope,
+        participant: VerdictT,
+        start: Callable[[], Awaitable[None]],
+    ) -> None:
+        """One advocate's task, guarded: a failure is recorded and cancels the round.
+
+        **`except Exception`, not `BaseException`**
+        (`docs/decisions/0040-a-participant-failure-is-an-exception.md`). Cancellation,
+        `KeyboardInterrupt` and `SystemExit` are none of them something a participant did, and
+        all pass through untouched. The cancelled-exception arm decides nothing under that —
+        anyio's cancellation is a `BaseException` — and stays first as the statement that a
+        cancel is never a failure: a peer failed, or the caller left.
+
+        The slot is filled before the scope is cancelled, with no `await` between the two, so
+        no sibling runs in between to compete for it.
+        """
+        try:
+            await start()
+        except anyio.get_cancelled_exc_class():
+            raise
+        except Exception as e:
+            if first.participant is None:
+                first.participant, first.exc = participant, e
+            scope.cancel()
+
+    def _failed(self, participant: Participant[VerdictT], round: int) -> ProceedingFailed[VerdictT]:
+        """The failure, carrying the record as it stood.
+
+        The live transcript and usage dict rather than copies: nothing writes to either once
+        the failing round has stopped, and `e.transcript is proceeding.transcript` is what
+        `docs/design/outcomes.md` § 6 shows — the same entries, not equal ones.
+        """
+        return ProceedingFailed[VerdictT](
+            participant=participant,
+            round=round,
+            transcript=self.transcript,
+            usage_by_participant=self.usage_by_participant,
+        )
 
     async def _argue(
         self, verdict: VerdictT, round: int, inbox: MemoryObjectSendStream[_Filed[VerdictT]]
@@ -771,18 +860,28 @@ class _Orchestrator(Generic[VerdictT]):
         passes through unconverted, so the outcome is the very object in
         `transcript[-1].filing` — a pointer, not a copy. A `Continuance` comes back stamped,
         so the round it starts is dispatched from the record's own ids.
+
+        **The judge runs alone, so its guard has no slot.** The same two arms as `_heard`, and
+        the general one raises directly: there is no sibling to cancel and no group to keep
+        clean. A judge whose output will not validate arrives here too, as
+        `UnexpectedModelBehavior` once the `output` budget is spent.
         """
         snapshot = self._snapshot()
-        result = await self.judge_agent.run(
-            deliberation_turn(
-                snapshot,
-                since=self.since[JUDGE],
-                deliberation=deliberation,
-                max_rounds=self.max_rounds,
-            ),
-            message_history=self.history.get(JUDGE),
-            usage=self._usage(JUDGE),
-        )
+        try:
+            result = await self.judge_agent.run(
+                deliberation_turn(
+                    snapshot,
+                    since=self.since[JUDGE],
+                    deliberation=deliberation,
+                    max_rounds=self.max_rounds,
+                ),
+                message_history=self.history.get(JUDGE),
+                usage=self._usage(JUDGE),
+            )
+        except anyio.get_cancelled_exc_class():
+            raise
+        except Exception as e:
+            raise self._failed(JUDGE, deliberation) from e
         self.history[JUDGE] = result.all_messages()
         self.since[JUDGE] = deliberation
         self.rounds = deliberation
@@ -802,8 +901,8 @@ class _Orchestrator(Generic[VerdictT]):
         checkers. **`UsageLimitExceeded` is the stop signal**, caught here and turned into
         `Undecided(reason='budget')` by the loop — a budget is an envelope the caller
         declared, so reaching it is an ordinary end. The same class raised from *inside* a run
-        is PydanticAI's own per-run request ceiling, and is not caught: that is a participant
-        that could not be heard.
+        is PydanticAI's own per-run request ceiling, and is not caught here: that is a
+        participant that could not be heard, and surfaces as `ProceedingFailed`.
 
         `check_before_request` compares requests with `>=` — *the next request would
         exceed* — which is the right reading at a boundary: a total that has reached
@@ -870,6 +969,14 @@ async def proceed(
     blocked on a rendezvous send nobody will ever receive; cancelling the scope on the way out
     is what makes `docs/design/api.md`'s *abandoning is allowed* true rather than a hang. On
     the finished path it is a no-op — every task has already returned.
+
+    **Nothing is raised inside the task group**, because anyio groups an exception raised in
+    a group's body exactly as it groups a child's. So a `ProceedingFailed` is raised here,
+    after the group has exited — out of the `async with`, not the `async for`, which by then
+    has simply ended. A consumer's own exception is held past the group for the same reason
+    and handed back as itself; it wins over a recorded failure, which `proceeding.hearing`
+    still re-raises. Cancellation is not held: anyio does not group it, and an outer scope
+    has to see its own.
     """
     orchestrator = _Orchestrator(
         question=question,
@@ -889,9 +996,18 @@ async def proceed(
     # without being closed warns from `__del__`, and a library that leaves a warning behind in
     # a caller's test suite is a library with a resource leak — the caller's process is the one
     # that reports it.
+    left: Exception | None = None
     async with send, receive, anyio.create_task_group() as tg:
         tg.start_soon(orchestrator.run, send)
         try:
             yield proceeding
+        except anyio.get_cancelled_exc_class():
+            raise
+        except Exception as e:
+            left = e
         finally:
             tg.cancel_scope.cancel()
+    if left is not None:
+        raise left
+    if orchestrator.failure is not None:
+        raise orchestrator.failure

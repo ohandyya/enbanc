@@ -392,6 +392,22 @@ identically. It is because of a proceeding cancelled from outside. `enbanc`'s
 handler catches `Exception`, which cancellation never reaches, so the hazard is
 closed by the exception hierarchy; see [Piece 3](#the-rounds-task-group).
 
+**A clean exit is necessary, not sufficient.** anyio does not tell an exception
+raised in a group's *body* from one a child raised. Verified against
+**`anyio 4.14.2`**:
+
+```text
+raise in a task group's body, one healthy child   -> ExceptionGroup
+raise in a task group's body, no children at all  -> ExceptionGroup
+raise after the group has exited                  -> the exception, bare
+```
+
+So the slot keeps the round's group clean, but a `ProceedingFailed` raised
+anywhere lexically inside a group — the round's, the clerk's around it, or the
+one `hear_stream()` runs the proceeding in — would still reach the caller
+wrapped. The failure is held while the groups unwind and raised after the last
+one. See [Piece 3](#the-rounds-task-group).
+
 ## The proceeding, as messages
 
 Three advocates, two rounds, `DENY` twice-questioned — eight runs across four
@@ -1010,6 +1026,20 @@ and it pins anyio's behaviour rather than which arm `enbanc` writes.
 only one slot is ever filled — not because `enbanc` picked one out of an
 `ExceptionGroup`. That is `0012`'s guarantee held structurally.
 
+*Afterwards* means after the **outermost** group, because a raise inside any
+group's body is grouped too
+([above](#a-failing-fan-out-need-not-raise-an-exceptiongroup)). The round raises
+once its own group has exited; the loop that holds the clerk's group catches that
+and records the failure where it would have bound the hearing, before the stream
+closes; and `hear_stream()`'s context manager raises it once its own group has
+exited — out of the `async with`, not the `async for`, which by then has simply
+ended. An exception the consumer raises inside the loop is held past that group
+for the same reason and handed back as itself.
+
+**The judge's guard has no slot.** The judge runs alone, so its run is wrapped in
+the same two arms and the general one raises `ProceedingFailed` directly: there is
+no sibling to cancel and no group of its own to keep clean.
+
 **The concurrency limiter is normalized once and shared.**
 `normalize_to_limiter(max_concurrency)` at the start of the proceeding, and the
 same object into every advocate's `Agent(max_concurrency=…)`. The judge's agent
@@ -1019,8 +1049,10 @@ gets none: it runs alone, and the fan-out is the only place concurrency exists
 ### Usage
 
 **One `RunUsage` per participant, minted at its first dispatch and owned by the
-proceeding**, passed as `run(usage=…)` to every run that participant makes. Minted
-at dispatch rather than up front because **absence means never dispatched**
+proceeding**, passed as `run(usage=…)` to every run that participant makes. An
+advocate's is minted before its task is started rather than inside it, so
+*dispatched* and *has a key* are one event however soon a sibling's failure
+cancels the task. Minted at dispatch rather than up front because **absence means never dispatched**
 ([`api.md`](./api.md#when-something-goes-wrong)) — a pre-populated dict would put a
 judge row of zeroes on a `ProceedingFailed` from round 1 and make that absence
 unreadable. The dict of them *is*

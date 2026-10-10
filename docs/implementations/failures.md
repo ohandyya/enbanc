@@ -65,10 +65,8 @@ one, and none of the code it touches is code this PR changes. It is
 
 [`proceeding-core.md`](./proceeding-core.md), merged as
 [PR #26](https://github.com/ohandyya/enbanc/pull/26), and
-[`round-loop.md`](./round-loop.md), open as
-[PR #28](https://github.com/ohandyya/enbanc/pull/28). This branch starts from
-#28's head. If #28 changes shape under review, the `_answer` guard below follows
-it.
+[`round-loop.md`](./round-loop.md), merged as
+[PR #28](https://github.com/ohandyya/enbanc/pull/28).
 
 ## Files
 
@@ -127,7 +125,7 @@ async with anyio.create_task_group() as tg:
     tg.start_soon(self._clerk, inbox_receive, out)
     async with inbox_send:
         try:
-            outcome = await self._hear(inbox_send)       # the round loop, moved out whole
+            outcome = await self._loop(inbox_send)       # the round loop, moved out whole
         except ProceedingFailed as failed:
             self.failure = failed
         else:
@@ -192,7 +190,9 @@ async def _heard(self, first, scope, participant, start) -> None:
 ```
 
 `_argue()` and `_answer()` are not touched. A wrapper is what keeps the guard
-written once rather than in two bodies. The slot is assigned before
+written once rather than in two bodies. `start` is a `functools.partial` over
+either. The loop is `_loop()`, not the `_hear()` this plan first named it, so it
+cannot be misread beside `_heard()`. The slot is assigned before
 `scope.cancel()` with no `await` between them, which is why
 [the contract test's](../../tests/contract/test_a_failing_fan_out_need_not_raise_a_group.py)
 child-failure case cannot discriminate.
@@ -209,7 +209,7 @@ failure, and becomes load-bearing again if the arm is ever widened.
 **The judge's guard has no slot.** `_deliberate()` wraps the `judge_agent.run()`
 call alone: the two arms above, with the general one raising
 `self._failed(JUDGE, deliberation) from e` directly. It is not in a group, so it
-raises straight into `_hear()` and on to `run()`'s `except`. A judge whose output
+raises straight into `_loop()` and on to `run()`'s `except`. A judge whose output
 will not validate arrives here as `UnexpectedModelBehavior` after three attempts,
 which is § 4's fourth case. Nothing about it is special.
 
@@ -305,7 +305,7 @@ Unit-tier except one row.
 
 | Module | Tier | Pins |
 |---|---|---|
-| `outcomes/test_04_cannot_be_heard.py` | unit | **new.** [`outcomes.md` § 4](../design/outcomes.md#4-a-participant-cannot-be-heard), all four. **An advocate's provider is down:** `DENY`'s model raises after `APPROVE`'s argument has been seen (forced, [below](#forcing-the-orderings)), and `REFER` is gated and never released. `ProceedingFailed` is raised bare, `participant is DENY`, `round == 1`, `__cause__` is the very exception the bench raised, the message is `advocate 'deny' could not be heard in round 1`; `APPROVE`'s argument is in `e.transcript`; no entry is a `Continuance`; all three advocates are keyed, `'judge'` is not; `usage.requests >= 3`. **The judge's provider is down:** `participant == 'judge'`, all four keyed, three entries and no `Continuance` (no round was cancelled, so the count is deterministic and allowed). **An advocate's tool raises:** in round 2, answering `r1-q1`, through a `psql_down` tool raising `OSError('connection refused')`. `round == 2`, the continuance is on the record, `__cause__` is that `OSError`. **The judge's output will not validate:** `continuances=[[]]`, so `__cause__` is `UnexpectedModelBehavior('Exceeded maximum output retries (2)')`, the judge captured three times under one key, and nothing it emitted is in the transcript |
+| `outcomes/test_04_cannot_be_heard.py` | unit | **new.** [`outcomes.md` § 4](../design/outcomes.md#4-a-participant-cannot-be-heard), all four. **An advocate's provider is down:** `DENY`'s model raises after `APPROVE`'s argument has been seen (forced, [below](#forcing-the-orderings)), and `REFER` is gated and never released. `ProceedingFailed` is raised bare, `participant is DENY`, `round == 1`, `__cause__` is the very exception the bench raised, the message is `advocate 'deny' could not be heard in round 1`; `APPROVE`'s argument is in `e.transcript`; no entry is a `Continuance`; all three advocates are keyed, `'judge'` is not; `usage.requests >= 3`. **The judge's provider is down:** `participant == 'judge'`, all four keyed, three entries and no `Continuance` (no round was cancelled, so the count is deterministic and allowed). **An advocate's tool raises:** in round 2, `DENY` answering `r1-q2`, through a `psql_down` tool raising `OSError('connection refused')`. `round == 2`, the continuance is on the record, `__cause__` is that `OSError`. **The judge's output will not validate:** `continuances=[[]]`, so `__cause__` is `UnexpectedModelBehavior('Exceeded maximum output retries (2)')`, the judge captured three times under one key, and nothing it emitted is in the transcript |
 | `outcomes/test_06_watched_live.py` | unit | **new.** [§ 6](../design/outcomes.md#6-the-same-endings-watched-live), all four. A ruling ends the loop after the `Ruling`; `max_rounds` and the budget end it after a `Continuance`, nothing raises, and only `reason` differs; a failure raises out of the `async with` and **not** the `async for` (a line after the loop, still inside the block, runs) with `e.transcript is proceeding.transcript`; walking away on the `Continuance` leaves four entries and `ProceedingUnfinished` |
 | `test_failures.py` | unit | **new.** What § 4 does not reach. A failure in round 3, `round == 3`. Two advocates failing in the same step, released by one gate: exactly one is named and `__cause__` is *that* advocate's own exception, never a group. An **external cancel**: `hear()` under `anyio.move_on_after` with an advocate gated forever, so the scope reports it caught the cancel, nothing is raised, and no participant is named — the integration-level twin of the contract test's discriminating case. `proceeding.hearing` after a failure raises the **same object** that came out of the block (`is`), and keeps doing so. The **last rung of the timeout ladder**: `Tool(slow, timeout=0.01)` timing out four times against `tools=3` gives `__cause__` an `UnexpectedModelBehavior` naming the tool, with `DENY`'s timeouts on `e.transcript.failures`. A degraded advocate's record survives its failure. **`0040`'s line:** a tool raising a test-local `BaseException` subclass (not `KeyboardInterrupt`, which pytest itself would act on) is not wrapped — no `ProceedingFailed` anywhere in what escapes, and the subclass among its leaves, however anyio groups it |
 | `test_hear_stream.py` | unit | gains: a consumer that raises `ValueError` inside the loop gets `ValueError` back, not a group, and `proceeding.hearing` then raises `ProceedingUnfinished`; an external cancel of a stream leaves `ProceedingUnfinished` too |
