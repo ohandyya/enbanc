@@ -54,6 +54,15 @@
             - Add additona image related configurations (e.g., include_images, include_image_descriptions) in the constructor.
             - In the inner `web_search`, get values from images, and then append to `sources`
 
+11. Confidence score for the judge and the advocate
+
+    - Can you requrie the judege and the advocate to provide a `confidence_score` for their argument?
+        - The confidecne_score from the advocate will help judge make better judgement.
+        - The confidecne_score from the judge will help user make better decision
+
+12. Modify the prompt of the advocate to be "truthful over winning"
+    - It is not important to win an argument. It is more important to make trueful argument so that the judge can make a correct and accurate judgement.
+
 ## To Dos
 
 1. [Done] How to design tools an how to allow user to extend the tool?
