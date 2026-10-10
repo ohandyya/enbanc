@@ -214,3 +214,104 @@ async def test_an_external_cancel_leaves_no_hearing(
     assert handle is not None
     with pytest.raises(ProceedingUnfinished):
         _ = handle.hearing
+
+
+async def test_a_consumer_that_awaits_still_holds_the_last_entry(
+    outcomes_kwargs: Kwargs, bench: Callable[..., Any], case: Case
+) -> None:
+    """The consumer the stream exists for does real work in its loop body. However long it
+    spends, the entry in hand stays `transcript[-1]`: the record moves at the consumer's pace
+    (`docs/decisions/0041-the-clerk-files-when-the-consumer-asks.md`).
+
+    `wait_all_tasks_blocked()` stands in for a database write. It runs every other task until
+    it blocks, which is the furthest a clerk could ever get ahead — deterministically.
+    """
+    kwargs = outcomes_kwargs()
+    scripted = bench(concedes=set(kwargs["verdicts"]))
+    tribunal = Tribunal(**(kwargs | {"model": scripted.model}))
+    seen: list[tuple[int, bool]] = []
+
+    async with tribunal.hear_stream(case) as proceeding:
+        async for entry in proceeding:
+            await anyio.wait_all_tasks_blocked()
+            seen.append((len(proceeding.transcript), entry is proceeding.transcript[-1]))
+
+    assert seen == [(1, True), (2, True), (3, True), (4, True)]
+
+
+async def test_walking_away_after_awaiting_leaves_only_what_was_received(
+    outcomes_kwargs: Kwargs, bench: Callable[..., Any], case: Case
+) -> None:
+    """Every advocate has filed by the time the consumer leaves, and the record still holds
+    only the one entry it was given."""
+    kwargs = outcomes_kwargs()
+    scripted = bench(concedes=set(kwargs["verdicts"]))
+    tribunal = Tribunal(**(kwargs | {"model": scripted.model}))
+
+    async with tribunal.hear_stream(case) as proceeding:
+        async for _entry in proceeding:
+            await anyio.wait_all_tasks_blocked()
+            break
+
+    assert len(proceeding.transcript) == 1
+    with pytest.raises(ProceedingUnfinished):
+        _ = proceeding.hearing
+
+
+async def test_a_stream_never_iterated_files_nothing(
+    outcomes_kwargs: Kwargs, bench: Callable[..., Any], case: Case
+) -> None:
+    """Nobody asked for an entry, so nothing entered the record — though every advocate ran."""
+    kwargs = outcomes_kwargs()
+    scripted = bench(concedes=set(kwargs["verdicts"]))
+    tribunal = Tribunal(**(kwargs | {"model": scripted.model}))
+
+    with anyio.fail_after(5):
+        async with tribunal.hear_stream(case) as proceeding:
+            await anyio.wait_all_tasks_blocked()
+
+    assert len(proceeding.transcript) == 0
+    with pytest.raises(ProceedingUnfinished):
+        _ = proceeding.hearing
+
+
+async def test_an_external_cancel_leaves_at_most_the_entry_in_hand(
+    outcomes_kwargs: Kwargs, bench: Callable[..., Any], case: Case
+) -> None:
+    """A timeout around the stream can land between the consumer's ask and its receive, and
+    then the record holds one entry the consumer never got — the one accepted gap. Never
+    more: the clerk cannot append a second entry without a second ask.
+
+    The cancel here reaches the consumer while it waits for a third entry that a gated
+    advocate will never file, so this asserts the bound. `test_filing_clerk.py` lands it
+    between the ask and the receive and pins the extra entry.
+    """
+    kwargs = outcomes_kwargs()
+    approve, deny, refer = list(kwargs["verdicts"])
+    scripted = bench(concedes={approve, refer}, gates={deny: anyio.Event()})
+    tribunal = Tribunal(**(kwargs | {"model": scripted.model}))
+    received = 0
+    waiting = anyio.Event()
+    handle: Proceeding[Any] | None = None
+
+    async def time_out(scope: anyio.CancelScope) -> None:
+        await waiting.wait()
+        await anyio.wait_all_tasks_blocked()
+        scope.cancel()
+
+    scope = anyio.CancelScope()
+    with anyio.fail_after(5):
+        async with anyio.create_task_group() as tg:
+            with scope:
+                tg.start_soon(time_out, scope)
+                async with tribunal.hear_stream(case) as handle:
+                    async for _entry in handle:
+                        await anyio.wait_all_tasks_blocked()
+                        received += 1
+                        if received == 2:
+                            waiting.set()
+
+    assert scope.cancelled_caught
+    assert received == 2
+    assert handle is not None
+    assert len(handle.transcript) in (received, received + 1)

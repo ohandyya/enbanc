@@ -5,10 +5,6 @@ only how the loop ends: after the `Ruling`; after the last `Continuance`, with n
 out of the `async with` rather than the `async for`, for a failure; or wherever the consumer
 breaks, with no hearing at all.
 
-The loop bodies here never `await` before the line under test, so `transcript[-1]` is not read
-while the clerk could be ahead of the stream — that is
-`docs/implementations/stream-ordering.md`'s defect, not this section's.
-
 The doc is mirrored here, never executed. See
 `docs/decisions/0032-a-design-doc-is-mirrored-by-tests.md`.
 """
@@ -136,7 +132,10 @@ async def test_walking_away_leaves_the_record_and_no_hearing(
     outcomes_kwargs: Kwargs, bench: Callable[..., Any], case: Case
 ) -> None:
     """Break on the continuance: the in-flight round-2 runs are cancelled, the transcript holds
-    everything filed before the consumer left, and there was no hearing."""
+    every entry the consumer received, and there was no hearing.
+
+    The body `await`s on every entry, as a consumer doing real work would, so the record has
+    every chance to run ahead of the stream before the consumer leaves."""
     kwargs = outcomes_kwargs()
     approve, deny, refer = list(kwargs["verdicts"])
     scripted = bench(
@@ -150,6 +149,7 @@ async def test_walking_away_leaves_the_record_and_no_hearing(
     with anyio.fail_after(_HANG):
         async with tribunal.hear_stream(case) as proceeding:
             async for entry in proceeding:
+                await anyio.wait_all_tasks_blocked()
                 if isinstance(entry.filing, Continuance):
                     break
 

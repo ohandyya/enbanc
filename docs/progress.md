@@ -11,19 +11,9 @@ at the start of the next one.
 
 Two halves, two different guarantees:
 
-- `## Current state` is **current truth**, rewritten in place every session.
-  Anything stale here is a bug.
-- `## Log` is **history**, prepended newest-first and never edited. Entries are
-  true as of their date and go stale by design.
+- `## Current state
 
-The log says *what* changed and *where it stopped*. It does not say *why* —
-that lives in [`journal/`](./journal/), linked from the entry. Neither half is a
-spec: [`design/`](./design/) is.
-
-
-## Current state
-
-**Phase:** Design complete, and PRs 1–9 of the plan are `current`:
+**Phase:** Design complete. PRs 1–9 of the plan are merged:
 [`schemas.md`](./implementations/schemas.md) (#19),
 [`contract-probes.md`](./implementations/contract-probes.md) (#20),
 [`web-search-tool.md`](./implementations/web-search-tool.md) (#21),
@@ -31,39 +21,28 @@ spec: [`design/`](./design/) is.
 [`tribunal-construction.md`](./implementations/tribunal-construction.md) (#24),
 [`ledgering-toolset.md`](./implementations/ledgering-toolset.md) (#25),
 [`proceeding-core.md`](./implementations/proceeding-core.md) (#26),
-[`round-loop.md`](./implementations/round-loop.md) (#28), all merged, and
-[`failures.md`](./implementations/failures.md)
-([PR #29](https://github.com/ohandyya/enbanc/pull/29), **open, a draft, not yet
-merged**). With #29 a proceeding fails well: a participant that cannot be heard
-cancels the round and raises one bare `ProceedingFailed` naming it, with the
-original error as `__cause__` and the record as it stood. `make check-all`
-passes at 435 tests (416 before). `__all__` is complete at twenty-nine names.
-The README's WIP banner is still accurate: the published `0.0.5` on PyPI
-reserves the name and nothing more, and `0.1.0` hasn't shipped.
+[`round-loop.md`](./implementations/round-loop.md) (#28) and
+[`failures.md`](./implementations/failures.md) (#29). Row 10,
+[`stream-ordering.md`](./implementations/stream-ordering.md), is
+[PR #30](https://github.com/ohandyya/enbanc/pull/30), **open, a draft, not yet
+merged**. With it the record moves at the consumer's pace: a consumer that
+`await`s inside its loop still holds `transcript[-1]`, and walking away leaves
+exactly what it received. `make test` passes at 442 tests (435 before).
+`__all__` is complete at twenty-nine names. The README's WIP banner is still
+accurate: the published `0.0.5` on PyPI reserves the name and nothing more, and
+`0.1.0` hasn't shipped.
 
 Settled and binding across
-[`0001`](./decisions/0001-statute-carries-no-model.md)–[`0040`](./decisions/0040-a-participant-failure-is-an-exception.md).
-[`0040`](./decisions/0040-a-participant-failure-is-an-exception.md) is new: the
-guard around a participant's run catches `Exception`, not `BaseException`, so a
-Ctrl-C or `SystemExit` is never recorded as a participant that could not be
-heard.
+[`0001`](./decisions/0001-statute-carries-no-model.md)–[`0041`](./decisions/0041-the-clerk-files-when-the-consumer-asks.md).
+[`0041`](./decisions/0041-the-clerk-files-when-the-consumer-asks.md) is new: the
+clerk waits for a ready token from `Proceeding.__anext__` before it appends, so
+it stays the transcript's only writer.
 
-The plan in [`implementations/`](./implementations/) now has twelve rows, ordered
-by [its README table](./implementations/README.md#the-plan).
-[`stream-ordering.md`](./implementations/stream-ordering.md) is new as row 10,
-before [`guides.md`](./implementations/guides.md) and
-[`zero-one-zero.md`](./implementations/zero-one-zero.md); all three are `draft`
-with no code.
-
-**Next up:** Get #29 reviewed and merged, then start row 10,
-[`stream-ordering.md`](./implementations/stream-ordering.md). **Settle the
-mechanism first, in `execution.md`'s open question** — who appends an entry to
-the transcript, and when, so a consumer holding entry *N* never finds *N*+1 at
-`transcript[-1]`. That is three moves in one commit (the answer into § The
-filing clerk, an ADR, the bullet deleted), and only then do the plan's Files and
-Tests get filled in. The defect is real and reproduced: the clerk appends before
-it blocks on the send, so a consumer that `await`s inside its loop sees the
-record one entry ahead. Rows 11 and 12 follow it.
+**Next up:** Get #30 reviewed and merged, then start row 11,
+[`guides.md`](./implementations/guides.md) — the first task guide, which needs
+rows 9 and 10 merged. Row 12,
+[`zero-one-zero.md`](./implementations/zero-one-zero.md), follows it and cuts
+`0.1.0`.
 
 Things the next session should carry:
 
@@ -78,16 +57,24 @@ Things the next session should carry:
 - **`test_filing_clerk.py` still expects a `BaseExceptionGroup`, on purpose.** An
   unresolvable id reaching the clerk is a bug in `enbanc`, not a participant
   failing, and the guard must not launder it into a `ProceedingFailed`.
-- **The streaming tests avoid the stream-ordering defect by luck of shape**:
-  their loop bodies never `await` before the line under test. A test that does
-  will fail on `transcript[-1]` until row 10 lands.
+- **A slow stream consumer now holds the filers.** The clerk's acknowledgment
+  waits on the consumer's ask, so an advocate's next run waits on the reader.
+  Anything new that waits on an acknowledgment inherits that.
+- **One abandonment gap is accepted, not fixed.** A cancel from *outside* the
+  loop, landing between `__anext__`'s ask and receive, can leave one entry the
+  consumer never received. `api.md` states it; closing it would mean the
+  consumer appends, which `0041` rejected.
+- **A streaming test that checks ordering should `await` in its loop body.**
+  `anyio.wait_all_tasks_blocked()` is the stand-in for real work, and it is what
+  the new tests use; a body that never `await`s cannot catch the record running
+  ahead.
 - **`since` is the last round a participant was *shown*, not the last it ran.**
   `_answer()` sets it to `snapshot.entries[-1].round`.
 - **The test bench scripts rounds and failures.** `Bench` in
   `tests/unit/conftest.py` takes `continuances`, per-turn `calls`/`exhibits`,
   per-participant `costs`, `gates` (an `anyio.Event` that forces an ordering) and
-  now `raises` (the model raises that exact instance, after its gate). The
-  judge's turns are keyed `("judge", n)` for `gates` and `raises`.
+  `raises` (the model raises that exact instance, after its gate). The judge's
+  turns are keyed `("judge", n)` for `gates` and `raises`.
 - **`max_rounds` stops on `>=`.** `Tribunal(...)` does not validate it, and `==`
   would never stop a `max_rounds=0` tribunal.
 - **Round 1's `Argument` and `Concession` still ask the model to write
@@ -104,9 +91,7 @@ Things the next session should carry:
 
 **Open questions:**
 
-- One in [`design/`](./design/): [`execution.md`](./design/execution.md#open-questions)
-  asks who appends an entry to the transcript, and when. It is row 10's to
-  settle. Every other design document carries none.
+- None in [`design/`](./design/): `0041` closed `execution.md`'s last one.
 - `procedure` version `p1` now runs multi-round proceedings, but only under
   scripted `FunctionModel`s, never a live model. Its changelog row in
   [`prompting.md`](./design/prompting.md#procedure-versions) still has nothing
@@ -115,6 +100,27 @@ Things the next session should carry:
 
 
 ## Log
+
+### 2026-10-10 — PR 10: the clerk files when the consumer asks
+
+**Did:** Settled `execution.md`'s open question as
+[`0041`](./decisions/0041-the-clerk-files-when-the-consumer-asks.md) and
+implemented [`stream-ordering.md`](./implementations/stream-ordering.md):
+`Proceeding.__anext__` sends a ready token before it receives, and the clerk
+appends only once it holds one. Opened as
+[PR #30](https://github.com/ohandyya/enbanc/pull/30). Also reshaped the
+[`walkthrough`](../.claude/skills/walkthrough/SKILL.md) skill to open with a
+Mermaid mental-model diagram, written to the scratchpad and read in VS Code's
+Markdown preview, with every step tagged back to it.
+
+**Stopped at:** #30 is an open draft, unmerged. A walkthrough of it was paused
+at step 1 of 5; its plan lived in the session scratchpad, so rerun
+`/walkthrough` to resume.
+
+**Why this way:** [`0041`](./decisions/0041-the-clerk-files-when-the-consumer-asks.md).
+
+**Commits:** `b1def21`, `c9a5106`, `59906b8`, `ba91563`, `1c60d85` on
+`implement-stream-ordering`.
 
 ### 2026-10-10 — PR 9: a participant that cannot be heard
 

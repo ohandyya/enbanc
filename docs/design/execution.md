@@ -923,13 +923,15 @@ budget named.
 
 ### The filing clerk
 
-**One coroutine owns the transcript.** Tasks send it completed filings; it stamps
+**One coroutine owns the transcript.** Tasks send it completed filings. For
+each one, it waits for a consumer to ask for the next entry. It then stamps
 `filed_at`, converts private types to public, appends to `transcript.entries`,
 sends to the stream, and acknowledges the sender.
 
 ```python
-async def clerk(inbox, transcript, out):
+async def clerk(inbox, ready, transcript, out):
     async for filing, round_no, done in inbox:
+        await ready.receive()             # a consumer has asked for the next entry
         entry = Entry(round=round_no, filed_at=datetime.now(UTC), filing=filing)
         transcript.entries.append(entry)
         await out.send(entry)
@@ -945,15 +947,41 @@ and the record disagreeing about a proceeding whose whole product is that they d
 not. With a single owner there is no interleaving *between filers* to reason
 about.
 
-**That is not yet the whole sentence.** A single owner rules out a sibling
-appending between another filer's append and send. It does not rule out the
-clerk appending entry 6 while the consumer is still busy with entry 5, which the
-sketch above permits. Which of the two appends, and when, is
-[open](#open-questions).
+**The clerk appends only when a consumer has asked.** A single owner does not
+by itself stop the clerk from appending entry 6 while the consumer is still
+busy with entry 5. If the clerk appended and then blocked on the send, a
+consumer that `await`s inside its loop body would find the record running one
+entry ahead of what it was given. So `Proceeding.__anext__` sends a token on a
+second rendezvous stream, `ready`, and then receives:
+
+- **The consumer is parked in `receive()` when the clerk appends.** Its loop
+  body cannot run between the append and the send.
+- **It asks again only once that body has finished**, so *N*+1 cannot be
+  appended while it holds *N*.
+- **Abandoning leaves exactly what was received.** A consumer that breaks out
+  never asks again, and the clerk never appends what nobody will receive.
+
+The second stream is needed because a rendezvous stream has no "wait for a
+receiver" of its own: `send()` hands its item over and returns, and nothing
+tells the sender whether the receiver has finished with the previous one.
+Swapping the append and the send is not enough either. A receiver that takes
+from a blocked sender may run its body before the clerk gets to append. See
+[`0041`](../decisions/0041-the-clerk-files-when-the-consumer-asks.md).
+
+**One gap remains, and it is accepted.** Asking and receiving are two awaits,
+and the clerk can take the ask before the consumer receives. A cancel from
+*outside* the loop, such as a caller's timeout, can reach the consumer in that
+window. It can land at the checkpoint that opens `receive()`, or while the
+consumer's send waits for the clerk to take it. The clerk then holds a token,
+appends one entry the consumer never received, and is cancelled on its own
+send. `break`, or an exception from the loop body, cannot reach that point.
 
 The acknowledgment is not overhead bought for this guarantee; `0027` needs it
 independently. `DENY`'s run 3 must not be dispatched until entry 6 is in the
-record, because entry 6 is in run 3's snapshot.
+record, because entry 6 is in run 3's snapshot. Because the clerk waits for the
+consumer's ask before it appends, **a slow consumer holds the filers**: an
+advocate's next run waits on a reader as well as on the record. `0027` is
+unaffected, because the acknowledgment still follows the append.
 
 **Both private-to-public conversions happen here**, at the filing seam:
 `_Continuance` → `Continuance` with `r{round}-q{n}` stamped in emission order
@@ -1198,36 +1226,4 @@ commit: the answer goes into the prose above, an ADR in
 [`../decisions/`](../decisions/) records why, and then the bullet leaves this
 list. See rule 7 in [`../../CLAUDE.md`](../../CLAUDE.md).
 
-- **Who appends an entry to the transcript, and when, so that a consumer
-  holding entry *N* never finds *N*+1 at `transcript[-1]`?** The clerk above
-  appends and then blocks on the rendezvous send. A consumer that `await`s inside
-  its loop body, which is the consumer the stream exists for, sees the record run
-  one entry ahead of what it was yielded:
-
-  ```text
-  slow consumer (len, entry is transcript[-1]): [(2, False), (3, False), (4, False), (4, True)]
-  abandoned after seeing 1, transcript holds: 2
-  ```
-
-  So [`0010`](../decisions/0010-streaming-yields-the-record.md)'s *the entry just
-  received is the last entry of `proceeding.transcript`*, and
-  [`api.md`](./api.md#watching-it-live)'s *live: the entry just yielded is its
-  last*, both fail. Abandoning inherits it: walking away can leave an entry
-  the consumer never received. Swapping the append and the send does not fix it,
-  because a receiver taking from a blocked sender may run its body before the
-  clerk appends.
-
-  Two options, neither probed yet:
-  - **The consumer's side appends on receipt.** `Proceeding.__anext__` appends
-    the entry before yielding it, and the clerk waits on that before
-    acknowledging the filer. The record and the stream cannot disagree, but the
-    clerk no longer owns the transcript alone, and `hear()` writes the record by
-    consuming it.
-  - **The clerk waits for a consumer to be ready before appending.** The clerk
-    keeps sole ownership, but needs a second channel or a handshake, because a
-    rendezvous stream has no "wait for a receiver" of its own.
-
-  Either way the acknowledgment must still mean *in the record*, because
-  [`0027`](../decisions/0027-an-advocate-answers-its-interrogatories-in-order.md)
-  dispatches an advocate's next run on it. Planned as
-  [`stream-ordering.md`](../implementations/stream-ordering.md).
+*None open.*
