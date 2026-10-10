@@ -231,24 +231,48 @@ class Proceeding(Generic[VerdictT]):
     own — `transcript` and `hearing` are views of things that exist anyway — it is never
     serialized, and it never appears on a result.
 
-    **Abandoning is allowed.** Break out of the loop and the block exits: the in-flight runs
-    are cancelled, `transcript` holds everything filed up to that point, and `hearing` raises
-    `ProceedingUnfinished`.
+    **The record moves at the consumer's pace.** Each step of the iteration asks the clerk
+    for the next entry before receiving it, and the clerk appends nothing until asked — so the
+    entry in hand stays `transcript[-1]` for as long as the loop body runs, `await`s included
+    (`docs/decisions/0041-the-clerk-files-when-the-consumer-asks.md`).
+
+    **Abandoning is allowed.** Break out of the loop, or raise from it, and the block exits:
+    the in-flight runs are cancelled, `transcript` holds every entry the consumer received and
+    nothing it did not, and `hearing` raises `ProceedingUnfinished`. A cancel from *outside*
+    the loop can land while the consumer is asking, and may then leave one entry it never
+    received — the one accepted gap.
     """
 
     def __init__(
         self,
         orchestrator: "_Orchestrator[VerdictT]",
         entries: MemoryObjectReceiveStream[Entry[VerdictT]],
+        ready: MemoryObjectSendStream[None],
     ) -> None:
         self._orchestrator = orchestrator
         self._entries = entries
+        self._ready = ready
         #: The same object the orchestrator appends to, not a copy: the entry just yielded is
         #: its last.
         self.transcript = orchestrator.transcript
 
     def __aiter__(self) -> AsyncIterator[Entry[VerdictT]]:
-        return self._entries.__aiter__()
+        return self
+
+    async def __anext__(self) -> Entry[VerdictT]:
+        """Ask for the next entry, then take it.
+
+        Asking first is what parks this task in `receive()` while the clerk appends, so no
+        loop body runs between the append and the send. The proceeding ends in one of two
+        ways from here: the clerk has exited and closed `ready`, which breaks the ask, or
+        `run` has closed `out`, which ends the stream. Both are the end of iteration, and by
+        either one the hearing or the failure is already bound.
+        """
+        try:
+            await self._ready.send(None)
+            return await self._entries.receive()
+        except (anyio.BrokenResourceError, anyio.EndOfStream):
+            raise StopAsyncIteration from None
 
     @property
     def hearing(self) -> Hearing[VerdictT]:
@@ -513,7 +537,11 @@ class _Orchestrator(Generic[VerdictT]):
         """
         return self.transcript.model_copy(update={"entries": list(self.transcript.entries)})
 
-    async def run(self, out: MemoryObjectSendStream[Entry[VerdictT]]) -> None:
+    async def run(
+        self,
+        out: MemoryObjectSendStream[Entry[VerdictT]],
+        ready: MemoryObjectReceiveStream[None],
+    ) -> None:
         """One proceeding, start to finish: the clerk, and the round loop.
 
         The clerk runs for as long as the inbox is open, so closing the send end is what ends
@@ -528,7 +556,7 @@ class _Orchestrator(Generic[VerdictT]):
         """
         inbox_send, inbox_receive = anyio.create_memory_object_stream[_Filed[VerdictT]](0)
         async with anyio.create_task_group() as tg:
-            tg.start_soon(self._clerk, inbox_receive, out)
+            tg.start_soon(self._clerk, inbox_receive, ready, out)
             async with inbox_send:
                 try:
                     outcome = await self._loop(inbox_send)
@@ -590,6 +618,7 @@ class _Orchestrator(Generic[VerdictT]):
     async def _clerk(
         self,
         inbox: MemoryObjectReceiveStream[_Filed[VerdictT]],
+        ready: MemoryObjectReceiveStream[None],
         out: MemoryObjectSendStream[Entry[VerdictT]],
     ) -> None:
         """One coroutine owns the transcript. Everything else asks it to file.
@@ -603,12 +632,21 @@ class _Orchestrator(Generic[VerdictT]):
         interleaving to reason about: appending, sending and acknowledging are one
         uninterrupted sequence in one task.
 
+        **The sequence starts only once a consumer has asked.** A single owner is not the
+        whole sentence: a clerk that appended and then blocked on its send would append entry
+        6 while a consumer `await`ing inside its loop was still holding entry 5. So the clerk
+        takes a token from `ready` first — `Proceeding.__anext__` sends one before it
+        receives — and the consumer is parked in `receive()` by the time the record changes.
+        `filed_at` is read after the token, so it is the moment the record changed. See
+        `docs/decisions/0041-the-clerk-files-when-the-consumer-asks.md`.
+
         **Both private-to-public conversions happen here**, at the filing seam, because every
         field whose correctness the record depends on is filled by the tribunal at the moment
         a filing enters the record — the same principle as the `Entry` envelope around it.
         """
-        async with inbox:
+        async with inbox, ready:
             async for filed in inbox:
+                await ready.receive()
                 entry = Entry[VerdictT](
                     round=filed.round,
                     filed_at=datetime.now(UTC),
@@ -966,9 +1004,9 @@ async def proceed(
     proceeding and the two entry points cannot come apart.
 
     **The `finally` is load-bearing.** A consumer that breaks out of the loop leaves the clerk
-    blocked on a rendezvous send nobody will ever receive; cancelling the scope on the way out
-    is what makes `docs/design/api.md`'s *abandoning is allowed* true rather than a hang. On
-    the finished path it is a no-op — every task has already returned.
+    waiting for an ask that will never come, and the filers waiting on the clerk; cancelling
+    the scope on the way out is what makes `docs/design/api.md`'s *abandoning is allowed* true
+    rather than a hang. On the finished path it is a no-op — every task has already returned.
 
     **Nothing is raised inside the task group**, because anyio groups an exception raised in
     a group's body exactly as it groups a child's. So a `ProceedingFailed` is raised here,
@@ -991,14 +1029,17 @@ async def proceed(
         max_concurrency=max_concurrency,
     )
     send, receive = anyio.create_memory_object_stream[Entry[VerdictT]](0)
-    proceeding = Proceeding(orchestrator, receive)
-    # Both ends are closed on the way out, on every path. A memory object stream collected
+    # The consumer's ask for the next entry, which the clerk waits on before it appends — see
+    # `docs/decisions/0041-the-clerk-files-when-the-consumer-asks.md`.
+    ready_send, ready_receive = anyio.create_memory_object_stream[None](0)
+    proceeding = Proceeding(orchestrator, receive, ready_send)
+    # All four ends are closed on the way out, on every path. A memory object stream collected
     # without being closed warns from `__del__`, and a library that leaves a warning behind in
     # a caller's test suite is a library with a resource leak — the caller's process is the one
     # that reports it.
     left: Exception | None = None
-    async with send, receive, anyio.create_task_group() as tg:
-        tg.start_soon(orchestrator.run, send)
+    async with send, receive, ready_send, ready_receive, anyio.create_task_group() as tg:
+        tg.start_soon(orchestrator.run, send, ready_receive)
         try:
             yield proceeding
         except anyio.get_cancelled_exc_class():

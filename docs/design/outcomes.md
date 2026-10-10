@@ -904,7 +904,7 @@ async with tribunal.hear_stream(case) as proceeding:
         if entry.filing.kind == "continuance":
             break                 # in-flight runs are cancelled here
 
-len(proceeding.transcript)        # 4 — everything filed before you left
+len(proceeding.transcript)        # 4 — every entry you received
 proceeding.hearing                # raises ProceedingUnfinished
 ```
 

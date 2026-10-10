@@ -856,12 +856,23 @@ points cannot come apart.
 It holds no fact of its own — `transcript` and `hearing` are views of things that
 exist anyway — it is never serialized, and it never appears on a result.
 
+**The record moves at the consumer's pace.** An entry enters the transcript
+only when the consumer asks for the next one, so `transcript[-1]` is the entry
+in hand for as long as the loop body runs, including while it `await`s. A
+consumer slower than the tribunal slows the proceeding down rather than falling
+behind the record.
+
 **Abandoning is allowed.** Break out of the loop and the block exits: the
 in-flight advocate and judge runs are cancelled, `proceeding.transcript` holds
-everything filed up to that point, and `proceeding.hearing` raises
-`ProceedingUnfinished` — there was no hearing. Like `hear()`, `hear_stream()`
+every entry the consumer received and nothing it did not, and
+`proceeding.hearing` raises `ProceedingUnfinished` — there was no hearing. The
+same holds for an exception raised from the loop body. There is one gap. A
+cancel from *outside* the loop, such as a timeout around the `async with`, can
+land while the consumer is asking for the next entry, and the record may then
+hold one entry the consumer never received. Like `hear()`, `hear_stream()`
 parks no state on the tribunal and is safe to run concurrently over several
-cases. See [`0010`](../decisions/0010-streaming-yields-the-record.md).
+cases. See [`0010`](../decisions/0010-streaming-yields-the-record.md) and
+[`0041`](../decisions/0041-the-clerk-files-when-the-consumer-asks.md).
 
 **Ending is the same here as it is for `hear()`.** Exhaustion does not raise
 from the stream: the `async for` simply ends after the judge's last

@@ -131,12 +131,13 @@ plus the docs the answer makes untrue.
     - a buffered out stream: the consumer runs further behind.
   - **Consequences:**
     - Abandoning by `break` or by raising leaves exactly what was received.
-    - A cancel from outside can leave at most one more entry. Anyio's `send()`
-      checkpoints after it hands its item to a waiting receiver. A cancel at
-      that checkpoint reaches the consumer after the clerk already holds its
-      token, so the clerk appends and is then cancelled on its own send. This
-      gap is accepted: closing it would mean the consumer appends, which is the
-      option this ADR rejects.
+    - A cancel from outside can leave at most one more entry. Asking and
+      receiving are two awaits, and the clerk can take the ask before the
+      consumer receives. A cancel landing in that window, at the checkpoint
+      that opens `receive()` or while the send waits to be taken, leaves the
+      clerk holding a token. The clerk appends, and is then cancelled on its own
+      send. This gap is accepted: closing it would mean the consumer appends,
+      which is the option this ADR rejects.
     - `ProceedingFailed.transcript` is what the consumer had received. For
       `hear()` that is everything filed.
     - `0010`'s *Backpressure is not a question here… entries wait in memory* was
@@ -209,11 +210,12 @@ run ahead, and it does so deterministically.
     empty and `hearing` raises `ProceedingUnfinished`. Today the clerk appends
     entry 1 and then blocks.
   - `test_an_external_cancel_leaves_at_most_the_entry_in_hand` cancels the
-    consumer from an outer scope while it waits for the next entry. Afterwards,
-    `len(transcript)` is either the count received or one more, never further
-    ahead. If the cancel can be landed on the post-handoff checkpoint
-    deterministically, the test pins the "one more" case exactly. Otherwise it
-    asserts the bound.
+    consumer from an outer scope while it waits for an entry a gated advocate
+    will never file. Afterwards, `len(transcript)` is either the count received
+    or one more, never further ahead. A sibling task cancels once the consumer
+    is parked, not on a timer, so the test does not depend on how fast the
+    bench runs. Through the public handle the cancel cannot be landed between
+    the ask and the receive, so this asserts the bound.
   - The existing abandoning and exception tests stay unchanged. They must still
     exit rather than hang, now that the clerk can also be blocked on `ready`.
 - **`test_filing_clerk.py`**
@@ -226,6 +228,10 @@ run ahead, and it does so deterministically.
     directly. It files once and waits until everything is blocked, then checks
     that the transcript is empty and the filer is unacknowledged. After one ask,
     the transcript has one entry and the filer is acknowledged.
+  - `test_a_cancel_between_the_ask_and_the_receive_leaves_one_entry_unreceived`
+    pins the accepted gap exactly. A hand-driven consumer asks, has its scope
+    cancelled, and then reaches `receive()`. The clerk appends one entry nobody
+    received, and only one.
   - `test_the_acknowledgment_still_follows_the_append`: when the filer's `done`
     fires, the stamped entry it carries back is already `transcript[-1]`. This is
     `0027`'s condition, restated against the new ordering.
@@ -245,5 +251,7 @@ stream exercise it on every run.
 
 *None open.* One question came up: an external cancel inside `__anext__` can
 leave one entry the consumer never received. It is settled as an accepted gap.
-`api.md` states it, `0041` records it among its consequences, and
-`test_an_external_cancel_leaves_at_most_the_entry_in_hand` pins it.
+`api.md` states it, `0041` records it among its consequences,
+`test_filing_clerk.py` pins the one extra entry exactly, and
+`test_an_external_cancel_leaves_at_most_the_entry_in_hand` asserts the bound
+through the public handle.

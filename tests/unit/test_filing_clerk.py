@@ -62,18 +62,36 @@ async def _file_through_the_clerk(
     receipts: list[_Filed[Any]] = []
     inbox_send, inbox_receive = anyio.create_memory_object_stream[_Filed[Any]](0)
     out_send, out_receive = anyio.create_memory_object_stream[Entry[Any]](0)
+    ready_send, ready_receive = anyio.create_memory_object_stream[None](0)
 
     async def consume() -> None:
-        async for entry in out_receive:
+        # `Proceeding.__anext__`'s shape: ask, then take. The clerk closing `ready` on its way
+        # out is what ends this loop.
+        while True:
+            try:
+                await ready_send.send(None)
+                entry = await out_receive.receive()
+            except (anyio.BrokenResourceError, anyio.EndOfStream):
+                return
+            # A consumer that does real work: everything else runs until it blocks, which is
+            # the furthest a clerk could get ahead before the line below.
+            await anyio.wait_all_tasks_blocked()
             # Read inside the loop body, which is the moment `0010` makes a promise about.
             sent.append(entry)
             assert entry is orchestrator.transcript[-1]
+            assert len(orchestrator.transcript) == len(sent)
 
     # The clerk runs until its inbox has no senders left, so the send end is closed as soon as
     # the last filing is acknowledged — the same shape `_Orchestrator.run` uses. `out_send` is
     # then closed to end the consumer, which is what `run` does after binding the hearing.
-    async with out_send, out_receive, anyio.create_task_group() as tg:
-        tg.start_soon(orchestrator._clerk, inbox_receive, out_send)  # noqa: SLF001
+    async with (
+        out_send,
+        out_receive,
+        ready_send,
+        ready_receive,
+        anyio.create_task_group() as tg,
+    ):
+        tg.start_soon(orchestrator._clerk, inbox_receive, ready_receive, out_send)  # noqa: SLF001
         tg.start_soon(consume)
         async with inbox_send:
             for filing in filings:
@@ -143,6 +161,121 @@ async def test_the_acknowledgment_carries_the_stamped_entry_back(
     assert acknowledged is bench_orchestrator.transcript[0]
     assert acknowledged.round == 1
     assert acknowledged.filed_at.tzinfo is not None
+
+
+async def test_the_clerk_appends_nothing_until_a_consumer_asks(
+    bench_orchestrator: _Orchestrator[Any],
+) -> None:
+    """A filing waits at the clerk, unrecorded and unacknowledged, until someone asks for the
+    next entry — which is what keeps the record from running ahead of a busy consumer
+    (`docs/decisions/0041-the-clerk-files-when-the-consumer-asks.md`)."""
+    approve = bench_orchestrator.transcript.verdicts[0]
+    inbox_send, inbox_receive = anyio.create_memory_object_stream[_Filed[Any]](0)
+    out_send, out_receive = anyio.create_memory_object_stream[Entry[Any]](0)
+    ready_send, ready_receive = anyio.create_memory_object_stream[None](0)
+    filed = _Filed(
+        filing=Concession(advocate=approve, reason="No case."), round=1, done=anyio.Event()
+    )
+
+    async with (
+        inbox_send,
+        out_send,
+        out_receive,
+        ready_send,
+        ready_receive,
+        anyio.create_task_group() as tg,
+    ):
+        tg.start_soon(bench_orchestrator._clerk, inbox_receive, ready_receive, out_send)  # noqa: SLF001
+        tg.start_soon(inbox_send.send, filed)
+        await anyio.wait_all_tasks_blocked()
+
+        assert len(bench_orchestrator.transcript) == 0
+        assert not filed.done.is_set()
+
+        await ready_send.send(None)
+        entry = await out_receive.receive()
+        await filed.done.wait()
+
+        assert list(bench_orchestrator.transcript) == [entry]
+        tg.cancel_scope.cancel()
+
+
+async def test_a_cancel_between_the_ask_and_the_receive_leaves_one_entry_unreceived(
+    bench_orchestrator: _Orchestrator[Any],
+) -> None:
+    """The accepted gap, landed exactly. A consumer cancelled after its ask was taken but
+    before it received — a caller's timeout reaching the checkpoint that opens `receive()` —
+    leaves the clerk holding a token, so the clerk appends an entry nobody received. One, and
+    no more: it never gets a second token.
+    `docs/decisions/0041-the-clerk-files-when-the-consumer-asks.md` accepts this; `break` and
+    an exception from a loop body cannot reach the point between the two awaits."""
+    approve, deny, _ = bench_orchestrator.transcript.verdicts
+    inbox_send, inbox_receive = anyio.create_memory_object_stream[_Filed[Any]](0)
+    out_send, out_receive = anyio.create_memory_object_stream[Entry[Any]](0)
+    ready_send, ready_receive = anyio.create_memory_object_stream[None](0)
+
+    async def consume() -> None:
+        with anyio.CancelScope() as scope:
+            await ready_send.send(None)
+            scope.cancel()
+            await out_receive.receive()
+
+    async with (
+        inbox_send,
+        out_send,
+        out_receive,
+        ready_send,
+        ready_receive,
+        anyio.create_task_group() as tg,
+    ):
+        tg.start_soon(bench_orchestrator._clerk, inbox_receive, ready_receive, out_send)  # noqa: SLF001
+        for verdict in (approve, deny):
+            filed = _Filed(
+                filing=Concession(advocate=verdict, reason="No case."),
+                round=1,
+                done=anyio.Event(),
+            )
+            tg.start_soon(inbox_send.send, filed)
+        await anyio.wait_all_tasks_blocked()
+        await consume()
+        await anyio.wait_all_tasks_blocked()
+
+        assert len(bench_orchestrator.transcript) == 1
+        tg.cancel_scope.cancel()
+
+
+async def test_the_acknowledgment_still_follows_the_append(
+    bench_orchestrator: _Orchestrator[Any],
+) -> None:
+    """`0027` dispatches an advocate's next run on the acknowledgment, so by the time `done`
+    fires the entry it carries must already be the record's last — waiting for the consumer's
+    ask comes before the append, never between the append and the ack."""
+    approve, deny, _ = bench_orchestrator.transcript.verdicts
+    inbox_send, inbox_receive = anyio.create_memory_object_stream[_Filed[Any]](0)
+    seen: list[tuple[Entry[Any] | None, Entry[Any]]] = []
+
+    async def file(filing: Any) -> None:
+        filed = _Filed(filing=filing, round=1, done=anyio.Event())
+        async with inbox_send.clone() as inbox:
+            await inbox.send(filed)
+        await filed.done.wait()
+        seen.append((filed.entry, bench_orchestrator.transcript[-1]))
+
+    out_send, out_receive = anyio.create_memory_object_stream[Entry[Any]](0)
+    ready_send, ready_receive = anyio.create_memory_object_stream[None](0)
+    async with out_send, out_receive, ready_send, ready_receive, anyio.create_task_group() as tg:
+        tg.start_soon(bench_orchestrator._clerk, inbox_receive, ready_receive, out_send)  # noqa: SLF001
+        async with inbox_send, anyio.create_task_group() as filers:
+            filers.start_soon(file, Concession(advocate=approve, reason="No case."))
+            filers.start_soon(file, Concession(advocate=deny, reason="No case."))
+            for _ in range(2):
+                await ready_send.send(None)
+                await out_receive.receive()
+                await anyio.wait_all_tasks_blocked()
+        await out_send.aclose()
+
+    assert len(seen) == 2
+    assert all(acknowledged is last for acknowledged, last in seen)
 
 
 async def test_a_concession_and_a_ruling_pass_through_unconverted(
