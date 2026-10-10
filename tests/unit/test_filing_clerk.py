@@ -17,9 +17,19 @@ from typing import Any
 import anyio
 import pytest
 
-from enbanc import Argument, Case, Concession, Entry, Ruling, Transcript, Verdict
+from enbanc import (
+    Argument,
+    Case,
+    Concession,
+    Continuance,
+    Entry,
+    Response,
+    Ruling,
+    Transcript,
+    Verdict,
+)
 from enbanc._evidence import _Exhibit
-from enbanc._filings import _Argument
+from enbanc._filings import _Argument, _Continuance, _Interrogatory, _Response
 from enbanc._proceeding import _Filed, _Orchestrator
 from enbanc._transcript import Retrieval
 
@@ -45,7 +55,7 @@ def _orchestrator(kwargs: dict[str, Any], case: Case) -> _Orchestrator[Any]:
 
 
 async def _file_through_the_clerk(
-    orchestrator: _Orchestrator[Any], *filings: Any
+    orchestrator: _Orchestrator[Any], *filings: Any, round: int = 1
 ) -> tuple[list[Entry[Any]], list[_Filed[Any]]]:
     """Run the clerk over a handful of filings and collect what it sent and acknowledged."""
     sent: list[Entry[Any]] = []
@@ -67,7 +77,7 @@ async def _file_through_the_clerk(
         tg.start_soon(consume)
         async with inbox_send:
             for filing in filings:
-                filed = _Filed(filing=filing, round=1, done=anyio.Event())
+                filed = _Filed(filing=filing, round=round, done=anyio.Event())
                 await inbox_send.send(filed)
                 await filed.done.wait()
                 receipts.append(filed)
@@ -219,6 +229,68 @@ async def test_an_exhibit_resolves_against_its_own_advocates_rows(
     filed = sent[0].filing
     assert isinstance(filed, Argument)
     assert filed.exhibits[0].reference == "s3://w2.pdf"
+
+
+async def test_a_continuances_questions_gain_their_ids_at_the_clerk(
+    bench_orchestrator: _Orchestrator[Any],
+) -> None:
+    """`r{round}-q{n}`, `n` from 1 in emission order, with the round the *filer* names — and
+    nothing the judge wrote altered: `to` and `question` are copied verbatim
+    (`docs/decisions/0015-interrogatory-ids-are-stamped-on-filing.md`)."""
+    approve, deny, _refer = bench_orchestrator.transcript.verdicts
+    emitted = [
+        _Interrogatory(to=deny, question="Is stated income disqualifying?"),
+        _Interrogatory(to=approve, question="Does the W-2 reconcile?"),
+        _Interrogatory(to=deny, question="Would a verified return change it?"),
+    ]
+
+    sent, _ = await _file_through_the_clerk(
+        bench_orchestrator, _Continuance(interrogatories=emitted), round=3
+    )
+
+    filed = sent[0].filing
+    assert isinstance(filed, Continuance)
+    assert [i.id for i in filed.interrogatories] == ["r3-q1", "r3-q2", "r3-q3"]
+    assert [(i.to, i.question) for i in filed.interrogatories] == [
+        (i.to, i.question) for i in emitted
+    ]
+
+
+async def test_a_response_is_converted_and_its_exhibits_stamped(
+    bench_orchestrator: _Orchestrator[Any],
+) -> None:
+    """`_Response` in, `Response` out: `advocate` and `answering` copied from the dispatch that
+    filled them, and the exhibits resolved against that advocate's own rows."""
+    approve, deny, _refer = bench_orchestrator.transcript.verdicts
+    for advocate, reference in ((approve, "s3://schedule-c.pdf"), (deny, "s3://w2.pdf")):
+        bench_orchestrator.transcript.ledger.append(
+            Retrieval(
+                id="s1",
+                round=1,
+                advocate=advocate,
+                tool="psql",
+                reference=reference,
+                content="figure",
+            )
+        )
+
+    sent, _ = await _file_through_the_clerk(
+        bench_orchestrator,
+        _Response(
+            advocate=deny,
+            answering="r1-q2",
+            answer="Yes — the ceiling is on documented income.",
+            exhibits=[_Exhibit(source="s1", content="figure")],
+        ),
+        round=2,
+    )
+
+    filed = sent[0].filing
+    assert isinstance(filed, Response)
+    assert (filed.advocate, filed.answering) == (deny, "r1-q2")
+    assert filed.answer == "Yes — the ceiling is on documented income."
+    assert [(x.source, x.reference) for x in filed.exhibits] == [("s1", "s3://w2.pdf")]
+    assert sent[0].round == 2
 
 
 async def test_an_unresolvable_id_reaching_the_clerk_is_a_bug_in_enbanc(

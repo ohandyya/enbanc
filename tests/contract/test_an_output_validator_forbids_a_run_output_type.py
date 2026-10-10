@@ -10,6 +10,12 @@ that make that substitution invisible are pinned here too: the tool a model is o
 derived from the function's single parameter, a `ModelRetry` raised inside it spends the
 `output` budget, and it reaches the model as a `RetryPromptPart`.
 
+A round-2 advocate is given a function of **several** parameters — `answer` and `exhibits`,
+with `advocate` and `answering` filled from the dispatch
+(`docs/decisions/0039-a-response-is-asked-for-its-answer-alone.md`). That leans on two more
+claims, pinned below: such a function is offered as an object schema of exactly its
+parameters, and its `ModelRetry` spends the `output` budget the same way.
+
 If any of this fails after a `pydantic-ai` bump, the dependency moved and `execution.md` is now
 wrong. Fix the document, then decide whether the design it forced still makes sense.
 """
@@ -219,8 +225,8 @@ async def test_a_sole_output_type_is_named_final_result() -> None:
     """A union gets one tool per member, named from the class; a single member gets the bare
     `final_result`.
 
-    Worth pinning because it is the shape a round-2 advocate will be given — one `_Response`
-    and nothing else — and `execution.md`'s round-2 traces show a qualified name.
+    Worth pinning because it is the shape a round-2 advocate is given — one output function
+    and nothing else — so `execution.md`'s round-2 traces show the bare name.
     """
     single = TestModel()
     union = TestModel()
@@ -232,3 +238,54 @@ async def test_a_sole_output_type_is_named_final_result() -> None:
         "final_result_Concession",
         "final_result__Argument",
     ]
+
+
+async def test_a_function_of_several_parameters_is_offered_as_an_object_of_them() -> None:
+    """The round-2 shape, as a per-run override on an agent built for round 1.
+
+    The schema is the parameters and nothing else — a field the function does not take is a
+    field the model is not asked for, which is the whole of how `answering` stays off the
+    wire. A defaulted parameter is offered but not required, and with no docstring the
+    description is PydanticAI's generic sentence.
+    """
+
+    def respond(answer: str, exhibits: list[str] = []) -> _Response:  # noqa: B006
+        return _Response(answer=answer)
+
+    model = TestModel()
+    agent = Agent(model, output_type=[_Argument, Concession])
+    await agent.run("respond", output_type=respond)
+
+    (tool,) = _offered(model)
+    assert tool.name == "final_result"
+    assert sorted(tool.parameters_json_schema["properties"]) == ["answer", "exhibits"]
+    assert tool.parameters_json_schema["required"] == ["answer"]
+    assert tool.description is not None
+    assert tool.description.endswith("The final response which ends this conversation")
+
+
+@pytest.mark.parametrize(
+    ("retries", "expected_attempts"),
+    [
+        ({"tools": 5, "output": 1}, 2),
+        ({"tools": 1, "output": 3}, 4),
+    ],
+)
+async def test_a_model_retry_from_a_function_of_several_parameters_spends_the_output_budget(
+    retries: AgentRetries, expected_attempts: int
+) -> None:
+    """The citation check runs inside the round-2 output function too, so the budget it
+    spends must be the same one — or a miscited response would be governed differently from a
+    miscited argument."""
+    attempts: list[None] = []
+
+    def respond(answer: str, exhibits: list[str] = []) -> _Response:  # noqa: B006
+        attempts.append(None)
+        raise ModelRetry("[s7] was not issued to you.")
+
+    agent = Agent(_files_whatever_it_is_offered(), output_type=[respond], retries=retries)
+
+    with pytest.raises(UnexpectedModelBehavior, match="Exceeded maximum output retries"):
+        await agent.run("respond")
+
+    assert len(attempts) == expected_attempts

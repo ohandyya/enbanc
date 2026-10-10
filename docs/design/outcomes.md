@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-09-11
+updated: 2026-10-10
 ---
 
 # Every way a proceeding ends
@@ -504,7 +504,7 @@ finding about the case.
 Same tribunal again, this time with room to deliberate but not to pay for it:
 `max_rounds=5` and
 `budget=UsageLimits(cost_limit=Decimal("0.40"), request_limit=None)`. Round 2
-finishes, the judge files a third `Continuance`, and the total spent has passed
+finishes, the judge files a second `Continuance`, and the total spent has passed
 the ceiling — so round 3 is never dispatched. (`request_limit` is spelled out
 because an inherited one is a `ConfigurationError`; see
 [§5](#a-budget-with-an-inherited-request_limit).)

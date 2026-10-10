@@ -6,11 +6,13 @@ whole proceeding runs with no provider in the loop.
 """
 
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
+from decimal import Decimal
 from typing import Any
 
+import anyio
 import pytest
 from pydantic_ai.messages import (
     ModelMessage,
@@ -23,6 +25,7 @@ from pydantic_ai.messages import (
 )
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.models.test import TestModel
+from pydantic_ai.usage import RequestUsage
 
 from enbanc import (
     Advocate,
@@ -377,7 +380,18 @@ def proceeding(case: LoanApplication) -> Transcript[LoanDecision]:
 #: How a participant is identified from the turn it was handed. The fake reads the same prompt
 #: a real model reads, rather than being told out of band which agent it is standing in for, so
 #: a turn template that stopped naming the advocate would break the bench loudly.
+#:
+#: It is matched against the **first** user prompt of the conversation, not the last. A round-2
+#: turn — `Round 2. Answer r1-q3 and file your response.` — names no advocate, but every
+#: advocate's history opens with its round-1 turn, which does; the judge's opens with
+#: `## Round 1` and matches nothing.
 _ADVOCATE_TURN = re.compile(r'File your argument for "(?P<verdict>.+)", or concede\.')
+
+#: Which interrogatory a round-2+ advocate run is answering, read off the turn.
+_RESPONSE_TURN = re.compile(r"Answer (?P<id>\S+) and file your response\.$")
+
+#: Which deliberation a judge run is, read off the turn.
+_DELIBERATION_TURN = re.compile(r"Deliberation (?P<n>\d+) of \d+\.")
 
 #: Message parts that carry something no rendered turn contains, and are accounted for rather
 #: than derived. `docs/design/execution.md` ("What lands in history that no rendered turn
@@ -401,21 +415,31 @@ _TURN_SCAFFOLDING = (
     re.compile(r"^Deliberation \d+ of \d+\. Rule, or issue a continuance\.$"),
 )
 
+#: The `## Addressed to you` line: `r1-q2: Is stated income disqualifying …`. Derived from the
+#: record — the id and the question are both on the `Continuance` — but not a substring of its
+#: rendering, which writes `r1-q2 -> deny: …` and wraps it.
+_ADDRESSED_LINE = re.compile(r"^(?P<id>r\d+-q\d+): (?P<question>.+)$")
 
-def _turn(messages: list[ModelMessage]) -> str:
-    """The last user prompt: the turn this request is answering."""
-    prompts = [
-        part.content
+
+def _prompts(messages: list[ModelMessage]) -> list[str]:
+    return [
+        str(part.content)
         for message in messages
         for part in getattr(message, "parts", ())
         if isinstance(part, UserPromptPart)
     ]
-    return str(prompts[-1]) if prompts else ""
+
+
+def _turn(messages: list[ModelMessage]) -> str:
+    """The last user prompt: the turn this request is answering."""
+    prompts = _prompts(messages)
+    return prompts[-1] if prompts else ""
 
 
 def _participant(messages: list[ModelMessage]) -> Any:
     """Whose turn this is — a verdict member, or the string `"judge"`."""
-    named = _ADVOCATE_TURN.search(_turn(messages))
+    prompts = _prompts(messages)
+    named = _ADVOCATE_TURN.search(prompts[0]) if prompts else None
     return LoanDecision(named.group("verdict")) if named else "judge"
 
 
@@ -424,9 +448,36 @@ def _output_tool(info: AgentInfo, kind: str) -> str:
 
     Matched on a substring rather than spelled out, because the full names are the
     dependency's. `test_agents.py` is where they are pinned as text; everywhere else a bench
-    that kept working after a rename is the right behaviour.
+    that kept working after a rename is the right behaviour. **A sole output tool is the
+    answer whatever `kind` says** — it is named `final_result`, with no class in it, which is
+    what an advocate is offered from round 2.
     """
-    return next(tool.name for tool in info.output_tools or () if kind in tool.name)
+    tools = list(info.output_tools or ())
+    if len(tools) == 1:
+        return tools[0].name
+    return next(tool.name for tool in tools if kind in tool.name)
+
+
+def _this_run(messages: list[ModelMessage]) -> list[ModelMessage]:
+    """The messages since the last user prompt: what this run has done so far."""
+    starts = [
+        i
+        for i, message in enumerate(messages)
+        if any(isinstance(part, UserPromptPart) for part in getattr(message, "parts", ()))
+    ]
+    return messages[starts[-1] :] if starts else messages
+
+
+def _tool_results(messages: list[ModelMessage]) -> int:
+    """How many tool calls this run has had answered — returned, or failed with a retry."""
+    return sum(
+        1
+        for message in _this_run(messages)
+        for part in getattr(message, "parts", ())
+        if isinstance(part, ToolReturnPart | RetryPromptPart)
+        and part.tool_name is not None
+        and not part.tool_name.startswith("final_result")
+    )
 
 
 @dataclass
@@ -437,89 +488,130 @@ class Bench:
     out whose run it is in, which is what lets a single object play four agents. `captured`
     holds every `ModelMessage` list each participant was handed, in order, which is the exact
     context it ran under and the only thing that can settle whether the invariant held.
+
+    What each participant does is scripted per *turn*, and a turn is keyed by what names it: an
+    advocate's round-1 run by its verdict, a response run by the interrogatory id it answers.
+
+    * `concedes` — advocates that concede in round 1.
+    * `searches` and `cites` — round-1 shorthand: one `psql` call, and an exhibit citing `s1`.
+    * `calls` — tool calls a turn makes before filing, one per model response, in order. Wins
+      over `searches` for a round-1 key.
+    * `exhibits` — the ids a turn's filing cites. Wins over `cites` for a round-1 key; a
+      response cites nothing unless named here.
+    * `continuances` — one list of `(to, question)` per deliberation, issued in order; once
+      they run out the judge rules for `verdict` (`DENY` when unset).
+    * `costs` — a `Decimal` charged per model response, by participant, so a `cost_limit`
+      has something real to compare against offline. `FunctionModel` is otherwise
+      unpriceable, and every `cost_limit` would trip `CostNotFoundWarning`.
+    * `gates` — an `anyio.Event` a turn waits on before it files, which is how a test forces
+      an ordering the scheduler would otherwise choose.
     """
 
     concedes: frozenset[Any] = frozenset()
     searches: frozenset[Any] = frozenset()
     cites: frozenset[Any] = frozenset()
-    continues: bool = False
+    calls: Mapping[Any, Sequence[tuple[str, dict[str, Any]]]] = field(default_factory=dict)
+    exhibits: Mapping[Any, Sequence[str]] = field(default_factory=dict)
+    continuances: Sequence[Sequence[tuple[Any, str]]] = ()
     verdict: Any = None
+    costs: Mapping[Any, Decimal] = field(default_factory=dict)
+    gates: Mapping[Any, anyio.Event] = field(default_factory=dict)
     captured: dict[Any, list[list[ModelMessage]]] = field(default_factory=dict)
 
     @property
     def model(self) -> FunctionModel:
         return FunctionModel(self._respond)
 
-    def _respond(self, messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+    async def _respond(self, messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
         who = _participant(messages)
         self.captured.setdefault(who, []).append(messages)
         if who == "judge":
-            return self._deliberate(info)
-        return self._file(who, messages, info)
-
-    def _deliberate(self, info: AgentInfo) -> ModelResponse:
-        if self.continues:
-            return ModelResponse(
-                parts=[
-                    ToolCallPart(
-                        _output_tool(info, "Continuance"),
-                        {
-                            "interrogatories": [
-                                {"to": LoanDecision.DENY.value, "question": "Is that documented?"}
-                            ]
-                        },
-                    )
-                ]
-            )
-        verdict = self.verdict if self.verdict is not None else LoanDecision.DENY
+            parts = self._deliberate(messages, info)
+        else:
+            parts = await self._advocate(who, messages, info)
+        cost = self.costs.get(who)
+        if cost is None:
+            return ModelResponse(parts=parts)
         return ModelResponse(
-            parts=[
-                ToolCallPart(
-                    _output_tool(info, "Ruling"),
-                    {
-                        "verdict": verdict.value,
-                        "reasoning": "Documented income governs; the stated figure is unverified.",
-                    },
-                )
-            ]
+            parts=parts, usage=RequestUsage(input_tokens=100, output_tokens=10, cost=cost)
         )
 
-    def _file(self, who: Any, messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
-        if who in self.concedes:
-            return ModelResponse(
-                parts=[
-                    ToolCallPart(
-                        _output_tool(info, "Concession"),
-                        {
-                            "advocate": who.value,
-                            "reason": "The ratios are unambiguous; nothing calls for review.",
-                        },
-                    )
-                ]
-            )
-        if who in self.searches and not self._searched(messages):
-            return ModelResponse(parts=[ToolCallPart("psql", {"query": "select wages from w2"})])
-        exhibits = [{"source": "s1", "content": "wages: 131,400"}] if who in self.cites else []
-        return ModelResponse(
-            parts=[
+    def _deliberate(self, messages: list[ModelMessage], info: AgentInfo) -> list[Any]:
+        matched = _DELIBERATION_TURN.search(_turn(messages))
+        n = int(matched.group("n")) if matched else 1
+        if n <= len(self.continuances):
+            interrogatories = [
+                {"to": to.value, "question": question} for to, question in self.continuances[n - 1]
+            ]
+            return [
                 ToolCallPart(
-                    _output_tool(info, "Argument"),
+                    _output_tool(info, "Continuance"), {"interrogatories": interrogatories}
+                )
+            ]
+        verdict = self.verdict if self.verdict is not None else LoanDecision.DENY
+        return [
+            ToolCallPart(
+                _output_tool(info, "Ruling"),
+                {
+                    "verdict": verdict.value,
+                    "reasoning": "Documented income governs; the stated figure is unverified.",
+                },
+            )
+        ]
+
+    async def _advocate(self, who: Any, messages: list[ModelMessage], info: AgentInfo) -> list[Any]:
+        answering = _RESPONSE_TURN.search(_turn(messages))
+        key = answering.group("id") if answering else who
+        if answering is None and who in self.concedes:
+            return [
+                ToolCallPart(
+                    _output_tool(info, "Concession"),
                     {
                         "advocate": who.value,
-                        "claim": f"The record supports {who.value}.",
-                        "exhibits": exhibits,
+                        "reason": "The ratios are unambiguous; nothing calls for review.",
                     },
                 )
             ]
-        )
+        calls = self._calls(who, key, answering is None)
+        made = _tool_results(messages)
+        if made < len(calls):
+            name, args = calls[made]
+            return [ToolCallPart(name, args)]
+        if key in self.gates:
+            await self.gates[key].wait()
+        cited = [
+            {"source": source, "content": "wages: 131,400"}
+            for source in self._exhibits(who, key, answering is None)
+        ]
+        if answering is not None:
+            return [
+                ToolCallPart(
+                    _output_tool(info, "Response"),
+                    {"answer": f"{who.value} answers {key}.", "exhibits": cited},
+                )
+            ]
+        return [
+            ToolCallPart(
+                _output_tool(info, "Argument"),
+                {
+                    "advocate": who.value,
+                    "claim": f"The record supports {who.value}.",
+                    "exhibits": cited,
+                },
+            )
+        ]
 
-    @staticmethod
-    def _searched(messages: list[ModelMessage]) -> bool:
-        return any(
-            isinstance(part, ToolReturnPart) and part.tool_name == "psql"
-            for message in messages
-            for part in getattr(message, "parts", ())
-        )
+    def _calls(self, who: Any, key: Any, round_one: bool) -> Sequence[tuple[str, dict[str, Any]]]:
+        if key in self.calls:
+            return self.calls[key]
+        if round_one and who in self.searches:
+            return [("psql", {"query": "select wages from w2"})]
+        return []
+
+    def _exhibits(self, who: Any, key: Any, round_one: bool) -> Sequence[str]:
+        if key in self.exhibits:
+            return self.exhibits[key]
+        return ["s1"] if round_one and who in self.cites else []
 
 
 @pytest.fixture
@@ -544,8 +636,9 @@ def assert_invariant_held() -> Callable[..., None]:
 
     * the instructions — asserted equal to `instructions_for(participant)`, so the string a
       caller can preview is the string the agent actually ran under;
-    * a user prompt whose every line is either in `render(transcript, ReviewerView())` or is
-      turn scaffolding, which is procedure rather than record;
+    * a user prompt whose every line is either in `render(transcript, ReviewerView())`, is
+      turn scaffolding, which is procedure rather than record, or is the `## Addressed to you`
+      line naming an interrogatory the transcript holds with exactly that id and question;
     * one of the four escapes `docs/design/execution.md` enumerates.
 
     **It cannot be a substring test**, which is why it compares line by line and accepts the
@@ -563,14 +656,24 @@ def assert_invariant_held() -> Callable[..., None]:
         instructions_for: Callable[[Any], str],
     ) -> None:
         record = transcript.render()
+        asked = {
+            (interrogatory.id, interrogatory.question)
+            for entry in transcript
+            if isinstance(entry.filing, Continuance)
+            for interrogatory in entry.filing.interrogatories
+        }
         for participant, runs in captured.items():
             expected = instructions_for(participant)
             for messages in runs:
                 for message in messages:
-                    _check_message(message, participant, expected, record)
+                    _check_message(message, participant, expected, record, asked)
 
     def _check_message(
-        message: ModelMessage, participant: Any, instructions: str, record: str
+        message: ModelMessage,
+        participant: Any,
+        instructions: str,
+        record: str,
+        asked: set[tuple[str, str]],
     ) -> None:
         if isinstance(message, ModelRequest) and message.instructions is not None:
             assert message.instructions == instructions, (
@@ -579,16 +682,21 @@ def assert_invariant_held() -> Callable[..., None]:
             )
         for part in getattr(message, "parts", ()):
             if isinstance(part, UserPromptPart):
-                _check_prompt(str(part.content), participant, record)
+                _check_prompt(str(part.content), participant, record, asked)
             else:
                 assert isinstance(part, _ESCAPES), (
                     f"{participant}'s context holds a {type(part).__name__}, which is neither "
                     f"derived from the transcript nor one of execution.md's four escapes"
                 )
 
-    def _check_prompt(prompt: str, participant: Any, record: str) -> None:
+    def _check_prompt(
+        prompt: str, participant: Any, record: str, asked: set[tuple[str, str]]
+    ) -> None:
         for line in prompt.splitlines():
             if not line.strip() or any(shape.match(line) for shape in _TURN_SCAFFOLDING):
+                continue
+            addressed = _ADDRESSED_LINE.match(line)
+            if addressed and (addressed.group("id"), addressed.group("question")) in asked:
                 continue
             assert line in record, (
                 f"{participant} was shown a line the transcript does not hold: {line!r}"

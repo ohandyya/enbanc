@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-09-20
+updated: 2026-10-10
 ---
 
 # Documentation
@@ -104,6 +104,7 @@ and its table for the order they land in.
 | [`decisions/0036-a-continuance-carries-at-least-one-interrogatory.md`](./decisions/0036-a-continuance-carries-at-least-one-interrogatory.md) | Why `min_length=1` sits on both the judge's emit-shape and the public `Continuance` — the empty one dispatches nobody and leaves a transcript of identical no-op rounds — which retry budget a schema failure spends, and why tolerating it or reading it as a stop signal were both rejected |
 | [`decisions/0037-a-conceded-advocate-stays-addressable.md`](./decisions/0037-a-conceded-advocate-stays-addressable.md) | Why an advocate that conceded stays seated and may argue its verdict again on evidence filed since, why the record marks nothing superseded rather than gaining a `withdrawal` filing, and why forbidding it would be the first stateful check on the judge's output |
 | [`decisions/0038-the-citation-check-rides-on-the-output-type.md`](./decisions/0038-the-citation-check-rides-on-the-output-type.md) | Why the citation check is an output function riding on the output type rather than an agent-level output validator — PydanticAI refuses a per-run `output_type` override once an agent carries a validator, which collides with one agent per participant — and why a second agent per advocate and an always-offered three-shape union were both rejected |
+| [`decisions/0039-a-response-is-asked-for-its-answer-alone.md`](./decisions/0039-a-response-is-asked-for-its-answer-alone.md) | Why an advocate's round-2+ output is an output function of `answer` and `exhibits` alone, with `advocate` and `answering` filled from the dispatch — handing over `_Response` would let the model author the interrogatory link — and why asking for both and overwriting them was rejected |
 
 ### Guides — user-facing how-to
 

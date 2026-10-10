@@ -80,7 +80,7 @@ async def run(self, out):
                 deliberation = await self._deliberate(round, inbox_send)
                 if isinstance(deliberation, Ruling):
                     outcome = deliberation;                          break
-                if round == self.max_rounds:
+                if round >= self.max_rounds:
                     outcome = Undecided(reason="rounds");            break
                 if self._budget_spent(first=round == 1):
                     outcome = Undecided(reason="budget");            break
@@ -113,6 +113,14 @@ async def run(self, out):
   `min_length=1` ([`0036`](../decisions/0036-a-continuance-carries-at-least-one-interrogatory.md)),
   so the zero-task round is unreachable. Writing a branch for it would be a test
   of something the type already rules out.
+- **`>=`, not `==`, against `max_rounds`.** Found while building, not in the
+  plan: `Tribunal(...)` does not validate `max_rounds` (`test_tribunal.py` pins
+  that `max_rounds=0` constructs, because `ConfigurationError` has four cases and
+  this is not one), and with `==` a tribunal built with `0` would run for as long
+  as the judge kept asking. With `>=` it runs one round and ends
+  `Undecided(reason='rounds')` — the shape a zero budget takes — and nothing
+  changes for any `max_rounds` of 1 or more. `execution.md`'s sketch is corrected
+  to match ([below](#design-documents)).
 - **No special case for a conceded advocate.** It stays addressable
   ([`0037`](../decisions/0037-a-conceded-advocate-stays-addressable.md)), and its
   agent, ledgering toolset and history all exist from round 1. A test pins that
@@ -157,7 +165,7 @@ async def _answer(self, verdict, questions, round, base, inbox) -> None:
             usage=self._usage(verdict),
         )
         self.history[verdict] = result.all_messages()
-        self.since[verdict] = round
+        self.since[verdict] = snapshot.entries[-1].round
         entries.append(await self._file(result.output, round=round, inbox=inbox))
 ```
 
@@ -178,11 +186,18 @@ That is the whole of `0027`, and each line carries one rule:
   is produced before the next append, so sharing would happen to work; copying
   makes a snapshot a value rather than a view, which is what the word
   *constructed* means.
-- **`since` advances after the run returns**, beside the history write, and both
-  sit before the filing. A run that dies writes neither
-  ([`execution.md`](../design/execution.md#history-is-a-dict-written-after-each-run)),
-  and the next run's turn renders exactly the response this one filed — `since`
-  now selects round *N*, and the extension holds one round-*N* entry.
+- **`since` advances after the run returns, to the round of the snapshot's last
+  entry** — *the last round whose filings this participant has been shown*, not
+  the round being run. A first run of round *N* is shown the base, which ends on
+  round *N*−1's continuance, so `since` becomes *N*−1; the next run's snapshot
+  ends on the response just filed, renders that alone, and leaves `since` at *N*.
+  That is rows 6 and 7 of `execution.md`'s table, `since` out 1 then 2. **The plan
+  first had `since = round` here, and it was wrong**: the forced run-7 test caught
+  it as an empty delta, and the same rule would have shown a round-3 turn none of
+  round 2. `test_a_third_round_is_shown_everything_the_second_filed` pins the
+  second consequence. The write sits beside the history write and before the
+  filing; a run that dies writes neither
+  ([`execution.md`](../design/execution.md#history-is-a-dict-written-after-each-run)).
 - **`ledgering.round` is set once per task, not per run.** Every run in the task
   is the same round, and the value flows one way into the run's copy
   ([`execution.md`](../design/execution.md#a-wrapper-toolset-is-rebuilt-for-every-run)).
@@ -348,7 +363,7 @@ the agent.
 
 ### Design documents
 
-Four edits, all `CLAUDE.md` rule 2 paid in this commit.
+Six edits, all `CLAUDE.md` rule 2 paid in this commit.
 
 [`execution.md` § The proceeding, as messages](../design/execution.md#the-proceeding-as-messages)
 — the correction [`proceeding-core.md`](./proceeding-core.md#an-output-validator-forbids-a-per-run-output-type)
@@ -374,6 +389,14 @@ advocate's response is asked for its answer and its exhibits, and `advocate` and
 proceeding* becomes *warns once, at the first round boundary* — the precise claim
 the test pins.
 
+[`execution.md` § The round loop](../design/execution.md#the-round-loop) — the
+sketch's `round_no == max_rounds` becomes `>=`, with the paragraph saying why
+([above](#the-loop)).
+
+[`outcomes.md` § 3](../design/outcomes.md#the-budget) — *the judge files a third
+`Continuance`* becomes *a second*: the section's own diagram, and `rounds=2`,
+show two. Found writing the mirror.
+
 **No `PROCEDURE` bump.** No text a model reads moves: the turns are
 [`rendering.md`](./rendering.md)'s, already built, and an output tool's name and
 schema are PydanticAI's and outside `Transcript.procedure` by
@@ -387,14 +410,14 @@ Unit-tier except one row, split the way
 
 | Module | Tier | Pins |
 |---|---|---|
-| `test_round_loop.py` | unit | **new.** Ids stamped `r{round}-q{n}` in emission order, restarting at `r2-q1`, with `(to, question)` unaltered; only addressed advocates dispatched in round 2, and an unaddressed one's history, usage and `since` untouched; a conceded advocate answering (`0037`); `answering` equal to the dispatched id even when the bench's model would have written another; one advocate's two questions filed in id order; `since` advanced per run, matching rows 5–8 of `execution.md`'s table; **run 7** — the forced-adversarial version [below](#run-7-forced); a round-2 response citing a round-1 id resolving; `deny`'s round-2 find ledgered `s2` with `round=2`; the invariant over a two-round proceeding |
-| `test_budget.py` | unit | **new.** No check before round 1 — `request_limit=0` gets one round, then `Undecided(reason='budget')`; each checker reached through its own limit (`request_limit`, `total_tokens_limit`, `output_tokens_limit`, `tool_calls_limit`); `max_rounds` winning when both are spent; `budget=None` never checked; `UsageLimitExceeded` never escaping `hear()`; `CostNotFoundWarning` raised exactly once over a three-round unpriced proceeding, and never for one that rules in round 1 |
+| `test_round_loop.py` | unit | **new.** Ids stamped `r{round}-q{n}` in emission order, restarting at `r2-q1`, with `(to, question)` unaltered; only addressed advocates dispatched in round 2, an unaddressed one's turns and usage untouched; a conceded advocate answering (`0037`); `answering` and `advocate` equal to the dispatch, and the answer the bench wrote for that id; one advocate's two questions filed in id order, over five runs; `since` and the snapshot matching rows 5–8 of `execution.md`'s table; a round-3 turn shown everything round 2 filed; **run 7** — the forced-adversarial version [below](#run-7-forced); a round-2 response citing a round-1 id resolving; `deny`'s round-2 find ledgered `s2` with `round=2`; the invariant over a two-round proceeding |
+| `test_budget.py` | unit | **new.** No check before round 1 — `request_limit=0` gets one round, then `Undecided(reason='budget')`; each checker reached through its own limit (`request_limit`, `total_tokens_limit`, `output_tokens_limit`, `tool_calls_limit`); `max_rounds` winning when both are spent; `max_rounds=0` ending after one round; `budget=None` leaving only the rounds to run out; a limit not yet reached letting the next round run, and the overshoot it costs; `UsageLimitExceeded` never escaping `hear()`; `CostNotFoundWarning` raised exactly once over a three-round unpriced proceeding, and never for one that rules in round 1 |
 | `test_filing_clerk.py` | unit | gains the two conversions, driven directly: a `_Continuance` filed at round 3 entering as `r3-q1…`; a `_Response` entering as `Response` with its exhibits stamped against its own advocate's rows |
-| `test_agents.py` | unit | gains the round-2 wire: the advocate offered exactly one output tool, `final_result`, whose schema properties are `answer` and `exhibits` and nothing else; the instructions byte-identical to round 1's |
+| `test_agents.py` | unit | gains the round-2 wire: the advocate offered exactly one output tool, `final_result`, whose schema properties are `answer` and `exhibits`, `answer` alone required, with PydanticAI's generic description; the instructions byte-identical to round 1's |
 | `test_usage.py` | unit | gains: a participant's round-2 runs accumulate into its round-1 object; `hearing.usage` still the sum of the breakdown after three rounds |
 | `test_proceeding.py` | unit | loses `test_a_continuance_is_the_round_loops_and_says_so` |
-| `outcomes/test_01_judge_rules.py` | unit | **new.** [`outcomes.md` § 1](../design/outcomes.md#1-the-judge-rules) as written: seven entries, `rounds=2`, `outcome is transcript[-1].filing`; five retrieved, four filed; the suppression join returning `[(APPROVE, 's2')]` and nothing else; two failures, both `APPROVE`'s, both round 2; `REFER` with no ledger rows; four keys in the breakdown |
-| `outcomes/test_03_envelope_spent.py` | unit | **new.** [§ 3](../design/outcomes.md#3-the-envelope-is-spent), both halves: `max_rounds=2` ending `Undecided(reason='rounds')` on a `Continuance` carrying `r2-q1` and `r2-q2`, with `outcome is not transcript[-1].filing`; and the `cost_limit=Decimal("0.40")` budget ending `Undecided(reason='budget')` at `rounds=2` with `usage.cost == Decimal("0.41")` — the overshoot asserted, because the record is meant to show it |
+| `outcomes/test_01_judge_rules.py` | unit | **new.** [`outcomes.md` § 1](../design/outcomes.md#1-the-judge-rules) as written: seven entries, `rounds=2`, `outcome is transcript[-1].filing`; five retrieved, four filed; the suppression join returning `[(APPROVE, 's2')]` and nothing else; each advocate's ledger rows in its own order — asserted per advocate, because concurrent advocates interleave in the ledger; two failures, both `APPROVE`'s, both round 2; `REFER` with no ledger rows; four keys in the breakdown |
+| `outcomes/test_03_envelope_spent.py` | unit | **new.** [§ 3](../design/outcomes.md#3-the-envelope-is-spent), both halves: `max_rounds=2` ending `Undecided(reason='rounds')` on a `Continuance` carrying `r2-q1` and `r2-q2`, with `outcome is not transcript[-1].filing`; and the `cost_limit=Decimal("0.40")` budget ending `Undecided(reason='budget')` at `rounds=2` with `usage.cost == Decimal("0.41")` — the overshoot asserted, because the record is meant to show it; and the two transcripts the same shape while the outcomes differ |
 | `test_an_output_validator_forbids_a_run_output_type.py` | contract | gains the several-parameter case: a sole output function of two parameters is offered as `final_result` with an object schema of exactly those parameters, its docstring-free description is PydanticAI's generic sentence, and its `ModelRetry` spends the `output` budget |
 
 ### The bench grows three things
@@ -411,11 +434,14 @@ found by reading what the round-2 turn actually is, not guessed:
   `_ADVOCATE_TURN`'s comment protects.
 - **It finds an output tool by class-name substring**, and a sole output type has
   no class name in it. `_output_tool` returns the only tool when there is one.
-- **`continues: bool` becomes a script** — a list of continuances, one per
-  deliberation, each a list of `(to, question)` pairs, ruling (or continuing
-  again) when it runs out — plus a per-advocate script of what each response
-  cites, and an optional `cost` per response so § 3's budget is a real
-  `Decimal`. A scripted `RequestUsage(cost=...)` flows into `RunUsage.cost`
+- **`continues: bool` becomes a script.** `continuances` is one list of
+  `(to, question)` pairs per deliberation, read off the turn's *Deliberation N*,
+  ruling once it runs out. A turn is keyed by what names it — an advocate's
+  round-1 run by its verdict, a response by the interrogatory id it answers — and
+  `calls` and `exhibits` script, per turn, the tool calls made before filing and
+  the ids cited. `costs` prices every model response per participant so § 3's
+  budget is a real `Decimal`, and `gates` holds a turn's filing on an
+  `anyio.Event`, which is what forces run 7. A scripted `RequestUsage(cost=...)` flows into `RunUsage.cost`
   unchanged, verified, which is what makes a priced proceeding possible offline
   at all: `FunctionModel` is otherwise unpriceable and every `cost_limit` test
   would trip `CostNotFoundWarning`, which `filterwarnings = ["error"]` makes a

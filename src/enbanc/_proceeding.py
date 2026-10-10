@@ -1,6 +1,8 @@
-"""One proceeding, running: the agents, the fan-out, the filing clerk, and the live handle.
+"""One proceeding, running: the agents, the round loop, the filing clerk, and the live handle.
 
-`execution.md`'s piece 3, up to a single round and one deliberation. Everything here is built
+`execution.md`'s piece 3: round 1's fan-out, every round a continuance starts after it, and
+the three ways a proceeding ends inside its envelope — a ruling, the rounds spent, the budget
+spent. Everything here is built
 when a proceeding starts and discarded when it ends — one `Agent` per participant, one
 `Ledgering` per advocate, one `RunUsage` per participant, the history dict and the `since`
 dict. That split is what makes `hear()` safe to call twice and safe to run concurrently over
@@ -26,8 +28,11 @@ a docstring on one becomes the output tool's description — text a model reads,
 See `docs/design/execution.md` ("Piece 3 — round orchestration"),
 `docs/design/api.md` ("Watching it live"),
 `docs/decisions/0010-streaming-yields-the-record.md`,
-`docs/decisions/0016-exhibits-are-stamped-citations.md`, and
-`docs/decisions/0028-usage-accumulates-per-participant.md`.
+`docs/decisions/0016-exhibits-are-stamped-citations.md`,
+`docs/decisions/0024-a-budget-stops-the-proceeding-between-rounds.md`,
+`docs/decisions/0027-an-advocate-answers-its-interrogatories-in-order.md`,
+`docs/decisions/0028-usage-accumulates-per-participant.md`, and
+`docs/decisions/0039-a-response-is-asked-for-its-answer-alone.md`.
 """
 
 from collections.abc import AsyncGenerator, AsyncIterator, Callable, Mapping, Sequence
@@ -41,6 +46,7 @@ from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStre
 from pydantic import BaseModel
 from pydantic_ai import Agent, AgentRetries, AnyConcurrencyLimit
 from pydantic_ai.concurrency import AbstractConcurrencyLimiter, normalize_to_limiter
+from pydantic_ai.exceptions import UsageLimitExceeded
 from pydantic_ai.messages import ModelMessage
 from pydantic_ai.models import Model
 from pydantic_ai.toolsets import AbstractToolset, CombinedToolset, DynamicToolset, FunctionToolset
@@ -49,11 +55,28 @@ from typing_extensions import TypeAliasType
 
 from ._errors import ProceedingUnfinished
 from ._evidence import Exhibit, _Exhibit
-from ._filings import Argument, Concession, Filing, Ruling, _Argument, _Continuance
-from ._hearing import Hearing
+from ._filings import (
+    Argument,
+    Concession,
+    Continuance,
+    Filing,
+    Interrogatory,
+    Response,
+    Ruling,
+    _Argument,
+    _Continuance,
+    _Response,
+)
+from ._hearing import Hearing, Outcome, Undecided
 from ._inputs import Case, Statute
 from ._ledgering import Ledgering
-from ._prompting import PROCEDURE, argument_turn, deliberation_turn, instruction_parts
+from ._prompting import (
+    PROCEDURE,
+    argument_turn,
+    deliberation_turn,
+    instruction_parts,
+    response_turn,
+)
 from ._transcript import Entry, Transcript
 from ._verdicts import JUDGE, Participant, VerdictT
 
@@ -80,13 +103,17 @@ _FilingT = TypeVar("_FilingT", bound=BaseModel)
 
 _Emitted = TypeAliasType(
     "_Emitted",
-    _Argument[VerdictT] | Concession[VerdictT] | Ruling[VerdictT],
+    _Argument[VerdictT]
+    | Concession[VerdictT]
+    | _Response[VerdictT]
+    | _Continuance[VerdictT]
+    | Ruling[VerdictT],
     type_params=(VerdictT,),
 )
-"""What a participant may emit today — the private shapes beside the public ones.
+"""What a participant may emit — the private shapes beside the public ones.
 
-`_Response` and `_Continuance` join it with the dispatch that produces them
-(`docs/implementations/round-loop.md`). It is local to this module because nothing outside
+The emit side of `_filings.py`'s pairing: five shapes, three of them private, each converted
+into its public counterpart by the clerk. It is local to this module because nothing outside
 the orchestrator ever holds a filing before the clerk has converted it, and it is a
 `TypeAliasType` for the reason `Filing` is: a plain alias over Pydantic generics
 parameterized by a bare `TypeVar` collapses and loses its parameters.
@@ -123,6 +150,26 @@ def _filing_output(
 
     file.__annotations__ = {"filing": filing_type, "return": filing_type}
     return file
+
+
+def _addressed(
+    continuance: Continuance[VerdictT],
+) -> dict[VerdictT, list[Interrogatory[VerdictT]]]:
+    """The advocates a continuance names, each with its questions in the order to answer them.
+
+    Within one advocate's list the order is emission order, which is id order, which is
+    `docs/decisions/0027-an-advocate-answers-its-interrogatories-in-order.md`'s answering
+    order — three names for one sequence, because the ids were stamped from it. The order of
+    the *keys* is first-addressed, and decides only which task is started first.
+
+    Never empty: `_Continuance.interrogatories` carries `min_length=1`
+    (`docs/decisions/0036-a-continuance-carries-at-least-one-interrogatory.md`), so the
+    zero-task round is unreachable rather than tolerated.
+    """
+    addressed: dict[VerdictT, list[Interrogatory[VerdictT]]] = {}
+    for interrogatory in continuance.interrogatories:
+        addressed.setdefault(interrogatory.to, []).append(interrogatory)
+    return addressed
 
 
 @dataclass(slots=True)
@@ -222,9 +269,9 @@ class _Orchestrator(Generic[VerdictT]):
     advocates: Mapping[VerdictT, "Advocate"]
     model: Model
     max_rounds: int
-    #: Held and not read until the budget check, which arrives with the round loop
-    #: (`docs/implementations/round-loop.md`). A proceeding that runs one round and rules
-    #: spends nothing it could be stopped for: there is no boundary to check at.
+    #: Checked between rounds against the sum of the per-participant accumulators, never
+    #: inside one — see `_budget_spent`. A proceeding that rules in round 1 reaches no
+    #: boundary, so this is never read for it.
     budget: UsageLimits | None = None
     max_concurrency: AnyConcurrencyLimit = None
 
@@ -325,9 +372,9 @@ class _Orchestrator(Generic[VerdictT]):
     ) -> Agent[None, "_Argument[VerdictT] | Concession[VerdictT]"]:
         """The advocate's agent, carrying its citation check on its output type.
 
-        **Round 1's shape only** — an argument, or a concession. The response shape is a
-        per-run `output_type` on this same agent, which is exactly what the output function
-        keeps legal (`docs/implementations/round-loop.md`).
+        **Round 1's shape** — an argument, or a concession. From round 2 the response shape
+        is a per-run `output_type` on this same agent (`_response_output`), which is exactly
+        what carrying the citation check on the output type keeps legal.
 
         **Both output types are parameterized from the tribunal's own enum.** `Concession` is
         subscripted with `self.verdicts` rather than with `VerdictT` for the reason
@@ -381,6 +428,44 @@ class _Orchestrator(Generic[VerdictT]):
             retries=RETRIES,
         )
 
+    def _response_output(
+        self, verdict: VerdictT, interrogatory: Interrogatory[VerdictT]
+    ) -> Callable[..., _Response[VerdictT]]:
+        """The output type for one round-2+ run: the advocate's answer, and nothing it cannot know.
+
+        **The model is asked for `answer` and `exhibits` alone.** PydanticAI shapes an output
+        function's tool from its *parameters*, so these two are the whole schema the advocate
+        is shown; `advocate` and `answering` are filled from the dispatch. Handing over
+        `_Response` itself would put `answering` in the schema as a required field, and
+        whatever the model wrote there would be what the record kept — a response citing a
+        question nobody asked, which is the state
+        `docs/decisions/0015-interrogatory-ids-are-stamped-on-filing.md` exists to make
+        unreachable. See `docs/decisions/0039-a-response-is-asked-for-its-answer-alone.md`.
+
+        The cost is that the wire shape is this signature rather than `_Response`, so a field
+        added there reaches the model only if it is added here too.
+
+        `_Response` is resolved from the tribunal's enum, for the reason `_filing_output`
+        gives. The citation check runs on the built response, inside the output function, so a
+        miscited id is still a `ModelRetry` against the **`output`** budget.
+        """
+        response_type = _Response[self.verdicts]
+        check = self.ledgerings[verdict].check_citations
+
+        # No docstring, deliberately: PydanticAI would send one to the model as the output
+        # tool's description, which is prompt text `docs/design/prompting.md` does not own.
+        def respond(answer: str, exhibits: Sequence[_Exhibit] = ()) -> _Response[VerdictT]:
+            response = response_type(
+                advocate=verdict,
+                answering=interrogatory.id,
+                answer=answer,
+                exhibits=list(exhibits),
+            )
+            check(response)
+            return response
+
+        return respond
+
     def _usage(self, participant: Participant[VerdictT]) -> RunUsage:
         """This participant's accumulator, minted the first time it is dispatched.
 
@@ -404,7 +489,21 @@ class _Orchestrator(Generic[VerdictT]):
         return self.transcript.model_copy(update={"entries": list(self.transcript.entries)})
 
     async def run(self, out: MemoryObjectSendStream[Entry[VerdictT]]) -> None:
-        """One proceeding, start to finish: the clerk, round 1, and the deliberation.
+        """One proceeding, start to finish: the clerk, and the round loop.
+
+        `docs/design/execution.md`'s loop, almost literally. A round, a deliberation, and then
+        three tests in a fixed order: a ruling ends it; `max_rounds` spent ends it; the budget
+        spent ends it. `max_rounds` is tested before the budget, so a proceeding that hit both
+        is recorded as having run out of rounds — the limit every tribunal has, and the one
+        that needs no measurement to establish. There is no budget check before round 1:
+        nothing has been spent, and a proceeding always runs at least one round.
+
+        **Round *N*+1 is dispatched from the record.** `_deliberate` returns the public
+        `Continuance` the clerk stamped, so the ids an advocate is asked to answer are the
+        transcript's own objects rather than a second spelling of them. The base snapshot for
+        the next round is taken at the same moment — the continuance filed, nothing in flight,
+        and the clerk the only writer — which is exactly *the transcript as the continuance
+        closed round N−1*.
 
         The clerk runs for as long as the inbox is open, so closing the send end is what ends
         it — and the task group below is what makes the two lifetimes one. `out` is closed
@@ -415,12 +514,36 @@ class _Orchestrator(Generic[VerdictT]):
         async with anyio.create_task_group() as tg:
             tg.start_soon(self._clerk, inbox_receive, out)
             async with inbox_send:
-                await self._round(1, inbox_send)
-                outcome = await self._deliberate(1, inbox_send)
-                # Bound here rather than after the group, because `_deliberate` returns only
-                # once the clerk has appended *and* delivered the ruling — so the record is
+                round = 1
+                addressed: dict[VerdictT, list[Interrogatory[VerdictT]]] | None = None
+                base: Transcript[VerdictT] | None = None
+                outcome: Outcome[VerdictT]
+                while True:
+                    await self._round(round, addressed, base, inbox_send)
+                    deliberation = await self._deliberate(round, inbox_send)
+                    if isinstance(deliberation, Ruling):
+                        outcome = deliberation
+                        break
+                    # `>=` rather than `==`: `Tribunal(...)` does not validate `max_rounds`, and
+                    # with `==` a tribunal built with 0 would never stop. This way it runs one
+                    # round — a proceeding always runs at least one — exactly as a zero budget
+                    # does, and is identical to `==` for every `max_rounds` of 1 or more.
+                    if round >= self.max_rounds:
+                        outcome = Undecided(reason="rounds")
+                        break
+                    # Round 1's is the first boundary whenever there is one at all: the check
+                    # runs only after a continuance with rounds remaining.
+                    if self._budget_spent(first=round == 1):
+                        outcome = Undecided(reason="budget")
+                        break
+                    base = self._snapshot()
+                    addressed = _addressed(deliberation)
+                    round += 1
+                # Bound here rather than after the group. `_deliberate` returns only once the
+                # clerk has appended *and* delivered the last filing — so the record is
                 # complete at this line, and a consumer that reads `proceeding.hearing` the
-                # moment its iteration ends finds one.
+                # moment its iteration ends finds one. An `Undecided` is filed by nobody, so
+                # it needs no acknowledgment.
                 self.hearing = Hearing[VerdictT](
                     outcome=outcome,
                     transcript=self.transcript,
@@ -454,25 +577,49 @@ class _Orchestrator(Generic[VerdictT]):
                 entry = Entry[VerdictT](
                     round=filed.round,
                     filed_at=datetime.now(UTC),
-                    filing=self._public(filed.filing),
+                    filing=self._public(filed.filing, round=filed.round),
                 )
                 self.transcript.entries.append(entry)
                 await out.send(entry)
                 filed.entry = entry
                 filed.done.set()
 
-    def _public(self, filing: _Emitted[VerdictT]) -> Filing[VerdictT]:
+    def _public(self, filing: _Emitted[VerdictT], *, round: int) -> Filing[VerdictT]:
         """The filing as it enters the record.
 
         A `Concession` and a `Ruling` carry nothing stamped and pass through as themselves —
-        which is also why neither has a private counterpart. An `_Argument`'s exhibits are
-        bare ids and excerpts, and become public `Exhibit`s resolved against the ledger.
+        which is also why neither has a private counterpart. An `_Argument`'s and a
+        `_Response`'s exhibits are bare ids and excerpts, and become public `Exhibit`s
+        resolved against the ledger; a `_Response` already carries `advocate` and `answering`
+        from the dispatch, so the rest of it is a field copy.
+
+        **A `_Continuance`'s questions gain their ids here**, `r{round}-q{n}` with `n`
+        numbered from 1 in the order the judge emitted them. The round prefix carries
+        uniqueness, so numbering restarts each round. Nothing the judge wrote is altered —
+        `to` and `question` are copied verbatim and the id is added beside them
+        (`docs/decisions/0015-interrogatory-ids-are-stamped-on-filing.md`).
         """
         if isinstance(filing, _Argument):
             return Argument[VerdictT](
                 advocate=filing.advocate,
                 claim=filing.claim,
                 exhibits=self._stamp(filing.advocate, filing.exhibits),
+            )
+        if isinstance(filing, _Response):
+            return Response[VerdictT](
+                advocate=filing.advocate,
+                answering=filing.answering,
+                answer=filing.answer,
+                exhibits=self._stamp(filing.advocate, filing.exhibits),
+            )
+        if isinstance(filing, _Continuance):
+            return Continuance[VerdictT](
+                interrogatories=[
+                    Interrogatory[VerdictT](
+                        id=f"r{round}-q{n}", to=interrogatory.to, question=interrogatory.question
+                    )
+                    for n, interrogatory in enumerate(filing.interrogatories, start=1)
+                ]
             )
         return filing
 
@@ -509,8 +656,22 @@ class _Orchestrator(Generic[VerdictT]):
             )
         return stamped
 
-    async def _round(self, round: int, inbox: MemoryObjectSendStream[_Filed[VerdictT]]) -> None:
+    async def _round(
+        self,
+        round: int,
+        addressed: Mapping[VerdictT, Sequence[Interrogatory[VerdictT]]] | None,
+        base: Transcript[VerdictT] | None,
+        inbox: MemoryObjectSendStream[_Filed[VerdictT]],
+    ) -> None:
         """One task per addressed advocate. Round 1 addresses the whole bench.
+
+        Later rounds address whoever the continuance named, and every one of their tasks is
+        handed the **same** base snapshot. An advocate's own questions are a queue inside its
+        task rather than tasks of their own
+        (`docs/decisions/0027-an-advocate-answers-its-interrogatories-in-order.md`), so the
+        fan-out is across advocates and nothing else. A conceded advocate is not filtered
+        out: it stays addressable
+        (`docs/decisions/0037-a-conceded-advocate-stays-addressable.md`).
 
         The task group here is the plain one: a child that fails propagates an
         `ExceptionGroup` and cancels its siblings, and the first-failure slot that turns that
@@ -518,8 +679,12 @@ class _Orchestrator(Generic[VerdictT]):
         `docs/implementations/failures.md`.
         """
         async with anyio.create_task_group() as tg:
-            for verdict in self.advocates:
-                tg.start_soon(self._argue, verdict, round, inbox)
+            if addressed is None or base is None:
+                for verdict in self.advocates:
+                    tg.start_soon(self._argue, verdict, round, inbox)
+            else:
+                for verdict, questions in addressed.items():
+                    tg.start_soon(self._answer, verdict, questions, round, base, inbox)
 
     async def _argue(
         self, verdict: VerdictT, round: int, inbox: MemoryObjectSendStream[_Filed[VerdictT]]
@@ -542,15 +707,70 @@ class _Orchestrator(Generic[VerdictT]):
         self.history[verdict] = result.all_messages()
         await self._file(result.output, round=round, inbox=inbox)
 
+    async def _answer(
+        self,
+        verdict: VerdictT,
+        questions: Sequence[Interrogatory[VerdictT]],
+        round: int,
+        base: Transcript[VerdictT],
+        inbox: MemoryObjectSendStream[_Filed[VerdictT]],
+    ) -> None:
+        """One advocate's round-2+ turn: its questions, in id order, one run each.
+
+        **The snapshot is constructed, not sliced.** Every run starts from the round's base —
+        the transcript as the continuance closed the previous round — plus this advocate's
+        own responses already filed in this round, appended from the `Entry` each
+        acknowledgment carries back. Nothing else from the round is ever in it: a peer's
+        response may already be in the live transcript, and it is in no snapshot here.
+        Reading `transcript.entries[-1]` after the wait instead would be a race a concurrent
+        sibling wins, and the entry it wins with is exactly the one that must stay out. See
+        `docs/design/execution.md` ("A snapshot is constructed, not sliced") — run 7.
+
+        **`since` advances once per run, after it returns, to the last round it was shown** —
+        the round of the snapshot's last entry, not the round being run. A first run of round
+        *N* is shown the base, which ends on round *N*−1's continuance, so `since` becomes
+        *N*−1; the next run's snapshot then ends on the response just filed, so it renders
+        that response alone, in its stamped form, and `since` becomes *N*. Setting it to *N*
+        after the first run would render that next run an empty delta — and a round-3 turn
+        none of round 2. A run that dies writes neither `since` nor history.
+
+        **Each run files before the next is dispatched**, because `_file` returns only once the
+        clerk has appended and delivered. That is what keeps an advocate's tool calls
+        sequential across its whole proceeding, which is the premise its deterministic ledger
+        ids rest on.
+        """
+        ledgering = self.ledgerings[verdict]
+        ledgering.round = round
+        entries = list(base.entries)
+        for interrogatory in questions:
+            # A fresh list per run, so a snapshot is a value rather than a view of a list this
+            # task is still appending to.
+            snapshot = base.model_copy(update={"entries": [*entries]})
+            result = await self.advocate_agents[verdict].run(
+                response_turn(
+                    snapshot,
+                    advocate=verdict,
+                    since=self.since[verdict],
+                    round=round,
+                    interrogatory=interrogatory,
+                ),
+                output_type=self._response_output(verdict, interrogatory),
+                message_history=self.history.get(verdict),
+                usage=self._usage(verdict),
+            )
+            self.history[verdict] = result.all_messages()
+            self.since[verdict] = snapshot.entries[-1].round
+            entries.append(await self._file(result.output, round=round, inbox=inbox))
+
     async def _deliberate(
         self, deliberation: int, inbox: MemoryObjectSendStream[_Filed[VerdictT]]
-    ) -> Ruling[VerdictT]:
-        """The judge reads what was filed since it last looked, and rules.
+    ) -> Ruling[VerdictT] | Continuance[VerdictT]:
+        """The judge reads what was filed since it last looked, and rules or asks.
 
-        A continuance is what the round loop is for, and there is no round loop yet — see
-        `docs/implementations/round-loop.md`. Raising here rather than filing it and calling
-        the proceeding undecided is deliberate: `Undecided(reason='rounds')` is correct only
-        for `max_rounds=1` and is a false record for every other tribunal.
+        Returns the **public** filing, read off the entry the clerk acknowledged. A `Ruling`
+        passes through unconverted, so the outcome is the very object in
+        `transcript[-1].filing` — a pointer, not a copy. A `Continuance` comes back stamped,
+        so the round it starts is dispatched from the record's own ids.
         """
         snapshot = self._snapshot()
         result = await self.judge_agent.run(
@@ -566,14 +786,48 @@ class _Orchestrator(Generic[VerdictT]):
         self.history[JUDGE] = result.all_messages()
         self.since[JUDGE] = deliberation
         self.rounds = deliberation
-        outcome = result.output
-        if isinstance(outcome, _Continuance):
-            raise NotImplementedError(
-                "the judge issued a continuance, and the round it starts is not built yet — "
-                "see docs/implementations/round-loop.md"
-            )
-        await self._file(outcome, round=deliberation, inbox=inbox)
-        return outcome
+        entry = await self._file(result.output, round=deliberation, inbox=inbox)
+        filed = entry.filing
+        if not isinstance(filed, Ruling | Continuance):  # pragma: no cover
+            # Unreachable: the judge's output type is `Ruling | _Continuance`, and the clerk
+            # converts the second into a `Continuance`.
+            raise AssertionError(f"the judge filed a {type(filed).__name__}")
+        return filed
+
+    def _budget_spent(self, *, first: bool) -> bool:
+        """Whether the caller's budget has been reached, checked at a round boundary.
+
+        Against the sum of the per-participant accumulators, with
+        `docs/decisions/0024-a-budget-stops-the-proceeding-between-rounds.md`'s three
+        checkers. **`UsageLimitExceeded` is the stop signal**, caught here and turned into
+        `Undecided(reason='budget')` by the loop — a budget is an envelope the caller
+        declared, so reaching it is an ordinary end. The same class raised from *inside* a run
+        is PydanticAI's own per-run request ceiling, and is not caught: that is a participant
+        that could not be heard.
+
+        `check_before_request` compares requests with `>=` — *the next request would
+        exceed* — which is the right reading at a boundary: a total that has reached
+        `request_limit` would cross it with the next round's first request. So a ceiling of
+        zero gets one round. The two per-request fields are read by none of these checkers,
+        and so are ignored without a line saying so.
+
+        **`check_cost` runs only at the first boundary**, and only for its warning: an
+        unpriceable model makes `cost_limit` enforce nothing, which a caller needs to hear
+        once, not once per round. `check_before_request` applies the cost limit itself and
+        never warns.
+        """
+        if self.budget is None:
+            return False
+        total = sum(self.usage_by_participant.values(), RunUsage())
+        try:
+            if first:
+                self.budget.check_cost(total, warn_if_cost_unavailable=True)
+            self.budget.check_before_request(total)
+            self.budget.check_tokens(total)
+            self.budget.check_before_tool_call(total)
+        except UsageLimitExceeded:
+            return True
+        return False
 
     async def _file(
         self,

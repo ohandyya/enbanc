@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-09-11
+updated: 2026-10-10
 ---
 
 # Public API
@@ -330,7 +330,9 @@ budget=UsageLimits(cost_limit=Decimal("2.00"), request_limit=400)    # a real ce
 The field is kept rather than ignored because `cost_limit` can silently enforce
 nothing: `cost is None` means unpriceable ([below](#usage)), and for an unpriced
 or self-hosted model a request or token ceiling is the only governor that still
-works. `enbanc` warns once per proceeding when a `cost_limit` cannot be priced.
+works. `enbanc` warns once, at the first round boundary, when a `cost_limit`
+cannot be priced — a proceeding that rules in round 1 reaches no boundary and is
+not warned, because the limit never had a moment to enforce anything.
 See [`0029`](../decisions/0029-a-budgets-request-limit-must-be-chosen.md).
 
 **It is checked between rounds, never inside one.** Before dispatching a round,
@@ -511,9 +513,12 @@ question is in round 1. **Nothing the judge wrote is altered** — `to` and
 
 `Response.answering` is stamped the same way. The tribunal dispatches one
 advocate run per interrogatory, so it knows which question that run answers and
-fills the link from the dispatch rather than from the model. No participant
-authors an id in either direction, and a response citing a question nobody asked
-is not a state the library can reach.
+fills the link from the dispatch rather than from the model. The model is not
+even asked for it: an advocate's response is asked for its `answer` and its
+`exhibits` alone, and `advocate` and `answering` are filled from the dispatch
+([`0039`](../decisions/0039-a-response-is-asked-for-its-answer-alone.md)). No
+participant authors an id in either direction, and a response citing a question
+nobody asked is not a state the library can reach.
 
 **An advocate's exhibits are stamped by the same move.** Its output type
 carries a private `_Exhibit` — a ledger id and the excerpt — and the tribunal

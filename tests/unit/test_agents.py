@@ -333,3 +333,90 @@ async def test_a_callable_toolset_reaches_the_ledger(outcomes_kwargs: Kwargs, ca
         ("fetch_filing", "archive://2024")
     }
     assert len(hearing.transcript.ledger) == 3
+
+
+def _two_rounds(seen: list[tuple[str, AgentInfo, list[ModelMessage]]]) -> FunctionModel:
+    """A judge that asks `DENY` one question and then rules; advocates that concede, then answer.
+
+    Records only the round-2 advocate request, which is the one whose wire this module has not
+    otherwise seen: a per-run `output_type` on the same agent round 1 used.
+    """
+
+    def respond(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        opened, last = _turn(messages), _last_turn(messages)
+        if "Deliberation" in opened:
+            if "Deliberation 1 of" in last:
+                tool = next(t.name for t in info.output_tools or () if "Continuance" in t.name)
+                ask = {"interrogatories": [{"to": "deny", "question": "Is it documented?"}]}
+                return ModelResponse(parts=[ToolCallPart(tool, ask)])
+            tool = next(t.name for t in info.output_tools or () if "Ruling" in t.name)
+            return ModelResponse(
+                parts=[ToolCallPart(tool, {"verdict": "deny", "reasoning": "Documented."})]
+            )
+        who = opened.split('for "')[1].split('"')[0]
+        if "Answer r1-q1" in last:
+            seen.append((who, info, messages))
+            (tool,) = list(info.output_tools or ())
+            return ModelResponse(
+                parts=[ToolCallPart(tool.name, {"answer": "Yes.", "exhibits": []})]
+            )
+        tool = next(t.name for t in info.output_tools or () if "Concession" in t.name)
+        return ModelResponse(parts=[ToolCallPart(tool, {"advocate": who, "reason": "No case."})])
+
+    return FunctionModel(respond)
+
+
+def _last_turn(messages: list[ModelMessage]) -> str:
+    return [
+        str(part.content)
+        for message in messages
+        for part in getattr(message, "parts", ())
+        if type(part).__name__ == "UserPromptPart"
+    ][-1]
+
+
+async def test_a_response_is_asked_for_its_answer_and_nothing_else(
+    outcomes_kwargs: Kwargs, case: Case
+) -> None:
+    """Round 2's wire: one output tool, named `final_result`, whose schema is `answer` and
+    `exhibits` alone.
+
+    `advocate` and `answering` are not in it — the tribunal fills both from the dispatch, so
+    neither end of the link is model-authored
+    (`docs/decisions/0039-a-response-is-asked-for-its-answer-alone.md`). A sole output type is
+    named `final_result` rather than after a class, which is PydanticAI's naming, not
+    `enbanc`'s; the description is PydanticAI's generic sentence, because the output function
+    carries no docstring.
+    """
+    seen: list[tuple[str, AgentInfo, Any]] = []
+    kwargs = outcomes_kwargs()
+    tribunal = Tribunal(**{**kwargs, "model": _two_rounds(seen)})
+
+    await tribunal.hear(case)
+
+    ((who, info, _messages),) = seen
+    assert who == "deny"
+    (tool,) = list(info.output_tools or ())
+    assert tool.name == "final_result"
+    schema = tool.parameters_json_schema
+    assert sorted(schema["properties"]) == ["answer", "exhibits"]
+    assert schema["required"] == ["answer"]
+    assert tool.description is not None
+    assert tool.description.endswith("The final response which ends this conversation")
+
+
+async def test_a_response_runs_under_the_same_instructions_as_the_argument(
+    outcomes_kwargs: Kwargs, case: Case
+) -> None:
+    """One agent per participant: the per-run `output_type` changes the shape filed and nothing
+    the advocate is instructed with, so the cached prefix is the same one round 1 warmed."""
+    seen: list[tuple[str, AgentInfo, Any]] = []
+    kwargs = outcomes_kwargs()
+    tribunal = Tribunal(**{**kwargs, "model": _two_rounds(seen)})
+
+    await tribunal.hear(case)
+
+    ((_who, _info, messages),) = seen
+    requests = [m for m in messages if isinstance(m, ModelRequest) and m.instructions]
+    expected = tribunal.instructions_for(kwargs["verdicts"]("deny"))
+    assert requests[-1].instructions == expected
