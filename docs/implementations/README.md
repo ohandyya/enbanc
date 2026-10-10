@@ -31,7 +31,7 @@ hunt for inbound links.
 | 5 | [`tribunal-construction.md`](./tribunal-construction.md) | 1, 4 | 24 | `current` |
 | 6 | [`ledgering-toolset.md`](./ledgering-toolset.md) | 1, 4 | 25 | `current` |
 | 7 | [`proceeding-core.md`](./proceeding-core.md) | 5, 6 | 26 | `current` |
-| 8 | [`round-loop.md`](./round-loop.md) | 7 | | `draft` |
+| 8 | [`round-loop.md`](./round-loop.md) | 7 | 28 | `current` |
 | 9 | [`failures.md`](./failures.md) | 7, 8 | | `draft` |
 | 10 | [`guides.md`](./guides.md) | 9 | | `draft` |
 | 11 | [`zero-one-zero.md`](./zero-one-zero.md) | all | | `draft` |
