@@ -1,6 +1,7 @@
 ---
-status: draft
+status: current
 updated: 2026-10-10
+pr: 30
 ---
 
 # The stream never runs behind the record
