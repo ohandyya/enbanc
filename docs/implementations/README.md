@@ -32,7 +32,7 @@ hunt for inbound links.
 | 6 | [`ledgering-toolset.md`](./ledgering-toolset.md) | 1, 4 | 25 | `current` |
 | 7 | [`proceeding-core.md`](./proceeding-core.md) | 5, 6 | 26 | `current` |
 | 8 | [`round-loop.md`](./round-loop.md) | 7 | 28 | `current` |
-| 9 | [`failures.md`](./failures.md) | 7, 8 | | `draft` |
+| 9 | [`failures.md`](./failures.md) | 7, 8 | 29 | `current` |
 | 10 | [`stream-ordering.md`](./stream-ordering.md) | 7, 9 | | `draft` |
 | 11 | [`guides.md`](./guides.md) | 9, 10 | | `draft` |
 | 12 | [`zero-one-zero.md`](./zero-one-zero.md) | all | | `draft` |
