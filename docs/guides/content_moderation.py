@@ -12,12 +12,14 @@ Run it:
     uv run docs/guides/content_moderation.py
 
 Any other provider: set `ENBANC_MODEL` to a pydantic-ai model string, plus that provider's key.
+To keep the whole hearing as JSON, set `ENBANC_HEARING_FILE` to the path to write it to.
 """
 
 import asyncio
 import os
 import sys
 from decimal import Decimal
+from pathlib import Path
 from typing import Any
 
 from pydantic_ai.models import infer_model
@@ -203,10 +205,11 @@ async def main() -> Hearing[ModerationDecision]:
 
     print(f"{hearing.rounds} round(s), cost ${hearing.usage.cost}")
 
-    # Print the complete hearing
-    print("\n Write complete hearing to docs/guides/content_moderation.json")
-    with open("docs/guides/content_moderation.json", "w") as f:
-        f.write(hearing.model_dump_json(indent=2, exclude_none=True))
+    # Optionally keep the whole hearing: set ENBANC_HEARING_FILE to a path. A `Hearing` is a
+    # Pydantic model, so the record — transcript, ledger, usage — is one JSON dump away.
+    if path := os.environ.get("ENBANC_HEARING_FILE"):
+        Path(path).write_text(hearing.model_dump_json(indent=2, exclude_none=True))
+        print(f"Wrote the complete hearing to {path}")
 
     # Returned so `tests/e2e/` can run this exact file and check the hearing.
     return hearing

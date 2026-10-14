@@ -35,6 +35,9 @@ async def run_guide(
     not fire and the test drives `main()` itself.
     """
     monkeypatch.setenv("ENBANC_MODEL", live_env["ENBANC_TEST_MODEL"])
+    # A guide that can save its hearing must not write into the repository under test, even
+    # when the runner's `.env` sets the path — `live_model` has already copied `.env` in.
+    monkeypatch.delenv("ENBANC_HEARING_FILE", raising=False)
     guide = runpy.run_path(str(GUIDES / name))
     hearing = await guide["main"]()
     assert isinstance(hearing, Hearing)
