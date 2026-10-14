@@ -34,19 +34,32 @@ uv add enbanc
 
 ## A taste
 
-*Planned API. None of this works today.*
+*This runs today from a source checkout, with `OPENAI_API_KEY` and
+`TAVILY_API_KEY` set. The published package is still a placeholder until
+`0.1.0`.*
 
 ```python
-from pydantic_ai.models.anthropic import AnthropicModel
+import asyncio
+import os
+
+from pydantic_ai.models import infer_model
 
 from enbanc import (
-    Advocate, Case, Judge, Ruling, Statute, Tribunal, Undecided, Verdict,
+    Advocate, Case, Judge, Ruling, Source, Statute, Tribunal, Undecided, Verdict,
 )
 from enbanc.tools import web_search
 
 class LoanDecision(Verdict):        # the allowed answers, one advocate each
     APPROVE = "approve"
     DENY = "deny"
+
+class LoanApplication(Case):        # the facts of one decision, given a schema
+    applicant: str
+    income: int
+
+async def credit_file(applicant: str) -> list[Source]:
+    """Look up the applicant's credit file."""  # a tool is any async function
+    return [Source(reference=f"bureau://{applicant}", content="Debt-to-income: 0.51")]
 
 tribunal = Tribunal(
     question="Shall the bank loan this applicant $500k?",
@@ -55,27 +68,33 @@ tribunal = Tribunal(
         text="Approve $500k loans only where DTI < 0.43 and ...",
         name="underwriting-v3",
     ),
-    model=AnthropicModel("claude-sonnet-5"),
+    model=infer_model("openai:gpt-6-luna"),  # any pydantic-ai model
     judge=Judge(guidance="Where the record is ambiguous, deny."),
     advocates={
-        LoanDecision.APPROVE: Advocate(tools=[psql, web_search(api_key=...)]),
-        LoanDecision.DENY: Advocate(tools=[psql]),
+        LoanDecision.APPROVE: Advocate(
+            tools=[credit_file, web_search(api_key=os.environ["TAVILY_API_KEY"])]
+        ),
+        LoanDecision.DENY: Advocate(tools=[credit_file]),
     },
     max_rounds=5,
 )
 
-hearing = await tribunal.hear(Case(applicant=..., income=...))
+async def main() -> None:
+    hearing = await tribunal.hear(LoanApplication(applicant="A. Okonkwo", income=182000))
 
-match hearing.outcome:              # a ruling, or no verdict at all
-    case Ruling(verdict=verdict, confidence=confidence):
-        verdict                     # LoanDecision.DENY
-        confidence                  # 0.8 — the judge's own estimate, not a calibrated probability
-    case Undecided():               # rounds or budget spent, no verdict
-        ...
+    match hearing.outcome:          # a ruling, or no verdict at all
+        case Ruling(verdict=verdict, reasoning=reasoning, confidence=confidence):
+            print(verdict)          # deny
+            print(reasoning)        # why, in the judge's words, resting on the record
+            print(confidence)       # 0.8: the judge's own estimate, not a probability
+        case Undecided(reason=reason):  # rounds or budget spent, no verdict
+            print(f"no verdict: the {reason} ran out")
 
-hearing.transcript                  # every filing, in order
-hearing.usage                       # tokens and cost, judge plus advocates
-hearing.usage_by_participant        # the same spend, split by who incurred it
+    hearing.transcript              # every filing, in order
+    hearing.usage                   # tokens and cost, judge plus advocates
+    hearing.usage_by_participant    # the same spend, split by who incurred it
+
+asyncio.run(main())
 ```
 
 The judge has **no tools** — it reasons only over what advocates put into the
