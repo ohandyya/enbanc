@@ -11,9 +11,6 @@ reviewer can check. The proceeding around this is in
 [`api.md`](./api.md); terms are defined in
 [`../glossary.md`](../glossary.md).
 
-> `status: draft` — none of this exists yet. This is the target, not a
-> reference.
-
 ## Why this document exists
 
 [`tribunal.md`](./tribunal.md#the-premise) sells `enbanc` on **defensibility**:

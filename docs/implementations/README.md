@@ -38,7 +38,7 @@ hunt for inbound links.
 | 12 | [`guides.md`](./guides.md) | 9, 10, 11 | 31 | `current` |
 | 13 | [`content-moderation-guide.md`](./content-moderation-guide.md) | 12 | 33 | `current` |
 | 14 | [`confidence.md`](./confidence.md) | 12, 13 | 34 | `current` |
-| 15 | [`zero-one-zero.md`](./zero-one-zero.md) | all | | `draft` |
+| 15 | [`zero-one-zero.md`](./zero-one-zero.md) | all | 35 | `current` |
 
 ## Naming
 

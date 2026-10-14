@@ -81,8 +81,8 @@ Overwrite it in place — this block has no history, and stale text here is wors
 than none. Update the `updated:` frontmatter date to match.
 
 - **Phase** — where the project is, plus an honest one-line read on how solid
-  it is. `enbanc` is pre-`0.1.0`: nothing in the public API exists yet, and this
-  line is where that stays visible.
+  it is. Say plainly what is on PyPI and what exists only on `main` — this line
+  is where the gap between them stays visible.
 - **Next up** — the single next actionable thing, with enough context to start
   without re-deriving it. Point at the design doc section it comes from.
 - **Open questions** — anything unresolved that will block work later. Drop

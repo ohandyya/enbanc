@@ -22,33 +22,33 @@ spec: [`design/`](./design/) is.
 
 ## Current state
 
-**Phase:** Design complete; implementation runs end to end against real
-providers from a source checkout. Rows 1–13 of the plan are merged, through
-[`content-moderation-guide.md`](./implementations/content-moderation-guide.md)
-(#33). Row 14, [`confidence.md`](./implementations/confidence.md), is
-[PR #34](https://github.com/ohandyya/enbanc/pull/34), **open as a draft, not
-merged**. `make check-all` passes at 456 on that branch; the `e2e` tier was not
-run against it. `__all__` is unchanged at twenty-nine names. Nothing usable is
-on PyPI: `0.0.5` reserves the name, and `0.1.0` hasn't shipped.
+**Phase:** `0.1.0` is written but not released. Rows 1–14 of the plan are
+merged through [`confidence.md`](./implementations/confidence.md) (#34). Row 15,
+[`zero-one-zero.md`](./implementations/zero-one-zero.md), is committed and
+pushed on `implement-010` (`87befe3`) with **no PR open yet**: the design docs
+lose their draft banners, README drops its pre-release caveats, `CHANGELOG.md`
+has a `0.1.0` entry, and `pyproject.toml` says `0.1.0`. `make check-all` passes
+at 458; the `e2e` tier has not run since #34 added confidence to both guides.
+On PyPI there is still only `0.0.5`, a placeholder — everything usable exists
+only on this branch and `main`.
 
 Settled and binding across
 [`0001`](./decisions/0001-statute-carries-no-model.md)–[`0043`](./decisions/0043-filings-carry-a-confidence.md).
-[`0043`](./decisions/0043-filings-carry-a-confidence.md) is new: `Argument`,
-`Response` and `Ruling` carry a required `confidence` in `[0, 1]`, its meaning
-lives in the procedural prompts, and `p1` was amended rather than bumped.
 
-**Next up:** Run `make e2e-tests` on #34 (both guides now print confidence),
-then mark it ready and merge. After it, row 15,
-[`zero-one-zero.md`](./implementations/zero-one-zero.md): `draft` → `current`
-across the design docs and their *none of this exists yet* banners,
-`README.md`'s remaining pre-`0.1.0` caveats, `CHANGELOG.md`, and the version.
-Then `create-new-release`.
+**Next up:** Open the PR for `implement-010` with `create-pr-summary`, which
+stamps `zero-one-zero.md` `current` and adds its number to the plan table. Run
+the live tiers on it (the `live-tests` label) before merging, since this PR is
+the one that declares the guides and design true. After merge,
+`create-new-release` — but its step 2 (version bump and changelog) is already
+done here, so go straight to checking `uv version --short` on `main` and
+tagging `v0.1.0`.
 
 Things the next session should carry:
 
-- **`p1` has been amended twice before release** (`0042`, `0043`). From
-  `0.1.0` on, any edit to a prompt, turn template or the render format is
-  `p2` — the exception ends with the release.
+- **`p1` is frozen once `0.1.0` is tagged.** It was amended twice before
+  release (`0042`, `0043`); from here any edit to a prompt, turn template, the
+  tool-result format or the render format is `p2`, with a row in
+  `prompting.md` → Procedure versions. `CLAUDE.md` now says so too.
 - **An advocate's confidence may inflate.** The one live run under the new
   prompts (`docs/guides/content_moderation.json`) has `allow` opening at 0.55
   and answering its interrogatory at 0.97; the judge ruled `escalate` at 0.86
@@ -105,6 +105,18 @@ Things the next session should carry:
   rulings' confidence is unasked in any design doc.
 
 ## Log
+
+### 2026-10-14 — the `0.1.0` documentation sweep
+
+**Did:** Implemented row 15: draft banners removed from seven design docs (the
+plan named five; `outcomes.md` and `tribunal.md` carried the same one), README's
+pre-release caveats gone, a `0.1.0` changelog entry, the version and the
+`Alpha` classifier. `CLAUDE.md` and the wrap-up skill no longer say the API
+does not exist.
+
+**Stopped at:** pushed, no PR, `e2e` not run.
+
+**Commits:** `87befe3`
 
 ### 2026-10-14 — confidence on what is argued and what is ruled
 

@@ -5,12 +5,6 @@ a judge cross-examines them until it can rule — with a full audit transcript.
 
 Built on [PydanticAI](https://ai.pydantic.dev).
 
-> [!WARNING]
-> **Work in progress — not released yet.**
-> The code in this repository runs, but nothing usable is on PyPI: the
-> published packages are placeholders, and installing `enbanc` today gets you
-> nothing that runs. **The first usable release will be `0.1.0`.**
-
 ## Why
 
 Most "LLM as judge" tooling asks one model to score an output. `enbanc` instead
@@ -24,19 +18,17 @@ the reasoning and the evidence, not just the answer.
 
 ## Install
 
-Not yet. Wait for `0.1.0`.
-
-Once it ships:
-
 ```bash
 uv add enbanc
 ```
 
+Requires Python 3.11 or later.
+
 ## A taste
 
-*This runs today from a source checkout, with `OPENAI_API_KEY` and
-`TAVILY_API_KEY` set. The published package is still a placeholder until
-`0.1.0`.*
+*This runs as written with `OPENAI_API_KEY` and `TAVILY_API_KEY` set.
+[`docs/guides/`](./docs/guides/) has two complete programs that make a real
+decision each; the live test tier runs both, unchanged.*
 
 ```python
 import asyncio
@@ -150,8 +142,8 @@ The full design lives in [`docs/design/`](./docs/design/):
 - [**The tribunal**](./docs/design/tribunal.md) — how a decision is reached: the
   round structure, the judge/advocate contract, and the constraints that hold it
   together.
-- [**Public API**](./docs/design/api.md) — the surface being designed toward
-  `0.1.0`, and what each piece carries.
+- [**Public API**](./docs/design/api.md) — every exported type, and what each
+  piece carries.
 - [**Evidence**](./docs/design/evidence.md) — what a tool is, how you add your
   own, and how what one returns becomes an exhibit a reviewer can check.
 - [**Outcomes**](./docs/design/outcomes.md) — every way a proceeding can end,
@@ -181,22 +173,20 @@ the loop is built. Every question those documents once carried is closed with an
 ADR in [`docs/decisions/`](./docs/decisions/) saying what was rejected and why.
 If you have opinions, that's the place to aim them.
 
-What is *not* done is the release. The code runs from a source checkout, and
-the API may still change before `0.1.0`.
-
 How that design gets built is broken into pull requests in
 [`docs/implementations/`](./docs/implementations/) — one document per PR: its
-scope, the design sections it implements, and the tests it brings. Fifteen
-are planned; thirteen have merged, and the fourteenth is open.
+scope, the design sections it implements, and the tests it brings. Fifteen of
+them built `0.1.0`.
 
 ## Status
 
-Pre-alpha, work in progress. Not usable from PyPI. Current releases are
-placeholders that exist only to reserve the name and exercise the release
-pipeline.
+Alpha. **`0.1.0` is the first release intended to be used**; the releases
+before it were placeholders.
 
-**`0.1.0` is the first release intended to be used.** The API will keep
-changing until then, and likely after.
+`enbanc` is pre-1.0, so a minor version may change the API, and every change is
+in [`CHANGELOG.md`](./CHANGELOG.md). What the models are told is versioned
+separately: each transcript records the procedure it ran under, and any change
+to the prompts is a new one, so hearings stay comparable across releases.
 
 ## License
 

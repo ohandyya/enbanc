@@ -10,9 +10,6 @@ happens in a proceeding, [`api.md`](./api.md) says what shape the result has, an
 [`prompting.md`](./prompting.md) says what text each participant reads; none of
 them says how the loop is built. This does.
 
-> `status: draft` — none of this exists yet. This is the target, not a
-> reference.
-
 Three pieces are design and the rest is ordinary implementation. What makes them
 design is that each one can be got wrong *quietly*: a history that carries a
 second channel, a ledger that numbers differently on every run, a stream that
