@@ -10,9 +10,6 @@ into text a human reads. The proceeding this serves is in
 [`tribunal.md`](./tribunal.md), the types are in [`api.md`](./api.md), and how
 evidence reaches an advocate is in [`evidence.md`](./evidence.md).
 
-> `status: draft` — none of this exists yet. This is the target, not a
-> reference.
-
 The library owns all of it. The caller's only lever is `guidance`, which is
 appended and never substituted
 ([`0003`](../decisions/0003-models-and-guidance-are-injected.md),

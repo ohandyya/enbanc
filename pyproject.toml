@@ -1,6 +1,6 @@
 [project]
 name = "enbanc"
-version = "0.0.5"
+version = "0.1.0"
 description = "Adversarial multi-agent adjudication for structured decisions"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -9,7 +9,7 @@ license-files = ["LICENSE"]
 authors = [{ name = "Andy Tseng", email = "ohandyya@gmail.com" }]
 keywords = ["llm", "agents", "multi-agent", "adjudication", "pydantic-ai"]
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
+    "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
     "Typing :: Typed",

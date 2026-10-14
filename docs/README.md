@@ -33,7 +33,7 @@ If any of them disagree with `design/`, `design/` wins. See
 | Doc | What it covers |
 |---|---|
 | [`design/tribunal.md`](./design/tribunal.md) | The proceeding: rounds, interrogatories, concession, and the constraints that make the transcript complete |
-| [`design/api.md`](./design/api.md) | The public surface being designed toward `0.1.0` |
+| [`design/api.md`](./design/api.md) | The public surface: every exported type, what each carries, and `hear()` and `hear_stream()` |
 | [`design/evidence.md`](./design/evidence.md) | Tools: what one is, how you add your own, and how what it returns becomes an exhibit a reviewer can check |
 | [`design/outcomes.md`](./design/outcomes.md) | Every way a proceeding can end, worked through with concrete values: a ruling, a spent round limit, a spent budget, a downed provider, a misconfigured tribunal |
 | [`design/prompting.md`](./design/prompting.md) | How `enbanc` turns its types into text a model reads, and a proceeding back into text a human reads: the two procedural prompts in full, how an agent's instructions are assembled, the four turn templates, how ledger ids reach the model, and what `Transcript.render()` produces |

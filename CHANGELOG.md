@@ -5,6 +5,52 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0] - 2026-10-14
+
+The first release intended to be used. Everything `docs/design/` describes is
+implemented, and those documents now describe the library as it is rather than
+the one being built.
+
+### Added
+- The public API: `Tribunal`, `Judge`, `Advocate`, `Statute`, `Case` and
+  `Verdict` to stage a proceeding; `hear()` to run one to the end and
+  `hear_stream()` to watch each filing as it is entered; and a `Hearing` that
+  ends in either a `Ruling` or an `Undecided`, carrying the full `Transcript`,
+  usage overall and per participant. Twenty-nine names in `enbanc.__all__`,
+  listed in `docs/design/api.md`.
+- `enbanc.tools.web_search`, a Tavily-backed search tool and the only tool this
+  release ships. Any async function returning `Source`s is a tool.
+- An evidence ledger. Every row an advocate's tools return is stamped with a
+  reference and the call that produced it, and an exhibit may cite only a row
+  the tribunal recorded. Rows no exhibit cites stay in the transcript.
+- `Argument`, `Response` and `Ruling` carry a required `confidence` in
+  `[0, 1]`: the filer's own estimate, not a calibrated probability.
+- `ProceedingFailed`, raised with the record so far when a participant cannot be
+  heard, and `ConfigurationError`, raised by `Tribunal(...)` before anything
+  runs.
+- Two runnable guides in `docs/guides/`: a loan assessment run through `hear()`,
+  and a content-moderation decision watched live through `hear_stream()`. The
+  `e2e` test tier runs both against a real provider.
+- `anyio>=4.14.2` is a declared runtime dependency; the round's fan-out imports
+  it directly.
+
+### Changed
+- The README and the design documents no longer describe a placeholder. The
+  `status: draft` banners are gone from `docs/design/`.
+
+### Note
+- **The prompting surface ships as procedure `p1`, amended twice before this
+  release**: by `0042`, which has every ledger row name the call that produced
+  it, and by `0043`, which adds `confidence` to arguments, responses and
+  rulings. `p1` was amended rather than bumped because nothing had shipped
+  under it. From this release on, any change to a procedural prompt, a turn
+  template, the tool-result format or the render format is a new procedure
+  version, recorded on every transcript.
+- `Retrieval.call` and the three `confidence` fields are required, with no
+  default, so a transcript serialized during development before either change
+  does not validate under `0.1.0`. No released version produced one, so there
+  is no migration.
+
 ## [0.0.5] - 2026-09-12
 
 ### Added

@@ -56,11 +56,29 @@ so it runs last, after both guides have made the examples execute.
 
 ## Files
 
-*Filled in when this PR starts.*
+- `docs/design/api.md`, `evidence.md`, `execution.md`, `prompting.md`,
+  `testing.md` — the `status: draft` banner removed, `updated:` stamped.
+  `api.md`'s opening line stops calling itself the surface *being designed
+  toward* `0.1.0`. Every frontmatter `status:` was already `current`. The banner
+  was the only thing that still said draft.
+- `docs/design/outcomes.md`, `tribunal.md` — the same banner, which the scope
+  above did not list. Both described themselves as unimplemented, so leaving
+  them would have left two design documents still saying it.
+- `README.md` — the not-released warning, the *wait for `0.1.0`* install note
+  and the source-checkout caveat on the example are gone; the example points at
+  `docs/guides/`; `Status` says what `0.1.0` is and what pre-1.0 permits.
+- `docs/README.md` — `api.md`'s index row, reworded like the line itself.
+- `CHANGELOG.md` — the `0.1.0` entry, with the two late changes and the end of
+  the `p1` exception called out under `Note`.
+- `pyproject.toml`, `uv.lock` — `0.1.0`, by `uv version 0.1.0`; the trove
+  classifier moves from `Pre-Alpha` to `Alpha`, matching the README.
+- `CLAUDE.md`, `.claude/skills/wrap-up/SKILL.md` — both told an agent that the
+  public API does not exist yet.
 
 ## Tests
 
-*Filled in when this PR starts.*
+None added: nothing here changes behaviour. `make check-all` is the gate. The
+`e2e` tier already runs both guides, and this PR does not change them.
 
 ## Open questions
 

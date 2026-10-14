@@ -1,7 +1,9 @@
 # enbanc
 
-Adversarial multi-agent adjudication, built on PydanticAI. Pre-`0.1.0`: the
-public API described in `README.md` and `docs/design/` does not exist yet.
+Adversarial multi-agent adjudication, built on PydanticAI. As of `0.1.0` the
+public API described in `README.md` and `docs/design/` is released: a change to
+it reaches users, and any change to the prompting surface is a new procedure
+version (`docs/design/prompting.md` → Procedure versions).
 
 ## Asking me questions
 

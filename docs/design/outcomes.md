@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-10-10
+updated: 2026-10-14
 ---
 
 # Every way a proceeding ends
@@ -9,9 +9,6 @@ Worked examples of what `hear()` actually hands back. The types are specified in
 [`api.md`](./api.md) and the reasoning is in
 [`0011`](../decisions/0011-exhaustion-is-an-outcome-failure-is-an-error.md);
 this is the same surface with values in it.
-
-> `status: draft` — none of this runs yet. The values below are what the design
-> commits to, written out.
 
 ## At a glance
 

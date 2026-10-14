@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-09-11
+updated: 2026-10-14
 ---
 
 # The tribunal
@@ -9,9 +9,6 @@ How a decision is actually reached. Vocabulary is defined in
 [`../glossary.md`](../glossary.md); the public surface is in
 [`api.md`](./api.md), and how advocates gather what they file is in
 [`evidence.md`](./evidence.md).
-
-> `status: draft` — nothing here is implemented. This describes the system being
-> built toward `0.1.0`, and it is the document to argue with before writing code.
 
 ## The premise
 

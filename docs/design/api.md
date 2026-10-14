@@ -5,14 +5,11 @@ updated: 2026-10-14
 
 # Public API
 
-The surface being designed toward `0.1.0`. Mechanics behind it are in
+The public surface of `enbanc`. Mechanics behind it are in
 [`tribunal.md`](./tribunal.md) and [`evidence.md`](./evidence.md); terms are
 defined in [`../glossary.md`](../glossary.md). This document specifies the
 types — [`outcomes.md`](./outcomes.md) shows every way a proceeding can end,
 with values in them.
-
-> `status: draft` — none of this exists yet, and it will change. This is the
-> target, not a reference.
 
 ## Shape
 
