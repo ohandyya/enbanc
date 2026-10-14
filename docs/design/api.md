@@ -820,7 +820,9 @@ origin class do not work. `isinstance` and `match` both do.
 ## Watching it live
 
 `hear()` returns when the proceeding is over. `hear_stream()` is the same
-proceeding with the record readable as it is written:
+proceeding with the record readable as it is written.
+[`../guides/content_moderation.py`](../guides/content_moderation.py) is this
+loop as a program you can run, kept in step by hand:
 
 ```python
 async with tribunal.hear_stream(case) as proceeding:
