@@ -4,6 +4,7 @@ What this shows, beyond `loan_assessment.py` (read that one first):
 
 - Watching a proceeding live with `hear_stream`: each filing prints the moment it is made.
 - Matching on what was filed — an argument, a concession, the judge's questions, a ruling.
+- Each advocate's confidence in its own case, which the judge weighs beside the exhibits.
 - Three answers, so three advocates — and a verdict whose value tells the model what it means.
 
 Run it:
@@ -189,8 +190,11 @@ async def main() -> Hearing[ModerationDecision]:
         async for entry in proceeding:
             tag = f"[round {entry.round}]"
             match entry.filing:
-                case Argument(advocate=advocate, claim=claim, exhibits=exhibits):
-                    print(f"{tag} {advocate.name} argues:\n  {claim}")
+                # An argument and a response carry the advocate's confidence that the record
+                # supports its verdict, 0 to 1. The judge reads it as one side's own estimate
+                # and tests it against the exhibits, and so should you.
+                case Argument(advocate=advocate, claim=claim, exhibits=exhibits, confidence=c):
+                    print(f"{tag} {advocate.name} argues (confidence {c}):\n  {claim}")
                     print_citations(proceeding.transcript, advocate, exhibits)
                     print()
                 case Concession(advocate=advocate, reason=reason):
@@ -200,18 +204,24 @@ async def main() -> Hearing[ModerationDecision]:
                     for q in questions:
                         print(f"  {q.id} -> {q.to.name}: {q.question}")
                     print()
-                case Response(advocate=advocate, answering=qid, answer=answer, exhibits=exhibits):
-                    print(f"{tag} {advocate.name} answers {qid}:\n  {answer}")
+                case Response(
+                    advocate=advocate, answering=qid, answer=answer, exhibits=exhibits, confidence=c
+                ):
+                    print(f"{tag} {advocate.name} answers {qid} (confidence {c}):\n  {answer}")
                     print_citations(proceeding.transcript, advocate, exhibits)
                     print()
-                case Ruling(verdict=verdict, reasoning=reasoning):
-                    print(f"{tag} the judge rules: {verdict.name}\n  {reasoning}\n")
+                case Ruling(verdict=verdict, reasoning=reasoning, confidence=c):
+                    print(
+                        f"{tag} the judge rules: {verdict.name} (confidence {c})\n  {reasoning}\n"
+                    )
 
     # Once the loop ends the hearing exists — the same object `hear()` would have returned.
     hearing = proceeding.hearing
     match hearing.outcome:
-        case Ruling(verdict=verdict, reasoning=reasoning):
-            print(f"DECISION: {verdict.name} \n {reasoning}")
+        case Ruling(verdict=verdict, reasoning=reasoning, confidence=confidence):
+            # The judge's own estimate, not a calibrated probability: `loan_assessment.py`
+            # shows routing a low one to a person.
+            print(f"DECISION: {verdict.name} (confidence {confidence})\n {reasoning}")
         case Undecided(reason=reason):
             # Running out ends the stream quietly, after the judge's last questions.
             print(f"UNDECIDED: the {reason} ran out before a ruling.")

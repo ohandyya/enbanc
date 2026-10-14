@@ -61,8 +61,9 @@ tribunal = Tribunal(
 hearing = await tribunal.hear(Case(applicant=..., income=...))
 
 match hearing.outcome:
-    case Ruling(verdict=verdict, reasoning=reasoning):
+    case Ruling(verdict=verdict, confidence=confidence):
         verdict                     # LoanDecision.DENY
+        confidence                  # 0.8 — the judge's own estimate, not a calibrated probability
     case Undecided(reason=reason):  # the rounds or the budget ran out
         ...
 
@@ -384,6 +385,7 @@ class Argument(BaseModel, Generic[VerdictT]):
     advocate: VerdictT
     claim: str
     exhibits: list[Exhibit] = []
+    confidence: float = Field(ge=0, le=1)
 
 class Concession(BaseModel, Generic[VerdictT]):
     kind: Literal["concession"] = "concession"
@@ -401,6 +403,7 @@ class Response(BaseModel, Generic[VerdictT]):
     answering: str           # stamped on filing; the Interrogatory.id
     answer: str
     exhibits: list[Exhibit] = []
+    confidence: float = Field(ge=0, le=1)
 ```
 
 **An exhibit's `reference` is stamped, not written.** It is the string a
@@ -425,6 +428,17 @@ advocate; `Continuance` and `Ruling` are the judge's by construction. A single
 advocate expressible, and that is the kind of state this design keeps
 unrepresentable.
 
+**An argument and a response carry the advocate's `confidence`**, from 0 to 1:
+how strongly the record supports *the verdict it was assigned* — not how sure it
+is of the filing. The two readings differ exactly on a response that concedes
+again, which under this one scores low, so the number means the same thing on
+every advocate filing and is the thing the judge needs: whether a claim is a
+strong one or merely a made one. It is the advocate's own estimate and the judge
+is told to weigh it as such, beside the excerpt that is also the advocate's own.
+A `Concession` carries none: it already says no reasonable case exists, and a
+number on it could only repeat that or contradict it. See
+[`0043`](../decisions/0043-filings-carry-a-confidence.md).
+
 **`Response.answering` links back by id** rather than by position. Pairing on
 round-and-advocate alone breaks the moment the judge asks one advocate two
 questions in a round, which it is free to do. Neither end of that link is
@@ -438,6 +452,7 @@ class Ruling(BaseModel, Generic[VerdictT]):
     kind: Literal["ruling"] = "ruling"
     verdict: VerdictT
     reasoning: str
+    confidence: float = Field(ge=0, le=1)
 
 class Continuance(BaseModel, Generic[VerdictT]):
     kind: Literal["continuance"] = "continuance"
@@ -450,8 +465,16 @@ Deliberation = TypeAliasType(
 )
 ```
 
-A ruling carries a verdict and reasoning and nothing else, because there is
-nothing else the judge could know. The round it was issued in, what it cost, and
+A ruling carries a verdict, reasoning and a confidence and nothing else, because
+there is nothing else the judge could know.
+
+**`Ruling.confidence` is the judge's estimate that its verdict is correct on this
+record**, from 0 to 1, and it exists for the caller: a low one is a reason to
+send the case to a human rather than act on it. **It is a model's self-report,
+not a calibrated probability.** `enbanc` does not measure it against outcomes,
+and `0.8` does not mean that four in five such rulings are right. What to do below a
+threshold is the caller's policy, and `enbanc` sets none. A `Continuance`
+carries no confidence, because it decides nothing. The round it was issued in, what it cost, and
 what came before it are the tribunal's facts, and they live on the `Entry` and
 the `Hearing` instead.
 

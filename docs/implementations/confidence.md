@@ -80,6 +80,9 @@ follow-up.
   the new text.
 - [`prompting.md` § `Transcript.render()`](../design/prompting.md#transcriptrender):
   the header-line format.
+- [`execution.md` § A function of several parameters](../design/execution.md):
+  a keyword-only parameter is offered in signature order, and its bounds are
+  checked before the function runs.
 - [`docs/glossary.md`](../glossary.md): a **Confidence** row, plus the
   `Argument`, `Response` and `Ruling` rows and the judge output sketch.
 
@@ -102,7 +105,7 @@ guides that print it.
 | `src/enbanc/_proceeding.py` | `_public` copies `confidence` across. `_response_output`'s `respond` gains a `confidence` parameter with the same bounds, because the wire shape is that signature rather than `_Response`. |
 | `src/enbanc/_prompting.py` | New text in both procedural prompts. `_entry_block` renders `(confidence {c})` in the argument, response and ruling header lines. |
 | `docs/decisions/0043-filings-carry-a-confidence.md` | **New.** The ADR, indexed in `docs/README.md`. |
-| `docs/design/api.md`, `prompting.md`, `outcomes.md`, `docs/glossary.md` | Schemas, prompt text, render examples, the glossary rows, and any worked filing that spells out its fields. |
+| `docs/design/api.md`, `prompting.md`, `execution.md`, `outcomes.md`, `docs/glossary.md` | Schemas, prompt text, render examples, the keyword-only finding, the glossary rows, and every worked filing that spells out its fields. |
 | `docs/guides/loan_assessment.py`, `content_moderation.py`, `docs/guides/README.md` | Print each filing's confidence and the ruling's. Say in prose that the number is uncalibrated. |
 | `README.md` | The `match` on `Ruling` shows `confidence`. |
 
@@ -121,13 +124,17 @@ there as written.
   `test_projections.py`: the header lines carry `(confidence …)`.
 - `test_filing_clerk.py`: the clerk copies `confidence` from `_Argument` and
   `_Response` onto the public filing unchanged.
-- A unit test that a response run's output schema asks for `confidence` with
-  `minimum: 0` and `maximum: 1`, and that an out-of-range value is retried
-  rather than filed.
+- `test_agents.py`: a response run's output schema is `answer`, `exhibits`,
+  `confidence`, in that order, with `minimum: 0` and `maximum: 1` on the last.
+  An out-of-range value is retried rather than filed.
+- `contract/test_an_output_validator_forbids_a_run_output_type.py`: the
+  PydanticAI behaviour that relies on. A keyword-only parameter is offered in
+  signature order, and its `Annotated` bounds are checked before the function
+  body runs.
 - Every fixture and `FunctionModel` script that builds an `Argument`,
   `Response` or `Ruling` passes `confidence`, because the field has no default.
-  That includes `tests/unit/conftest.py`, the `outcomes/` mirror, and the
-  contract probe that builds a filing.
+  That includes `tests/unit/conftest.py` and the `outcomes/` mirror. The
+  contract tier's stand-in classes are its own and are not touched.
 
 ## Open questions
 

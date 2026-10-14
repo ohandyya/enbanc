@@ -5,6 +5,7 @@ What this shows, in one file:
 - The decision as types: the answers (`Verdict`), the rule (`Statute`), the facts (`Case`).
 - One advocate per answer, each with its own evidence tools — including one you write.
 - A ruling you can audit: every claim cites a document, and what was left uncited is kept.
+- A ruling that says how sure it is, and one way to act on that.
 - A hard budget: a debate that runs long ends as `Undecided`, not as a surprise bill.
 
 Run it:
@@ -165,8 +166,15 @@ async def main() -> Hearing[LoanDecision]:
     # Running out of rounds or budget is an outcome, not an exception — so it is a case you
     # must handle. (A broken provider or tool raises `ProceedingFailed` instead.)
     match hearing.outcome:
-        case Ruling(verdict=verdict, reasoning=reasoning):
-            print(f"\nRULING: {verdict}\n{reasoning}")
+        case Ruling(verdict=verdict, reasoning=reasoning, confidence=confidence):
+            print(f"\nRULING: {verdict} (confidence {confidence})\n{reasoning}")
+            # `confidence` is the judge's own estimate, from 0 to 1, that the verdict is right
+            # on this record. It is a model's self-report, not a calibrated probability, so
+            # what to do with a low one is your policy rather than enbanc's. Here, a ruling
+            # under 0.7 goes to a person before anyone acts on it — a threshold to tune on
+            # your own cases, not one that means "70% likely".
+            if confidence < 0.7:
+                print("-> Low confidence: route to an underwriter before acting on it.")
         case Undecided(reason=reason):
             print(f"\nUNDECIDED: the {reason} ran out before a ruling.")
 

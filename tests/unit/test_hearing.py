@@ -35,7 +35,9 @@ class Ended(BaseModel):
 
 def _ruling() -> Ruling[LoanDecision]:
     return Ruling[LoanDecision](
-        verdict=LoanDecision.DENY, reasoning="Documented income governs; DTI is 0.51."
+        verdict=LoanDecision.DENY,
+        reasoning="Documented income governs; DTI is 0.51.",
+        confidence=0.8,
     )
 
 
@@ -73,7 +75,7 @@ def _hearing() -> Hearing[LoanDecision]:
 def test_an_outcome_is_a_ruling_or_undecided() -> None:
     assert isinstance(
         Ended.model_validate(
-            {"outcome": {"kind": "ruling", "verdict": "deny", "reasoning": "r"}}
+            {"outcome": {"kind": "ruling", "verdict": "deny", "reasoning": "r", "confidence": 0.8}}
         ).outcome,
         Ruling,
     )

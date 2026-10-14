@@ -67,6 +67,7 @@ def _transcript() -> Transcript[LoanDecision]:
                             content="schedule_c_2024: 182000",
                         )
                     ],
+                    confidence=0.8,
                 ),
             ),
             Entry[LoanDecision](
@@ -255,7 +256,9 @@ def test_a_ruling_is_a_filing_like_any_other() -> None:
                     round=2,
                     filed_at=_at(44),
                     filing=Ruling[LoanDecision](
-                        verdict=LoanDecision.DENY, reasoning="Documented income governs."
+                        verdict=LoanDecision.DENY,
+                        reasoning="Documented income governs.",
+                        confidence=0.8,
                     ),
                 ),
             ]

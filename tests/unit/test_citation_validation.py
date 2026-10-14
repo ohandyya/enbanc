@@ -57,6 +57,7 @@ def argued(*sources: str) -> _Argument[LoanDecision]:
         advocate=LoanDecision.DENY,
         claim="Documented wages put DTI at 0.51.",
         exhibits=[_Exhibit(source=source, content="wages: 131,400") for source in sources],
+        confidence=0.8,
     )
 
 
@@ -135,6 +136,7 @@ def test_a_response_is_validated_the_same_way() -> None:
         answering="r1-q2",
         answer="Yes — the statute's ceiling is on documented income.",
         exhibits=[_Exhibit(source="s1", content="wages: 131,400")],
+        confidence=0.8,
     )
 
     ledgering.check_citations(responded)

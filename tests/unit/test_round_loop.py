@@ -206,7 +206,12 @@ async def test_since_and_the_snapshot_match_the_worked_proceeding(
 
     await tribunal.hear(case)
 
-    round_one = ["approve argued:", "deny argued:", "conceded:", "the judge issued a continuance:"]
+    round_one = [
+        "approve argued (confidence 0.8):",
+        "deny argued (confidence 0.8):",
+        "conceded:",
+        "the judge issued a continuance:",
+    ]
     run_5 = _answering(_turns(scripted.captured, approve), "r1-q1")
     run_6 = _answering(_turns(scripted.captured, deny), "r1-q2")
     run_7 = _answering(_turns(scripted.captured, deny), "r1-q3")
@@ -215,11 +220,11 @@ async def test_since_and_the_snapshot_match_the_worked_proceeding(
     for turn in (run_5, run_6):
         assert all(marker in turn for marker in round_one)
         assert "[round 2]" not in turn
-    assert "[round 2] deny responded to r1-q2:" in run_7
+    assert "[round 2] deny responded to r1-q2 (confidence 0.8):" in run_7
     assert "[round 1]" not in run_7
     assert "approve responded" not in run_7
     for interrogatory_id in ("r1-q1", "r1-q2", "r1-q3"):
-        assert f"responded to {interrogatory_id}:" in deliberation_2
+        assert f"responded to {interrogatory_id} (confidence 0.8):" in deliberation_2
     assert "[round 1]" not in deliberation_2
 
 
@@ -242,8 +247,8 @@ async def test_a_third_round_is_shown_everything_the_second_filed(
     await tribunal.hear(case)
 
     round_3 = _answering(_turns(scripted.captured, approve), "r2-q1")
-    assert "[round 2] approve responded to r1-q1:" in round_3
-    assert "[round 2] deny responded to r1-q2:" in round_3
+    assert "[round 2] approve responded to r1-q1 (confidence 0.8):" in round_3
+    assert "[round 2] deny responded to r1-q2 (confidence 0.8):" in round_3
     assert "[round 2] the judge issued a continuance:" in round_3
     assert "[round 1]" not in round_3
 
@@ -277,7 +282,7 @@ async def test_run_seven_is_not_shown_a_peers_response_that_landed_first(
     answered = [e.filing.answering for e in hearing.transcript if isinstance(e.filing, Response)]
     assert answered == ["r1-q1", "r1-q2", "r1-q3"]  # entry 5 really did land first
     run_7 = _answering(_turns(scripted.captured, deny), "r1-q3")
-    assert "[round 2] deny responded to r1-q2:" in run_7
+    assert "[round 2] deny responded to r1-q2 (confidence 0.8):" in run_7
     assert "approve responded" not in run_7
 
 

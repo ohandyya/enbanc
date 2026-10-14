@@ -53,14 +53,14 @@ Guidance given:
 
 ## The record
 
-[round 1] approve argued:
+[round 1] approve argued (confidence 0.7):
   DTI is 0.38 on documented income.
   Exhibits:
     [approve/s1] Schedule C, 2024
       s3://underwriting-docs/okonkwo/schedule-c-2024.pdf
       net profit: 182,000
 
-[round 1] deny argued:
+[round 1] deny argued (confidence 0.8):
   Documented wages put DTI at 0.51.
   Exhibits:
     [deny/s1] W-2, 2024
@@ -75,24 +75,24 @@ Guidance given:
   r1-q2 -> deny: Is stated income disqualifying when documented income is on file?
   r1-q3 -> deny: Would a verified 2024 return change your answer?
 
-[round 2] approve responded to r1-q1:
+[round 2] approve responded to r1-q1 (confidence 0.4):
   The Schedule C figure is gross; the W-2 is the reconciled number.
   Exhibits:
     [approve/s2] W-2, 2024
       s3://underwriting-docs/okonkwo/w2-2024.pdf
       wages: 131,400
 
-[round 2] deny responded to r1-q2:
+[round 2] deny responded to r1-q2 (confidence 0.85):
   Yes — the statute's ceiling is on documented income.
   Exhibits:
     [deny/s2] W-2, 2024
       s3://underwriting-docs/okonkwo/w2-2024.pdf
       wages: 131,400
 
-[round 2] deny responded to r1-q3:
+[round 2] deny responded to r1-q3 (confidence 0.85):
   No — a verified return restates the same wages.
 
-[round 2] the judge ruled — deny:
+[round 2] the judge ruled — deny (confidence 0.8):
   Documented income governs. The W-2 record puts DTI at 0.51, above the 0.43 ceiling; the stated figure is unverified.
 
 ## The ledger

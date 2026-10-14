@@ -269,6 +269,18 @@ it as well as it can be argued. Do not argue for another verdict and do not
 hedge toward one — the judge hears the other side from the advocate seated for
 it.
 
+The point of a proceeding is the best ruling the record can support, not a win
+for any advocate. You serve it by making the case for your verdict as well as it
+can honestly be made, and by being candid about how strong that case is.
+
+Every argument and every response you file carries a confidence: a number from
+0 to 1 for how strongly the record supports the verdict you were assigned, where
+0 is no support at all and 1 is certainty. It is an estimate, not part of your
+advocacy. Score the case you actually have rather than the one you would like to
+have — a response that finds the record still does not support your verdict
+scores low. An overstated confidence misleads the judge exactly as a
+manufactured case does.
+
 Concede when the facts do not support your verdict. A concession is a finding,
 not a failure: it tells the judge something no weak argument can, and an
 advocate that manufactures a case for an indefensible position damages the
@@ -364,6 +376,19 @@ can cite a document its tools did not produce. The excerpt beside them is the
 advocate's own, chosen to make its case, and it can be selective. Weigh the two
 differently.
 
+Every argument and response also carries the advocate's confidence, from 0 to 1,
+in how strongly the record supports the verdict it was assigned. It is the
+advocate's own estimate, made by a party to the case. Read it as how the
+advocate rates its case, and test it against the exhibits rather than adopting
+it.
+
+When you rule, give your own confidence, from 0 to 1, that your verdict is
+correct on this record: 0 is none at all and 1 is certainty. Whoever acts on
+your ruling reads it to decide whether to rely on it, so make it an honest
+estimate of the record rather than an echo of your verdict. A ruling you would
+give a low confidence is one to weigh against a continuance, if there is still
+something to ask.
+
 You are told which deliberation this is and how many the proceeding allows. If
 they run out before you rule, the proceeding ends with no verdict and the record
 says so. That is a real outcome, and it is better than a verdict the record does
@@ -381,6 +406,19 @@ What the prompt carries is the **choice** — rule, or continue — and the rule
 governing what a continuance may contain. That is
 [`api.md`](./api.md#design-commitments)'s "the `Ruling | Continuance` contract"
 at the level the prompt can enforce it.
+
+**`confidence` is the one field whose meaning is in the prompts.** The schema
+carries its bounds — `minimum: 0`, `maximum: 1` — and nothing else, because a
+`Field(description=…)` is prompt text this document would not own and
+`Transcript.procedure` would not version. A bound says what values are legal; it
+cannot say what a number *means*, and an unexplained `confidence` is one each
+model reads its own way. So both procedural prompts define it: for an advocate,
+how strongly the record supports its assigned verdict; for the judge, how likely
+its verdict is to be correct on this record. Both say it is a self-estimate, and
+the advocate's says the proceeding exists for the best ruling, not for any
+advocate's win, which is the incentive an adversarial seat would otherwise
+inflate it against
+([`0043`](../decisions/0043-filings-carry-a-confidence.md)).
 
 ## The turns
 
@@ -429,14 +467,14 @@ The record delta, the whole continuance, and the one question this run answers.
 ```text
 ## Filed since you last filed
 
-[round 1] approve argued:
+[round 1] approve argued (confidence 0.7):
   DTI is 0.38 on documented income.
   Exhibits:
     [approve/s1] Schedule C, 2024
       s3://underwriting-docs/okonkwo/schedule-c-2024.pdf
       net profit: 182,000
 
-[round 1] deny argued:
+[round 1] deny argued (confidence 0.8):
   Documented wages put DTI at 0.51.
   Exhibits:
     [deny/s1] W-2, 2024
@@ -503,7 +541,7 @@ and nothing else:
 ```text
 ## Filed since you last filed
 
-[round 2] deny responded to r1-q2:
+[round 2] deny responded to r1-q2 (confidence 0.85):
   Yes — the statute's ceiling is on documented income.
   Exhibits:
     [deny/s2] W-2, 2024
@@ -536,10 +574,10 @@ deterministic ledger ids on. See
 ```text
 ## Round 1
 
-[round 1] approve argued:
+[round 1] approve argued (confidence 0.7):
   ...
 
-[round 1] deny argued:
+[round 1] deny argued (confidence 0.8):
   ...
 
 [round 1] refer conceded:
@@ -553,12 +591,12 @@ Deliberation 1 of 5. Rule, or issue a continuance.
 ```text
 ## Filed since you last deliberated
 
-[round 2] approve responded to r1-q1:
+[round 2] approve responded to r1-q1 (confidence 0.4):
   The Schedule C figure is gross; the W-2 is the reconciled number.
   Exhibits:
     [approve/s2] ...
 
-[round 2] deny responded to r1-q2:
+[round 2] deny responded to r1-q2 (confidence 0.85):
   Yes — the statute's ceiling is on documented income.
 
 Deliberation 2 of 5. Rule, or issue a continuance.
@@ -659,10 +697,10 @@ Guidance given:
 
 ## The record
 
-[round 1] approve argued:
+[round 1] approve argued (confidence 0.7):
   ...
 
-[round 2] the judge ruled — deny:
+[round 2] the judge ruled — deny (confidence 0.8):
   Documented income governs. The W-2 record puts DTI at 0.51, above the 0.43
   ceiling; the stated figure is unverified.
 
@@ -718,6 +756,14 @@ is fully populated and cannot show them:
 was given none. `Transcript.guidance` is a mapping and its iteration order is
 whatever the tribunal inserted in; an artifact that is the same bytes for the
 same proceeding cannot depend on that.
+
+**A filing that takes a position states its confidence in its header line** —
+`argued (confidence 0.7):`, `responded to r1-q2 (confidence 0.85):`,
+`ruled — deny (confidence 0.8):` — as Python renders the float, so the number in
+the artifact is the number on the filing. A concession and a continuance carry
+none and their headers are unchanged. Every view renders the same header, which
+is how the judge reads an advocate's confidence: through the projection, with no
+channel of its own.
 
 **A value that spans lines is indented on every line of it.** A claim, a reason,
 an answer, a ruling's reasoning, an excerpt, a retrieval's content, a failure's
@@ -798,7 +844,7 @@ otherwise — it is not the package version, so two hearings under `0.1.0` and
 
 | Version | Introduced | What changed |
 |---|---|---|
-| `p1` | `0.1.0` | Initial. The text above. |
+| `p1` | `0.1.0` | Initial. The text above. Amended before release by [`0042`](../decisions/0042-a-retrieval-names-its-call.md) and [`0043`](../decisions/0043-filings-carry-a-confidence.md). |
 
 Changing a prompt is therefore three things in one commit: the text in this
 document, a new row here, and the constant `enbanc` stamps. A prompt edited

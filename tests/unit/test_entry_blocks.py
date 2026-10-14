@@ -65,9 +65,10 @@ def test_an_argument() -> None:
                     label="Return, 2024",
                 )
             ],
+            confidence=0.8,
         )
     ) == (
-        "[round 1] yes argued:\n"
+        "[round 1] yes argued (confidence 0.8):\n"
         "  The filing is timely.\n"
         "  Exhibits:\n"
         "    [yes/s1] Return, 2024\n"
@@ -77,8 +78,8 @@ def test_an_argument() -> None:
 
 
 def test_an_argument_with_no_exhibits_has_no_exhibits_block() -> None:
-    assert _rendered(Argument[Call](advocate=Call.YES, claim="On its face.")) == (
-        "[round 1] yes argued:\n  On its face."
+    assert _rendered(Argument[Call](advocate=Call.YES, claim="On its face.", confidence=0.8)) == (
+        "[round 1] yes argued (confidence 0.8):\n  On its face."
     )
 
 
@@ -90,8 +91,10 @@ def test_a_concession() -> None:
 
 def test_a_response() -> None:
     assert _rendered(
-        Response[Call](advocate=Call.NO, answering="r1-q2", answer="Only where audited.")
-    ) == ("[round 1] no responded to r1-q2:\n  Only where audited.")
+        Response[Call](
+            advocate=Call.NO, answering="r1-q2", answer="Only where audited.", confidence=0.8
+        )
+    ) == ("[round 1] no responded to r1-q2 (confidence 0.8):\n  Only where audited.")
 
 
 def test_a_continuance_lists_every_interrogatory_including_a_peers() -> None:
@@ -111,17 +114,17 @@ def test_a_continuance_lists_every_interrogatory_including_a_peers() -> None:
 
 
 def test_a_ruling() -> None:
-    assert _rendered(Ruling[Call](verdict=Call.NO, reasoning="The clause is unmet.")) == (
-        "[round 1] the judge ruled — no:\n  The clause is unmet."
-    )
+    assert _rendered(
+        Ruling[Call](verdict=Call.NO, reasoning="The clause is unmet.", confidence=0.8)
+    ) == ("[round 1] the judge ruled — no (confidence 0.8):\n  The clause is unmet.")
 
 
 def test_a_verdict_renders_as_its_value_never_as_its_member_name() -> None:
     """`StrEnum`, so `f"{Call.NO}"` is `'no'`. A member name would leak a Python identifier
     into the artifact, which `docs/decisions/0004-verdicts-are-a-strenum.md` rejects."""
-    rendered = _rendered(Ruling[Call](verdict=Call.NO, reasoning="."))
+    rendered = _rendered(Ruling[Call](verdict=Call.NO, reasoning=".", confidence=0.8))
     assert "Call.NO" not in rendered
-    assert "the judge ruled — no:" in rendered
+    assert "the judge ruled — no (confidence 0.8):" in rendered
 
 
 def test_every_line_of_a_multi_line_value_takes_the_blocks_indent() -> None:
@@ -131,8 +134,8 @@ def test_every_line_of_a_multi_line_value_takes_the_blocks_indent() -> None:
     the header of the next entry.
     """
     claim = "First line.\nSecond line.\nThird line."
-    assert _rendered(Argument[Call](advocate=Call.YES, claim=claim)) == (
-        "[round 1] yes argued:\n  First line.\n  Second line.\n  Third line."
+    assert _rendered(Argument[Call](advocate=Call.YES, claim=claim, confidence=0.8)) == (
+        "[round 1] yes argued (confidence 0.8):\n  First line.\n  Second line.\n  Third line."
     )
 
 
@@ -150,9 +153,10 @@ def test_a_multi_line_excerpt_is_indented_to_the_exhibit_not_the_filing() -> Non
                     label="Both figures",
                 )
             ],
+            confidence=0.8,
         )
     ) == (
-        "[round 1] yes argued:\n"
+        "[round 1] yes argued (confidence 0.8):\n"
         "  See the table.\n"
         "  Exhibits:\n"
         "    [yes/s1] Both figures\n"
@@ -165,8 +169,8 @@ def test_a_multi_line_excerpt_is_indented_to_the_exhibit_not_the_filing() -> Non
 def test_a_blank_line_inside_a_value_stays_blank() -> None:
     """Rather than becoming the indent's worth of trailing whitespace, which is noise in the
     artifact and noise a formatter eventually eats out of a golden."""
-    rendered = _rendered(Argument[Call](advocate=Call.YES, claim="One.\n\nTwo."))
-    assert rendered == "[round 1] yes argued:\n  One.\n\n  Two."
+    rendered = _rendered(Argument[Call](advocate=Call.YES, claim="One.\n\nTwo.", confidence=0.8))
+    assert rendered == "[round 1] yes argued (confidence 0.8):\n  One.\n\n  Two."
     assert not any(line != line.rstrip() for line in rendered.split("\n"))
 
 
@@ -186,9 +190,10 @@ def test_a_source_with_no_label_puts_its_reference_on_the_first_line() -> None:
                     content="dti: 0.51",
                 )
             ],
+            confidence=0.8,
         )
     ) == (
-        "[round 1] yes argued:\n"
+        "[round 1] yes argued (confidence 0.8):\n"
         "  The ratio is on file.\n"
         "  Exhibits:\n"
         '    [yes/s1] dti_for(applicant="A. Okonkwo")\n'
@@ -198,10 +203,12 @@ def test_a_source_with_no_label_puts_its_reference_on_the_first_line() -> None:
 
 def test_entries_are_separated_by_one_blank_line_in_transcript_order() -> None:
     rendered = _rendered(
-        Argument[Call](advocate=Call.YES, claim="A."),
+        Argument[Call](advocate=Call.YES, claim="A.", confidence=0.8),
         Concession[Call](advocate=Call.NO, reason="B."),
     )
-    assert rendered == "[round 1] yes argued:\n  A.\n\n[round 1] no conceded:\n  B."
+    assert (
+        rendered == "[round 1] yes argued (confidence 0.8):\n  A.\n\n[round 1] no conceded:\n  B."
+    )
 
 
 def test_an_id_is_qualified_by_the_filer_including_the_filers_own(

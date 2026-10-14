@@ -231,7 +231,7 @@ async def test_round_one_advocates_read_the_case_and_no_record(
         prompt = str(first_run[0].parts[-1].content)
         assert prompt.startswith("## The case")
         assert f'File your argument for "{verdict}", or concede.' in prompt
-        assert "argued:" not in prompt, "round 1 is blind; no peer filing may appear"
+        assert " argued (confidence" not in prompt, "round 1 is blind; no peer filing may appear"
 
 
 async def test_the_judge_reads_what_round_one_filed(

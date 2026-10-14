@@ -356,10 +356,17 @@ offered one output function alone, sees the bare name.
 **A function of several parameters is offered as an object of exactly those
 parameters**, a defaulted one optional, and a `ModelRetry` raised inside it spends
 the `output` budget as the single-parameter form's does. That is how an advocate's
-response is asked for `answer` and `exhibits` and nothing else, with `advocate`
-and `answering` filled from the dispatch: a field the function does not take is a
-field the model is never asked for
+response is asked for `answer`, `exhibits` and `confidence` and nothing else, with
+`advocate` and `answering` filled from the dispatch: a field the function does not
+take is a field the model is never asked for
 ([`0039`](../decisions/0039-a-response-is-asked-for-its-answer-alone.md)).
+
+**A keyword-only parameter is offered like any other, in signature order, and
+bounds on its annotation are checked before the function runs.** That is what
+lets `confidence` follow a defaulted `exhibits` and stay last in the schema, as it
+is on `_Response`, while a value outside `[0, 1]` goes back to the model as a
+retry against the `output` budget rather than reaching the function
+([`0043`](../decisions/0043-filings-carry-a-confidence.md)).
 
 ### `max_concurrency` is set at construction
 
@@ -513,14 +520,14 @@ req 4   instructions=<4 parts, re-resolved, byte-identical>
         UserPromptPart:
           ## Filed since you last filed
 
-          [round 1] approve argued:
+          [round 1] approve argued (confidence 0.7):
             DTI is 0.38 on documented income.
             Exhibits:
               [approve/s1] Schedule C, 2024
                 s3://underwriting-docs/okonkwo/schedule-c-2024.pdf
                 net profit: 182,000
 
-          [round 1] deny argued:
+          [round 1] deny argued (confidence 0.8):
             Documented wages put DTI at 0.51.
             Exhibits:
               [deny/s1] W-2, 2024
@@ -616,7 +623,7 @@ RUN 3 — round 2, r1-q3, message_history=<the ten above>
 req 7   UserPromptPart:
           ## Filed since you last filed
 
-          [round 2] deny responded to r1-q2:
+          [round 2] deny responded to r1-q2 (confidence 0.85):
             Yes — the statute's ceiling is on documented income.
             Exhibits:
               [deny/s2] W-2, 2024
@@ -668,14 +675,14 @@ RUN 1 — deliberation 1, message_history=None
 req 1   UserPromptPart:
           ## Round 1
 
-          [round 1] approve argued:
+          [round 1] approve argued (confidence 0.7):
             DTI is 0.38 on documented income.
             Exhibits:
               [approve/s1] Schedule C, 2024
                 s3://underwriting-docs/okonkwo/schedule-c-2024.pdf
                 net profit: 182,000
 
-          [round 1] deny argued:
+          [round 1] deny argued (confidence 0.8):
             ...
 
           [round 1] refer conceded:
@@ -701,17 +708,17 @@ RUN 2 — deliberation 2, message_history=<the three above>
 req 3   UserPromptPart:
           ## Filed since you last deliberated
 
-          [round 2] approve responded to r1-q1:
+          [round 2] approve responded to r1-q1 (confidence 0.4):
             The Schedule C figure is gross; the W-2 is the reconciled number.
 
-          [round 2] deny responded to r1-q2:
+          [round 2] deny responded to r1-q2 (confidence 0.85):
             Yes — the statute's ceiling is on documented income.
             Exhibits:
               [deny/s2] W-2, 2024
                 s3://underwriting-docs/okonkwo/w2-2024.pdf
                 wages: 131,400
 
-          [round 2] deny responded to r1-q3:
+          [round 2] deny responded to r1-q3 (confidence 0.85):
             ...
 
           Deliberation 2 of 5. Rule, or issue a continuance.

@@ -202,6 +202,7 @@ def proceeding(case: LoanApplication) -> Transcript[LoanDecision]:
                             label="Schedule C, 2024",
                         )
                     ],
+                    confidence=0.7,
                 ),
             ),
             Entry[LoanDecision](
@@ -219,6 +220,7 @@ def proceeding(case: LoanApplication) -> Transcript[LoanDecision]:
                             label="W-2, 2024",
                         )
                     ],
+                    confidence=0.8,
                 ),
             ),
             Entry[LoanDecision](
@@ -270,6 +272,7 @@ def proceeding(case: LoanApplication) -> Transcript[LoanDecision]:
                             label="W-2, 2024",
                         )
                     ],
+                    confidence=0.4,
                 ),
             ),
             Entry[LoanDecision](
@@ -288,6 +291,7 @@ def proceeding(case: LoanApplication) -> Transcript[LoanDecision]:
                             label="W-2, 2024",
                         )
                     ],
+                    confidence=0.85,
                 ),
             ),
             Entry[LoanDecision](
@@ -297,6 +301,7 @@ def proceeding(case: LoanApplication) -> Transcript[LoanDecision]:
                     advocate=LoanDecision.DENY,
                     answering="r1-q3",
                     answer="No — a verified return restates the same wages.",
+                    confidence=0.85,
                 ),
             ),
             Entry[LoanDecision](
@@ -308,6 +313,7 @@ def proceeding(case: LoanApplication) -> Transcript[LoanDecision]:
                         "Documented income governs. The W-2 record puts DTI at 0.51, above "
                         "the 0.43 ceiling; the stated figure is unverified."
                     ),
+                    confidence=0.8,
                 ),
             ),
         ],
@@ -567,6 +573,7 @@ class Bench:
                 {
                     "verdict": verdict.value,
                     "reasoning": "Documented income governs; the stated figure is unverified.",
+                    "confidence": 0.8,
                 },
             )
         ]
@@ -598,7 +605,7 @@ class Bench:
             return [
                 ToolCallPart(
                     _output_tool(info, "Response"),
-                    {"answer": f"{who.value} answers {key}.", "exhibits": cited},
+                    {"answer": f"{who.value} answers {key}.", "exhibits": cited, "confidence": 0.8},
                 )
             ]
         return [
@@ -608,6 +615,7 @@ class Bench:
                     "advocate": who.value,
                     "claim": f"The record supports {who.value}.",
                     "exhibits": cited,
+                    "confidence": 0.8,
                 },
             )
         ]

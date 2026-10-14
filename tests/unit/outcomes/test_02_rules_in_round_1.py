@@ -168,6 +168,6 @@ async def test_the_rendered_record_reads_as_a_proceeding(
 
     assert rendered.startswith("# Proceeding")
     assert "## The statute — underwriting-v3" in rendered
-    assert f"[round 1] the judge ruled — {approve}:" in rendered
+    assert f"[round 1] the judge ruled — {approve} (confidence 0.8):" in rendered
     assert f"[{approve}/s1] W-2, 2024 — cited" in rendered
     assert f"[{deny}/s1] W-2, 2024 — not cited" in rendered

@@ -67,8 +67,9 @@ tribunal = Tribunal(
 hearing = await tribunal.hear(Case(applicant=..., income=...))
 
 match hearing.outcome:              # a ruling, or no verdict at all
-    case Ruling(verdict=verdict, reasoning=reasoning):
+    case Ruling(verdict=verdict, confidence=confidence):
         verdict                     # LoanDecision.DENY
+        confidence                  # 0.8 — the judge's own estimate, not a calibrated probability
     case Undecided():               # rounds or budget spent, no verdict
         ...
 
