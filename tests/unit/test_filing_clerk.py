@@ -305,6 +305,7 @@ async def test_an_argument_is_converted_and_its_exhibits_stamped(
             round=1,
             advocate=approve,
             tool="psql",
+            call='psql(sql="SELECT ...")',
             reference="s3://w2-2024.pdf",
             content="wages: 131,400",
             label="W-2, 2024",
@@ -345,6 +346,7 @@ async def test_an_exhibit_resolves_against_its_own_advocates_rows(
                 round=1,
                 advocate=advocate,
                 tool="psql",
+                call='psql(sql="SELECT ...")',
                 reference=reference,
                 content="figure",
             )
@@ -402,6 +404,7 @@ async def test_a_response_is_converted_and_its_exhibits_stamped(
                 round=1,
                 advocate=advocate,
                 tool="psql",
+                call='psql(sql="SELECT ...")',
                 reference=reference,
                 content="figure",
             )

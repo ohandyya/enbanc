@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-09-19
+updated: 2026-10-14
 ---
 
 # Prompting and rendering
@@ -673,10 +673,12 @@ the record did not rest on.
 
 [approve/s1] Schedule C, 2024 — cited
   s3://underwriting-docs/okonkwo/schedule-c-2024.pdf
+  via find_filings(applicant="A. Okonkwo") in round 1
   net profit: 182,000 ...
 
 [approve/s2] W-2, 2024 — not cited
   s3://underwriting-docs/okonkwo/w2-2024.pdf
+  via find_filings(applicant="A. Okonkwo") in round 1
   wages: 131,400 ...
 
 ## Failed calls
@@ -684,6 +686,15 @@ the record did not rest on.
 [round 1] deny — find_filings(applicant="A. Okonkwo")
   Timed out after 30.0 seconds.
 ```
+
+**A ledger row names the call that produced it**, on a `via {call} in round
+{n}` line between the reference and the content — the same `call` string the
+advocate read at the head of the tool result, so the reviewer sees what was
+asked as well as what came back
+([`0042`](../decisions/0042-a-retrieval-names-its-call.md)). An anonymous
+source drops the line, because its reference already is the call and the line
+would repeat the one above it. The tool result the advocate reads does not
+carry it either: the call is already its header.
 
 **Four sections vary with what the proceeding holds.** The worked example above
 is fully populated and cannot show them:

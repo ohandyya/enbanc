@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-09-20
+updated: 2026-10-14
 ---
 
 # Evidence
@@ -227,6 +227,7 @@ class Retrieval(BaseModel, Generic[VerdictT]):
     round: int
     advocate: VerdictT        # whose tool call produced it
     tool: str
+    call: str                 # the call that produced it, as the advocate read it
     reference: str
     content: str              # verbatim, as the tool returned it
     label: str | None = None
@@ -239,6 +240,17 @@ That reverses the cost
 [`0006`](../decisions/0006-the-transcript-schema.md) accepted and named as the
 consequence most likely to force a successor. See
 [`0019`](../decisions/0019-the-ledger-is-part-of-the-record.md).
+
+**Each row names the call that produced it.** A `Source`'s `reference` points at
+the document — `s3://…/schedule-c-2024.pdf`, a result URL — so on its own the
+ledger says what an advocate *found* and not what it *asked for*, and a reviewer
+cannot tell a fair search from a leading one. `call` is the call as the advocate
+read it at the head of the tool result —
+`web_search(query="Okonkwo consulting revenue")` — and every row one call
+produced carries the same string. For an anonymous source the two coincide: its
+reference already is the call. `tool` stays beside it as the field a caller
+filters on, the split `ToolFailure` already makes. See
+[`0042`](../decisions/0042-a-retrieval-names-its-call.md).
 
 **Suppression is found by joining, not by a flag.** The retrievals nothing rests
 on are the ledger ids no `Exhibit.source` names:

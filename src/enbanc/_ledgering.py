@@ -195,11 +195,13 @@ class Ledgering(WrapperToolset[None], Generic[VerdictT]):
                 )
             )
             raise
-        rows = self._ledger_rows(name, as_sources(result, fallback_reference=call))
+        rows = self._ledger_rows(name, call, as_sources(result, fallback_reference=call))
         self.ledger.extend(rows)
         return render_results(call, rows)
 
-    def _ledger_rows(self, tool: str, sources: Sequence[Source]) -> list[Retrieval[VerdictT]]:
+    def _ledger_rows(
+        self, tool: str, call: str, sources: Sequence[Source]
+    ) -> list[Retrieval[VerdictT]]:
         """Number this call's sources and build their rows, without writing them.
 
         **The count is derived from the ledger rather than held in a counter**, which is what
@@ -223,6 +225,7 @@ class Ledgering(WrapperToolset[None], Generic[VerdictT]):
                 round=self.round,
                 advocate=self.advocate,
                 tool=tool,
+                call=call,
                 reference=source.reference,
                 content=source.content,
                 label=source.label,

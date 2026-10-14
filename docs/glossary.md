@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-09-11
+updated: 2026-10-14
 ---
 
 # Glossary
@@ -26,7 +26,7 @@ table is the whole tax.
 | **Source** | One piece of evidence a tool found, together with the reference that locates it. What tools *return*; most never become exhibits. |
 | **Reference** | The string that says where a piece of evidence lives — a URL, a document key, a file path, the query that produced a row. Each tool defines what a locator means for it; `enbanc` never parses one. |
 | **Exhibit** | A piece of evidence entered into the record by an advocate: its excerpt, plus the tool and reference the tribunal stamps from what that tool actually returned. What it *files* — a subset of what its tools returned, and the ledger holds the rest. |
-| **Retrieval** | One source a tool returned, recorded verbatim with the round and advocate that produced it. Filed or not — that is what makes suppression visible. |
+| **Retrieval** | One source a tool returned, recorded verbatim with the round, the advocate, and the call that produced it. Filed or not — that is what makes suppression visible. |
 | **Ledger** | Every retrieval in a proceeding, on `Transcript.ledger`. Where `entries` say what the ruling rests on, the ledger says what was available to rest on. |
 | **Tool failure** | A tool call that returned nothing — it timed out. Recorded on `Transcript.failures` so an advocate blocked from a source is distinguishable from one that never looked. It carries no id, because nothing came back to cite. |
 | **Interrogatory** | A targeted question from the judge to a specific advocate, issued when it cannot yet rule. Carries an id naming the round it was issued in, stamped by the tribunal when the continuance is filed. |
