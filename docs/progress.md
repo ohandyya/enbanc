@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-10-10
+updated: 2026-10-14
 ---
 
 # Progress
@@ -13,93 +13,90 @@ Two halves, two different guarantees:
 
 - `## Current state
 
-**Phase:** Design complete. PRs 1–9 of the plan are merged:
-[`schemas.md`](./implementations/schemas.md) (#19),
-[`contract-probes.md`](./implementations/contract-probes.md) (#20),
-[`web-search-tool.md`](./implementations/web-search-tool.md) (#21),
-[`rendering.md`](./implementations/rendering.md) (#23),
-[`tribunal-construction.md`](./implementations/tribunal-construction.md) (#24),
-[`ledgering-toolset.md`](./implementations/ledgering-toolset.md) (#25),
-[`proceeding-core.md`](./implementations/proceeding-core.md) (#26),
-[`round-loop.md`](./implementations/round-loop.md) (#28) and
-[`failures.md`](./implementations/failures.md) (#29). Row 10,
-[`stream-ordering.md`](./implementations/stream-ordering.md), is
-[PR #30](https://github.com/ohandyya/enbanc/pull/30), **open, a draft, not yet
-merged**. With it the record moves at the consumer's pace: a consumer that
-`await`s inside its loop still holds `transcript[-1]`, and walking away leaves
-exactly what it received. `make test` passes at 442 tests (435 before).
-`__all__` is complete at twenty-nine names. The README's WIP banner is still
-accurate: the published `0.0.5` on PyPI reserves the name and nothing more, and
-`0.1.0` hasn't shipped.
+**Phase:** Design complete; implementation runs end to end against real
+providers. PRs 1–12 of the plan are merged — rows 1–10 through
+[`stream-ordering.md`](./implementations/stream-ordering.md) (#30), then
+[`ledger-names-the-call.md`](./implementations/ledger-names-the-call.md) (#32)
+and [`guides.md`](./implementations/guides.md) (#31). Row 13,
+[`content-moderation-guide.md`](./implementations/content-moderation-guide.md),
+is [PR #33](https://github.com/ohandyya/enbanc/pull/33), **open, not merged**.
+`make test` passes at 443; the `e2e` tier runs both guides live. `__all__` is
+complete at twenty-nine names. The README's WIP banner is still accurate: the
+published `0.0.5` on PyPI reserves the name and nothing more, and `0.1.0` hasn't
+shipped.
 
 Settled and binding across
-[`0001`](./decisions/0001-statute-carries-no-model.md)–[`0041`](./decisions/0041-the-clerk-files-when-the-consumer-asks.md).
-[`0041`](./decisions/0041-the-clerk-files-when-the-consumer-asks.md) is new: the
-clerk waits for a ready token from `Proceeding.__anext__` before it appends, so
-it stays the transcript's only writer.
+[`0001`](./decisions/0001-statute-carries-no-model.md)–[`0042`](./decisions/0042-a-retrieval-names-its-call.md).
+[`0042`](./decisions/0042-a-retrieval-names-its-call.md) is new: every ledger
+row records the call that produced it, and `p1` was amended rather than bumped.
 
-**Next up:** Get #30 reviewed and merged, then start row 11,
-[`guides.md`](./implementations/guides.md) — the first task guide, which needs
-rows 9 and 10 merged. Row 12,
-[`zero-one-zero.md`](./implementations/zero-one-zero.md), follows it and cuts
-`0.1.0`.
+**Next up:** Drop `docs/guides/content_moderation.json` from #33 — a committed
+snapshot of the *old* weed-killer case that no longer matches the guide — then
+merge it. Row 14, [`zero-one-zero.md`](./implementations/zero-one-zero.md), is
+now the documentation sweep alone: `draft` → `current` across the design docs,
+the *none of this exists yet* banners, `README.md`'s pre-`0.1.0` caveats,
+`CHANGELOG.md`, and the version. Then `create-new-release`.
 
 Things the next session should carry:
 
 - **A `ProceedingFailed` may never be raised inside a task group.** anyio groups
   an exception raised in a group's *body* exactly as it groups a child's, so
   the failure is held (`_Orchestrator.failure`) and raised by `proceed()` after
-  the outermost group exits. Any new code that raises it from inside `run()`,
-  the clerk's group or the round's gets it back wrapped.
+  the outermost group exits.
 - **The advocate guard and the judge guard are two copies of the same two
-  `except` arms** (`_heard` and `_deliberate`). A change to one — a log line, a
-  new arm — has to be made in both.
-- **`test_filing_clerk.py` still expects a `BaseExceptionGroup`, on purpose.** An
-  unresolvable id reaching the clerk is a bug in `enbanc`, not a participant
-  failing, and the guard must not launder it into a `ProceedingFailed`.
-- **A slow stream consumer now holds the filers.** The clerk's acknowledgment
-  waits on the consumer's ask, so an advocate's next run waits on the reader.
-  Anything new that waits on an acknowledgment inherits that.
-- **One abandonment gap is accepted, not fixed.** A cancel from *outside* the
-  loop, landing between `__anext__`'s ask and receive, can leave one entry the
-  consumer never received. `api.md` states it; closing it would mean the
-  consumer appends, which `0041` rejected.
-- **A streaming test that checks ordering should `await` in its loop body.**
-  `anyio.wait_all_tasks_blocked()` is the stand-in for real work, and it is what
-  the new tests use; a body that never `await`s cannot catch the record running
-  ahead.
-- **`since` is the last round a participant was *shown*, not the last it ran.**
-  `_answer()` sets it to `snapshot.entries[-1].round`.
-- **The test bench scripts rounds and failures.** `Bench` in
-  `tests/unit/conftest.py` takes `continuances`, per-turn `calls`/`exhibits`,
-  per-participant `costs`, `gates` (an `anyio.Event` that forces an ordering) and
-  `raises` (the model raises that exact instance, after its gate). The judge's
-  turns are keyed `("judge", n)` for `gates` and `raises`.
-- **`max_rounds` stops on `>=`.** `Tribunal(...)` does not validate it, and `==`
-  would never stop a `max_rounds=0` tribunal.
+  `except` arms** (`_heard` and `_deliberate`). A change to one has to be made
+  in both.
+- **A slow stream consumer holds the filers.** The clerk's acknowledgment waits
+  on the consumer's ask; one abandonment gap (an outside cancel inside
+  `__anext__`) is accepted and stated in `api.md`.
+- **A live test that runs a guide needs `closed_after` and `closed_models`.**
+  Tavily's and the provider's HTTP clients both outlive pytest's per-test loop
+  and fail the session as `ResourceWarning`s after the test passes.
+  `run_guide` in `tests/e2e/test_guides.py` also clears `ENBANC_HEARING_FILE`,
+  because `live_model` copies `.env` into the environment.
+- **The lockfile is at `pydantic-ai` 2.56.0, the floor at 2.36.0.** The guides'
+  default `openai:gpt-6-luna` needs the lock; `execution.md`'s findings are
+  still verified against the floor, and the contract tier passes on both.
+- **A guide's case is checked by running it.** Both guides' first cases were
+  too easy; see the journal entry below. A case change needs a few live runs
+  (about $0.01 each) before it is trusted.
 - **Round 1's `Argument` and `Concession` still ask the model to write
   `advocate`**, so a model could file under a peer's verdict. `0039` covers only
   the interrogatory link. Not filed anywhere yet.
-- **`live-tests.yml` has run for real, on both triggers**, and the integration
-  tier holds one real Tavily call (`test_web_search.py`). The e2e tier is still
-  `test_placeholder.py` and waits on `api.md`'s example to exist.
-- **The network guard is a tripwire, not a sandbox.** It catches `asyncio`, and
-  so every HTTP client the library will actually use, but raw `_socket`,
-  subprocesses, and anything connecting at import time go straight past it. The
-  import-time half has a rule and a test in
+- **`max_rounds` stops on `>=`**, and `since` is the last round a participant
+  was *shown*, not the last it ran.
+- **The network guard is a tripwire, not a sandbox** — see
   [`packaging.md`](./design/packaging.md#what-import-enbanc-may-do).
 
 **Open questions:**
 
-- None in [`design/`](./design/): `0041` closed `execution.md`'s last one.
-- `procedure` version `p1` now runs multi-round proceedings, but only under
-  scripted `FunctionModel`s, never a live model. Its changelog row in
+- None in [`design/`](./design/).
+- **Unfiled, found by the guides** — both are design questions, not bugs, and
+  neither is in a design doc yet: a `Ruling` names no evidence, so what the judge
+  relied on is only inferable from its prose; and an exhibit's excerpt is never
+  checked against its ledger row, so a misquote is findable but nothing finds
+  it.
+- `procedure` `p1` has now run live, but its changelog row in
   [`prompting.md`](./design/prompting.md#procedure-versions) still has nothing
-  to compare against — that needs `0.1.0` shipped and a real prompt edit after
-  it. The bump-discipline question stays open until then.
-
+  to compare against until `0.1.0` ships and a prompt changes after it.
 
 ## Log
+
+### 2026-10-14 — the guides, and the ledger that names its call
+
+**Did:** Wrote and ran the first two task guides — `loan_assessment.py` (#31,
+merged) and `content_moderation.py`, watched live with `hear_stream` (#33, open)
+— each executed by the `e2e` tier. Running them split out #32 (merged): every
+ledger row now records the call that produced it.
+
+**Stopped at:** #33 open, still carrying a stale committed
+`docs/guides/content_moderation.json`.
+
+**Why this way:** [`docs/journal/2026-10-14-running-the-guides-found-the-gaps.md`](./journal/2026-10-14-running-the-guides-found-the-gaps.md),
+[`docs/decisions/0042-a-retrieval-names-its-call.md`](./decisions/0042-a-retrieval-names-its-call.md)
+
+**Commits:** `c54d434` (#32), `3cdd0ca` (#31), `2599ba1`, `b315684`, `f1ef88f`,
+`ddcdfac`
 
 ### 2026-10-10 — PR 10: the clerk files when the consumer asks
 
