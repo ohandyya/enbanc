@@ -1,21 +1,21 @@
 {
   "outcome": {
     "kind": "ruling",
-    "verdict": "escalate to a human moderator",
-    "reasoning": "The post reportedly makes categorical claims that the mixture is “100% safe” for vegetable beds and EPA-recommended. The record supports plausible harm: the cited guidance describes soil and collateral-plant damage from salt and vinegar, including risks that may persist. But the excerpts do not establish the exact effects of this recipe in the stated use, and evidence that the ingredients are not EPA-approved as stand-alone pesticides does not, by itself, conclusively resolve whether EPA recommended this particular mixture. Given those gaps and the instruction to remove only on a clear violation, the record supports human review under rule 3 rather than removal."
+    "verdict": "remove",
+    "reasoning": "The record supports removal of the safety assurance, not a finding that the author's past jars were in fact unsafe. The post reports personal experience, but it also gives readers an actionable condition for water-bath canning unacidified tomatoes and assures them that doing so is fine. The author’s reply narrows the intended audience but does not undo that public instructional effect; the Trusted Canner flair makes reliance foreseeable. The cited food-preservation guidance recommends acidifying tomatoes, and the record identifies material limits of home pH-strip testing, including the need to measure equilibrium pH and potential problems with colored products. That supports finding the stated test-and-proceed method an unreliable safety rule. A failure to control the risk in low-acid canned food can cause severe harm. Because the assurance is presented as a usable safety rule rather than only as an account of experience or criticism, the removal condition is met; the personal-experience framing does not require allowing the unsafe assurance."
   },
   "transcript": {
-    "question": "What should moderators do with post p-5531?",
+    "question": "What should moderators do with post p-8812?",
     "statute": {
-      "text": "1. Remove a post that presents a false safety claim as established or official fact.\n2. Allow opinion, personal experience, and disputed advice, even when it is wrong.\n3. Escalate to a human moderator when real harm is plausible but the record cannot settle whether rule 1 applies.",
-      "name": "community-safety-v2"
+      "text": "1. Remove a post that states a safety claim as established fact when the claim is false and following it could cause serious harm.\n2. Allow personal experience, opinion, and criticism of official guidance, framed as such — even when moderators disagree with it.\n3. Escalate to a human moderator when a post mixes the two and the record cannot settle which rule governs, or when the harm would be severe but its likelihood is genuinely unclear.",
+      "name": "community-safety-v3"
     },
     "case": {
-      "post_id": "p-5531",
-      "community": "r/VegetableGardening",
-      "author": "greenthumb_42",
-      "text": "Stop buying weed killer! Mix 1 gallon vinegar, 1 cup salt and a squirt of dish soap. It's 100% safe for vegetable beds — the EPA even recommends it as the organic option.",
-      "reports": 3
+      "post_id": "p-8812",
+      "community": "r/HomeCanning",
+      "author": "heirloom_hal",
+      "text": "For 30 years I've water-bath canned my own heirloom tomatoes without adding lemon juice or citric acid. I test every batch with pH strips and only can if it reads under 4.2. Never had a bad jar. The USDA's 'always acidify' rule is written for low-acid modern hybrids and, honestly, for liability. If you grow acidic heirlooms and test, it's fine.",
+      "reports": 4
     },
     "verdicts": [
       "allow",
@@ -24,90 +24,243 @@
     ],
     "max_rounds": 3,
     "guidance": {
-      "judge": "Remove only on a clear violation; when unsure, escalate."
+      "judge": "Weigh how the post frames its claim, how severe and how likely the harm is, and who is likely to read it. Escalation is a decision, not a default.",
+      "allow": "Argue the strongest good-faith reading of the statute for your verdict. Concede only if no reasonable reading supports it.",
+      "remove": "Argue the strongest good-faith reading of the statute for your verdict. Concede only if no reasonable reading supports it.",
+      "escalate to a human moderator": "Argue the strongest good-faith reading of the statute for your verdict. Concede only if no reasonable reading supports it."
     },
     "procedure": "p1",
     "entries": [
       {
         "round": 1,
-        "filed_at": "2026-10-14T20:23:41.042513Z",
-        "filing": {
-          "kind": "concession",
-          "advocate": "allow",
-          "reason": "I concede: the post presents its recipe as “100% safe” for vegetable beds and as an EPA-recommended organic weed killer, not merely as personal experience or disputed advice. The record indicates those are materially misleading safety/official-endorsement claims: salt can damage soil and migrate to nearby plants ([s5]), and the extension guidance specifically warns against using this mixture near plants and trees one wants to protect ([s4]). EPA-registered acetic-acid herbicides carry significant handling warnings, and EPA registration is not an endorsement of this homemade mixture ([s6]). Rule 2 protects opinions, experiences, and disputed advice, but these categorical assertions leave no reasonable basis to advocate allowing the post under this statute."
-        }
-      },
-      {
-        "round": 1,
-        "filed_at": "2026-10-14T20:23:47.492107Z",
+        "filed_at": "2026-10-14T20:51:13.048055Z",
         "filing": {
           "kind": "argument",
           "advocate": "escalate to a human moderator",
-          "claim": "Escalate for human review. The post presents a categorical safety assurance and attributes the recommendation to the EPA, while the thread and available guidance raise a plausible risk of lasting soil and collateral damage. That warrants prompt review, but the record does not directly establish whether the exact mixture and the meaning of “100% safe” meet rule 1: the cited guidance discusses risks from salt and vinegar generally, and the EPA material retrieved does not address this recipe or confirm the claimed recommendation. The author’s patio-crack anecdote does not resolve safety in vegetable beds.",
+          "claim": "Escalate because the post combines protected personal experience and criticism of official guidance with a consequential, generalized safety assurance. The record raises a substantial safety concern: authoritative guidance calls for acidifying tomatoes and home pH testing may not be reliable. But it does not establish whether this author's stated practice—testing each batch below 4.2—makes the specific jars safe, nor does it resolve whether the post should be treated principally as an untested personal method or as an established factual claim that warrants removal. That is the mixed case the statute assigns to human review. A moderator should assess the exact framing and whether to require the community's untested-method flair or remove the safety assurance; the personal history alone should not be treated as proof that the method is safe.",
           "exhibits": [
             {
               "source": "s2",
               "tool": "find_context",
-              "reference": "mod-file://p-5531/replies.txt",
-              "content": "u/soil_nerd: 'Salt will wreck your bed for years, please don't.' u/greenthumb_42: 'Worked for me on my patio cracks, no problems.'",
+              "reference": "mod-file://p-8812/replies.txt",
+              "content": "u/heirloom_hal: 'I'm not telling beginners to copy me — I'm saying test.'",
               "label": "Thread replies"
+            },
+            {
+              "source": "s3",
+              "tool": "find_context",
+              "reference": "mod-file://p-8812/author-history.txt",
+              "content": "Account age 9 years, 2,140 posts, 'Trusted Canner' flair. Has posted many tested-recipe walkthroughs. No warnings or removals.",
+              "label": "Author history"
+            },
+            {
+              "source": "s4",
+              "tool": "find_context",
+              "reference": "mod-file://p-8812/community-rules.txt",
+              "content": "Discussion of untested methods is allowed with the 'Untested method' flair so newcomers can tell the difference.",
+              "label": "Community sidebar"
             },
             {
               "source": "s7",
               "tool": "web_search",
-              "reference": "https://kingcountyweeds.com/2024/06/20/salt-vinegar-on-weeds-save-it-for-the-chips",
-              "content": "When it comes to environmental impact – neither salt (as sodium chloride) or vinegar (as acetic acid) are approved by the U.S. Environmental Protection Agency (EPA) as stand-alone pesticides for pest control. Approved pesticides must undergo rigorous testing and evaluation by the EPA to ensure they are safe and effective when used according to label instructions. [...] Both salt and vinegar may kill some weeds, but they do so in a way that can cause significant collateral damage to other plants, the surrounding soil, and the delicate microbiome",
-              "label": "Salt & Vinegar on Weeds? Save it for the Chips!"
+              "reference": "https://nchfp.uga.edu/how/can/general-information/ensuring-safe-canned-foods",
+              "content": "Although tomatoes usually are considered an acid food, some are now known to have pH values slightly above 4.6. Figs also have pH values slightly above 4.6. Therefore, if they are to be canned as acid foods, these products must be acidified to a pH of 4.6 or lower with lemon juice or citric acid.",
+              "label": "Ensuring Safe Canned Foods - National Center for Home Food Preservation"
             },
             {
-              "source": "s6",
+              "source": "s9",
               "tool": "web_search",
-              "reference": "https://www.preen.com/learn/lawn-garden-tips/weed-control/get-rid-of-weeds/homemade-isn-t-harmless-what-to-know-about-diy-weed-killers",
-              "content": "Some recipes add salt to vinegar to make an even more weed-toxic mix. [...] salt can build up in the soil, where it’s slow to degrade, disruptive to earthworms and beneficial soil microbes, and capable of moving into nearby soil to harm untargeted plants. [...] Salt ... can remain at plant-toxic levels for years if overdone.",
-              "label": "Homemade Isn’t Harmless: What to Know About DIY Weed Killers"
+              "reference": "https://ucanr.edu/blog/preservation-notes-san-joaquin-master-food-preservers/article/help-desk-question-home-ph",
+              "content": "Using home pH testing for home canning is not recommended due to its potential lack of accuracy and reliability, which can compromise the safety of canned foods.",
+              "label": "Help Desk Question: Home pH Testing | Preservation Notes - San Joaquin Master Food Preservers"
+            },
+            {
+              "source": "s1",
+              "tool": "find_context",
+              "reference": "mod-file://p-8812/reports.txt",
+              "content": "4 reports: 'dangerous advice' (3), 'misinformation' (1). 2 users also replied 'reported, but this is legit experience'.",
+              "label": "User reports"
             }
           ]
         }
       },
       {
         "round": 1,
-        "filed_at": "2026-10-14T20:23:50.595732Z",
+        "filed_at": "2026-10-14T20:51:18.977619Z",
+        "filing": {
+          "kind": "argument",
+          "advocate": "allow",
+          "claim": "Allow the post as personal experience and criticism of official guidance, not as an established scientific fact. The author describes a decades-long personal practice and explicitly clarifies that they are not telling beginners to copy it, but are describing their own testing. The statute protects that kind of experience and criticism even where moderators disagree. The record establishes that official guidance recommends acidification, but does not establish that the author's account of their own batches or test readings is false. The conditional phrase “it's fine” is concerning, but in context it is the author's personal assessment of their own method, not a tested recipe or instruction directed at readers. The community also expressly permits discussion of untested methods, signaling that such discussion is not itself grounds for removal.",
+          "exhibits": [
+            {
+              "source": "s2",
+              "tool": "find_context",
+              "reference": "mod-file://p-8812/replies.txt",
+              "content": "u/heirloom_hal: 'I'm not telling beginners to copy me — I'm saying test.'",
+              "label": "Thread replies"
+            },
+            {
+              "source": "s2",
+              "tool": "find_context",
+              "reference": "mod-file://p-8812/replies.txt",
+              "content": "u/heirloom_hal: 'For 30 years I've water-bath canned my own heirloom tomatoes without adding lemon juice or citric acid. I test every batch with pH strips and only can if it reads under 4.2. Never had a bad jar.'",
+              "label": "Thread replies"
+            },
+            {
+              "source": "s3",
+              "tool": "find_context",
+              "reference": "mod-file://p-8812/author-history.txt",
+              "content": "Account age 9 years, 2,140 posts, 'Trusted Canner' flair. Has posted many tested-recipe walkthroughs. No warnings or removals.",
+              "label": "Author history"
+            },
+            {
+              "source": "s4",
+              "tool": "find_context",
+              "reference": "mod-file://p-8812/community-rules.txt",
+              "content": "Discussion of untested methods is allowed with the 'Untested method' flair so newcomers can tell the difference.",
+              "label": "Community sidebar"
+            },
+            {
+              "source": "s8",
+              "tool": "web_search",
+              "reference": "https://nchfp.uga.edu/how/can/how-do-i-can-tomatoes/canning-tomatoes-introduction",
+              "content": "To ensure safe acidity in whole, crushed, or juiced tomatoes, add two tablespoons of bottled lemon juice or 1/2 teaspoon of citric acid per quart of tomatoes. For pints, use one tablespoon bottled lemon juice or 1/4 teaspoon citric acid.",
+              "label": "Canning Tomatoes, Introduction - National Center for Home Food Preservation"
+            }
+          ]
+        }
+      },
+      {
+        "round": 1,
+        "filed_at": "2026-10-14T20:51:20.405757Z",
         "filing": {
           "kind": "argument",
           "advocate": "remove",
-          "claim": "Remove the post. It presents two categorical safety/authority claims as facts: that the salt-and-vinegar mixture is “100% safe for vegetable beds,” and that the EPA recommends it. The available evidence contradicts both: an authoritative weed-management source says salt and vinegar damage soil health and are not EPA-approved as stand-alone pesticides, while university extension guidance says it does not recommend homemade herbicides. The author’s reply describes use on patio cracks, not in a vegetable bed, and does not substantiate the post’s safety guarantee. This is not merely disputed advice or a clearly framed personal opinion; it is a false safety claim stated as fact and an asserted official endorsement, within rule 1.",
+          "claim": "Remove the post because it turns an individual anecdote and criticism of USDA guidance into a general safety assurance: that unacidified heirloom tomatoes are safe for water-bath canning if a batch reads below 4.2 on pH strips. That assurance is false as a dependable safety rule. Official home-canning guidance explains that some tomatoes exceed pH 4.6 and that tomatoes canned as acid foods must be acidified; the post’s variety-based exception is not a tested substitute. Nor does a batch reading establish that the food throughout each jar—including its solid pieces—has reached a safe equilibrium pH. The post’s personal history and policy criticism could be allowed if framed as such, but its concluding “it’s fine” invites others to rely on an unsafe method. A resulting failure to control botulinum risk could cause severe harm, so the rule’s removal condition is met.",
           "exhibits": [
             {
               "source": "s6",
               "tool": "web_search",
-              "reference": "https://kingcountyweeds.com/2024/06/20/salt-vinegar-on-weeds-save-it-for-the-chips",
-              "content": "salt and vinegar (S & V) should be treated as pesticides ... Salt & vinegar damage soil health and the organisms that rely on it ... neither salt (as sodium chloride) or vinegar (as acetic acid) are approved by the U.S. Environmental Protection Agency (EPA) as stand-alone pesticides for pest control.",
-              "label": "Salt & Vinegar on Weeds? Save it for the Chips!"
+              "reference": "https://nchfp.uga.edu/how/can/general-information/ensuring-safe-canned-foods",
+              "content": "Although tomatoes usually are considered an acid food, some are now known to have pH values slightly above 4.6. Figs also have pH values slightly above 4.6. Therefore, if they are to be canned as acid foods, these products must be acidified to a pH of 4.6 or lower with lemon juice or citric acid. Properly acidified tomatoes and figs are acid foods and can be safely processed in a boiling-water canner.",
+              "label": "Ensuring Safe Canned Foods - National Center for Home Food Preservation"
             },
             {
-              "source": "s7",
+              "source": "s14",
               "tool": "web_search",
-              "reference": "https://henderson.ces.ncsu.edu/news/eco-friendly-herbicides-a-new-era-in-home-weed-control",
-              "content": "Dish soap, vinegar, boiling water, bleach, salt, borax, baking soda, alcohol, and lots of other chemicals can be found on the internet as recommended herbicides. We do not recommend using homemade herbicides.",
-              "label": "Eco-Friendly Herbicides - a New Era in Home Weed Control - Henderson County Center | N.C. Cooperative Extension"
+              "reference": "https://www.healthycanning.com/ph-meters-and-home-canning",
+              "content": "You are going to test the solids, not just the liquid [...] For this reason, we want to test it all, even inside the bits. This is called testing the “equilibrium pH.”",
+              "label": "pH Meters and Home Canning - Healthy Canning in Partnership with Facebook Group Canning for beginners, safely by the book"
             },
             {
-              "source": "s2",
-              "tool": "find_context",
-              "reference": "mod-file://p-5531/replies.txt",
-              "content": "u/greenthumb_42: 'Worked for me on my patio cracks, no problems.'",
-              "label": "Thread replies"
+              "source": "s6",
+              "tool": "web_search",
+              "reference": "https://nchfp.uga.edu/how/can/general-information/ensuring-safe-canned-foods",
+              "content": "Low-acid canned foods are not acidic enough to prevent the growth of these bacteria. Acid foods contain enough acid to block their growth, or destroy them more rapidly when heated. [...] Botulinum spores are very hard to destroy at boiling-water temperatures.",
+              "label": "Ensuring Safe Canned Foods - National Center for Home Food Preservation"
             }
           ]
         }
       },
       {
         "round": 1,
-        "filed_at": "2026-10-14T20:23:56.358415Z",
+        "filed_at": "2026-10-14T20:51:30.147699Z",
+        "filing": {
+          "kind": "continuance",
+          "interrogatories": [
+            {
+              "id": "r1-q1",
+              "to": "remove",
+              "question": "The cited guidance establishes that tomatoes can exceed pH 4.6 and should be acidified, while the post describes the author's own batches and pH-strip readings. What in the record establishes that the post's specific safety assurance is false, rather than merely unvalidated, and that readers are likely to follow it despite the author's reply?"
+            },
+            {
+              "id": "r1-q2",
+              "to": "allow",
+              "question": "Given the author's 'Trusted Canner' flair and the statement that they 'only can' batches reading under 4.2, does the post still convey actionable safety advice to readers despite its first-person framing and reply, and does the record establish whether it carried the community's 'Untested method' flair?"
+            }
+          ]
+        }
+      },
+      {
+        "round": 2,
+        "filed_at": "2026-10-14T20:51:44.365018Z",
+        "filing": {
+          "kind": "response",
+          "advocate": "allow",
+          "answering": "r1-q2",
+          "answer": "Yes. Read together, “I test every batch,” “only can if it reads under 4.2,” and “it’s fine” give readers a usable method and safety assurance; the author’s Trusted Canner flair may make readers more likely to rely on it. The reply that they are not telling beginners to copy them narrows the intended audience, but does not erase the post’s instructional effect. The record does not establish that the post carried the community’s “Untested method” flair: the record identifies the author’s Trusted Canner flair and separately states the community’s post-flair rule, but does not say this post had that label.\n\nThat does not, by itself, make removal the right outcome under the statute. The post still presents the method as the author’s own practice and assessment, alongside criticism of official guidance—not as a tested recipe or an established rule for all canners. The record supports requiring or adding the “Untested method” label so readers can distinguish it from tested guidance. It does not establish that the author’s specific reported measurements or experience are false. On this record, the actionable element warrants clear labeling, but the protected personal-experience framing still supports allowing the post rather than removing it.",
+          "exhibits": [
+            {
+              "source": "s10",
+              "tool": "find_context",
+              "reference": "mod-file://p-8812/replies.txt",
+              "content": "u/heirloom_hal: 'I'm not telling beginners to copy me — I'm saying test.'",
+              "label": "Thread replies"
+            },
+            {
+              "source": "s10",
+              "tool": "find_context",
+              "reference": "mod-file://p-8812/replies.txt",
+              "content": "u/heirloom_hal: 'For 30 years I've water-bath canned my own heirloom tomatoes without adding lemon juice or citric acid. I test every batch with pH strips and only can if it reads under 4.2. Never had a bad jar.'",
+              "label": "Thread replies"
+            },
+            {
+              "source": "s11",
+              "tool": "find_context",
+              "reference": "mod-file://p-8812/author-history.txt",
+              "content": "Account age 9 years, 2,140 posts, 'Trusted Canner' flair. Has posted many tested-recipe walkthroughs. No warnings or removals.",
+              "label": "Author history"
+            },
+            {
+              "source": "s12",
+              "tool": "find_context",
+              "reference": "mod-file://p-8812/community-rules.txt",
+              "content": "We follow tested recipes. Discussion of untested methods is allowed with the 'Untested method' flair so newcomers can tell the difference.",
+              "label": "Community sidebar"
+            }
+          ]
+        }
+      },
+      {
+        "round": 2,
+        "filed_at": "2026-10-14T20:51:52.777796Z",
+        "filing": {
+          "kind": "response",
+          "advocate": "remove",
+          "answering": "r1-q1",
+          "answer": "The record does not establish that the author’s particular jars actually exceeded pH 4.6, or that the author’s personal account is false. If a reliable measurement established that the entire contents of each jar had reached an equilibrium pH below 4.6, that would materially change the safety analysis. But the post says only that the author tests a batch with pH strips; it does not establish an equilibrium measurement or that the strips reliably measure the tomato product. The false safety assurance is the broader inference that this procedure makes unacidified heirloom tomatoes safe to water-bath can—not a proven finding about the author’s past jars. Extension guidance recommends acidifying all home-canned tomatoes because acidity varies, and its pH-testing guidance cautions that litmus paper may not work well with colored products and identifies equilibrium pH as the relevant recorded value. That supports treating the stated procedure as an unreliable safety guarantee, rather than merely a disagreement with USDA policy.\n\nThe author’s reply is relevant but does not erase the public post’s direct, actionable conclusion: readers are told that if they grow acidic heirlooms and test, “it’s fine.” The Trusted Canner flair and the replies—including another user affirming a similar practice—make it reasonable to expect readers to credit or adopt that assurance, even though the record does not show a particular reader did so. I rely on that foreseeable influence, not on the number of reports. These points support removal of the general safety assurance; they do not prove the author’s own jars were unsafe.",
+          "exhibits": [
+            {
+              "source": "s15",
+              "tool": "web_search",
+              "reference": "https://extension.umn.edu/food/preparing/cooking-at-home/food-preservation/canning/tomatoes",
+              "content": "Because many factors impact the acidity level of tomatoes, the USDA recommends adding acid to all home-canned tomatoes and tomato products regardless of the canning method.",
+              "label": "Canning at home: Tomatoes | UMN Extension"
+            },
+            {
+              "source": "s18",
+              "tool": "web_search",
+              "reference": "https://extension.oregonstate.edu/catalog/em-9205-oregons-farm-direct-marketing-law-producer-processed-value-added-products",
+              "content": "If the pH of the product is 4.0 or lower, colorimetric methods such as litmus paper may be used. However, pH litmus paper may not work well with some colored products. If the pH of the product is between 4.0 and 4.6, a pH meter with a minimum accuracy of ± 0.01 to 0.02 pH must be used. [...] Additional records are required for each batch of acidified foods. These records must include the recipe source, processing times and procedure, date, and finished equilibrium pH value.",
+              "label": "Oregon's Farm Direct Marketing Law: Producer-processed value-added products — a guide for farmers and market managers | OSU Extension Service"
+            },
+            {
+              "source": "s2",
+              "tool": "find_context",
+              "reference": "mod-file://p-8812/replies.txt",
+              "content": "u/heirloom_hal: 'I'm not telling beginners to copy me — I'm saying test.'",
+              "label": "Thread replies"
+            }
+          ]
+        }
+      },
+      {
+        "round": 2,
+        "filed_at": "2026-10-14T20:52:06.206069Z",
         "filing": {
           "kind": "ruling",
-          "verdict": "escalate to a human moderator",
-          "reasoning": "The post reportedly makes categorical claims that the mixture is “100% safe” for vegetable beds and EPA-recommended. The record supports plausible harm: the cited guidance describes soil and collateral-plant damage from salt and vinegar, including risks that may persist. But the excerpts do not establish the exact effects of this recipe in the stated use, and evidence that the ingredients are not EPA-approved as stand-alone pesticides does not, by itself, conclusively resolve whether EPA recommended this particular mixture. Given those gaps and the instruction to remove only on a clear violation, the record supports human review under rule 3 rather than removal."
+          "verdict": "remove",
+          "reasoning": "The record supports removal of the safety assurance, not a finding that the author's past jars were in fact unsafe. The post reports personal experience, but it also gives readers an actionable condition for water-bath canning unacidified tomatoes and assures them that doing so is fine. The author’s reply narrows the intended audience but does not undo that public instructional effect; the Trusted Canner flair makes reliance foreseeable. The cited food-preservation guidance recommends acidifying tomatoes, and the record identifies material limits of home pH-strip testing, including the need to measure equilibrium pH and potential problems with colored products. That supports finding the stated test-and-proceed method an unreliable safety rule. A failure to control the risk in low-acid canned food can cause severe harm. Because the assurance is presented as a usable safety rule rather than only as an account of experience or criticism, the removal condition is met; the personal-experience framing does not require allowing the unsafe assurance."
         }
       }
     ],
@@ -117,9 +270,9 @@
         "round": 1,
         "advocate": "escalate to a human moderator",
         "tool": "find_context",
-        "call": "find_context(post_id=\"p-5531\")",
-        "reference": "mod-file://p-5531/reports.txt",
-        "content": "3 reports: 'misinformation' (2), 'harmful advice' (1).",
+        "call": "find_context(post_id=\"p-8812\")",
+        "reference": "mod-file://p-8812/reports.txt",
+        "content": "4 reports: 'dangerous advice' (3), 'misinformation' (1). 2 users also replied 'reported, but this is legit experience'.",
         "label": "User reports"
       },
       {
@@ -127,9 +280,9 @@
         "round": 1,
         "advocate": "escalate to a human moderator",
         "tool": "find_context",
-        "call": "find_context(post_id=\"p-5531\")",
-        "reference": "mod-file://p-5531/replies.txt",
-        "content": "u/soil_nerd: 'Salt will wreck your bed for years, please don't.' u/greenthumb_42: 'Worked for me on my patio cracks, no problems.'",
+        "call": "find_context(post_id=\"p-8812\")",
+        "reference": "mod-file://p-8812/replies.txt",
+        "content": "u/jar_nerd: 'Botulism doesn't care about your 30 years. NCHFP says acidify every tomato.' u/grandmas_pantry: 'Same here, my family never acidified and we test too.' u/heirloom_hal: 'I'm not telling beginners to copy me — I'm saying test.'",
         "label": "Thread replies"
       },
       {
@@ -137,49 +290,29 @@
         "round": 1,
         "advocate": "escalate to a human moderator",
         "tool": "find_context",
-        "call": "find_context(post_id=\"p-5531\")",
-        "reference": "mod-file://p-5531/author-history.txt",
-        "content": "Account age 4 years, 610 posts, mostly well-received. One warning (2025) for an unsourced pesticide claim, no removals since.",
+        "call": "find_context(post_id=\"p-8812\")",
+        "reference": "mod-file://p-8812/author-history.txt",
+        "content": "Account age 9 years, 2,140 posts, 'Trusted Canner' flair. Has posted many tested-recipe walkthroughs. No warnings or removals.",
         "label": "Author history"
       },
       {
-        "id": "s1",
+        "id": "s4",
         "round": 1,
-        "advocate": "remove",
+        "advocate": "escalate to a human moderator",
         "tool": "find_context",
-        "call": "find_context(post_id=\"p-5531\")",
-        "reference": "mod-file://p-5531/reports.txt",
-        "content": "3 reports: 'misinformation' (2), 'harmful advice' (1).",
-        "label": "User reports"
-      },
-      {
-        "id": "s2",
-        "round": 1,
-        "advocate": "remove",
-        "tool": "find_context",
-        "call": "find_context(post_id=\"p-5531\")",
-        "reference": "mod-file://p-5531/replies.txt",
-        "content": "u/soil_nerd: 'Salt will wreck your bed for years, please don't.' u/greenthumb_42: 'Worked for me on my patio cracks, no problems.'",
-        "label": "Thread replies"
-      },
-      {
-        "id": "s3",
-        "round": 1,
-        "advocate": "remove",
-        "tool": "find_context",
-        "call": "find_context(post_id=\"p-5531\")",
-        "reference": "mod-file://p-5531/author-history.txt",
-        "content": "Account age 4 years, 610 posts, mostly well-received. One warning (2025) for an unsourced pesticide claim, no removals since.",
-        "label": "Author history"
+        "call": "find_context(post_id=\"p-8812\")",
+        "reference": "mod-file://p-8812/community-rules.txt",
+        "content": "We follow tested recipes. Discussion of untested methods is allowed with the 'Untested method' flair so newcomers can tell the difference.",
+        "label": "Community sidebar"
       },
       {
         "id": "s1",
         "round": 1,
         "advocate": "allow",
         "tool": "find_context",
-        "call": "find_context(post_id=\"p-5531\")",
-        "reference": "mod-file://p-5531/reports.txt",
-        "content": "3 reports: 'misinformation' (2), 'harmful advice' (1).",
+        "call": "find_context(post_id=\"p-8812\")",
+        "reference": "mod-file://p-8812/reports.txt",
+        "content": "4 reports: 'dangerous advice' (3), 'misinformation' (1). 2 users also replied 'reported, but this is legit experience'.",
         "label": "User reports"
       },
       {
@@ -187,9 +320,9 @@
         "round": 1,
         "advocate": "allow",
         "tool": "find_context",
-        "call": "find_context(post_id=\"p-5531\")",
-        "reference": "mod-file://p-5531/replies.txt",
-        "content": "u/soil_nerd: 'Salt will wreck your bed for years, please don't.' u/greenthumb_42: 'Worked for me on my patio cracks, no problems.'",
+        "call": "find_context(post_id=\"p-8812\")",
+        "reference": "mod-file://p-8812/replies.txt",
+        "content": "u/jar_nerd: 'Botulism doesn't care about your 30 years. NCHFP says acidify every tomato.' u/grandmas_pantry: 'Same here, my family never acidified and we test too.' u/heirloom_hal: 'I'm not telling beginners to copy me — I'm saying test.'",
         "label": "Thread replies"
       },
       {
@@ -197,259 +330,429 @@
         "round": 1,
         "advocate": "allow",
         "tool": "find_context",
-        "call": "find_context(post_id=\"p-5531\")",
-        "reference": "mod-file://p-5531/author-history.txt",
-        "content": "Account age 4 years, 610 posts, mostly well-received. One warning (2025) for an unsourced pesticide claim, no removals since.",
+        "call": "find_context(post_id=\"p-8812\")",
+        "reference": "mod-file://p-8812/author-history.txt",
+        "content": "Account age 9 years, 2,140 posts, 'Trusted Canner' flair. Has posted many tested-recipe walkthroughs. No warnings or removals.",
+        "label": "Author history"
+      },
+      {
+        "id": "s4",
+        "round": 1,
+        "advocate": "allow",
+        "tool": "find_context",
+        "call": "find_context(post_id=\"p-8812\")",
+        "reference": "mod-file://p-8812/community-rules.txt",
+        "content": "We follow tested recipes. Discussion of untested methods is allowed with the 'Untested method' flair so newcomers can tell the difference.",
+        "label": "Community sidebar"
+      },
+      {
+        "id": "s1",
+        "round": 1,
+        "advocate": "remove",
+        "tool": "find_context",
+        "call": "find_context(post_id=\"p-8812\")",
+        "reference": "mod-file://p-8812/reports.txt",
+        "content": "4 reports: 'dangerous advice' (3), 'misinformation' (1). 2 users also replied 'reported, but this is legit experience'.",
+        "label": "User reports"
+      },
+      {
+        "id": "s2",
+        "round": 1,
+        "advocate": "remove",
+        "tool": "find_context",
+        "call": "find_context(post_id=\"p-8812\")",
+        "reference": "mod-file://p-8812/replies.txt",
+        "content": "u/jar_nerd: 'Botulism doesn't care about your 30 years. NCHFP says acidify every tomato.' u/grandmas_pantry: 'Same here, my family never acidified and we test too.' u/heirloom_hal: 'I'm not telling beginners to copy me — I'm saying test.'",
+        "label": "Thread replies"
+      },
+      {
+        "id": "s3",
+        "round": 1,
+        "advocate": "remove",
+        "tool": "find_context",
+        "call": "find_context(post_id=\"p-8812\")",
+        "reference": "mod-file://p-8812/author-history.txt",
+        "content": "Account age 9 years, 2,140 posts, 'Trusted Canner' flair. Has posted many tested-recipe walkthroughs. No warnings or removals.",
         "label": "Author history"
       },
       {
         "id": "s4",
         "round": 1,
         "advocate": "remove",
-        "tool": "web_search",
-        "call": "web_search(query=\"site:epa.gov vinegar salt weed killer EPA recommends organic option salt herbicide vegetable garden\")",
-        "reference": "https://19january2025snapshot.epa.gov/sites/default/files/2019-03/documents/2018-10-31-ppdc-meeting-transcripts-official.pdf",
-        "content": "want to steal too much of Nina’s thunder. But, I mean, biopesticides are reduced risk pesticides. They’re naturally derived. You know, typically biological products, they may come from animals, plants, bacteria, fungi, certain minerals. They have a lot of benefits. They allow conventional growers to integrate; as I said, reduce risk pesticides into their pest management. They 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 158 allow organic growers to have pest control options. They [...] 20 21 22 180 And it is -- so we’re drinking every morning and it makes us feel kind of awake. Well, that’s a toxic mode of action come to find out; right? So it is not a biopesticide. It could be if we could make it so that it was organic; could be considered organic. But it wouldn’t be registered as a pesticide. So I’m going to give you -- I’m going to go really quickly. These are some of our member companies as examples just so you can get some ideas of other things that are biopesticides. I [...] 9 10 11 12 13 14 15 16 17 18 19 20 21 22 172 So another example here -- and this is actually a very famous, it’s one of the first -- it’s probably what organic growers use most often. It’s PyGanic. Everybody knows -- I think your growers out there, if you were growing vegetables, you want to grow chrysanthemum around your pests because the chrysanthemum extracts have been known for hundreds of years to be natural pest repellants. And it actually has a mode of action. And, again, it’s OMRI",
-        "label": "US EPA - PPDC Meeting, October 31, 2018"
+        "tool": "find_context",
+        "call": "find_context(post_id=\"p-8812\")",
+        "reference": "mod-file://p-8812/community-rules.txt",
+        "content": "We follow tested recipes. Discussion of untested methods is allowed with the 'Untested method' flair so newcomers can tell the difference.",
+        "label": "Community sidebar"
       },
       {
         "id": "s5",
         "round": 1,
         "advocate": "remove",
         "tool": "web_search",
-        "call": "web_search(query=\"site:epa.gov vinegar salt weed killer EPA recommends organic option salt herbicide vegetable garden\")",
-        "reference": "https://nepis.epa.gov/Exe/ZyPURL.cgi?Dockey=20011WX0.TXT",
-        "content": "This is the button that takes you to the next page of the current document (or the next sequence of pages if there are multiple pages of context selected)\n\nThis button finds your current search term(s) in the first page following this one and displays that page with all search terms on the page highlighted [...] Page 1 of 266 Image 7: Previous Page or group of Pages)Image 8: Previous Occurence of Search Term)Image 9: Reload with a larger image)Image 10: Reload with a smaller image)\n\n1\n\n266\n\nImage 11\n\nImage 12: Next Page or group of Pages)Image 13: Next Occurence of Search TermImage 14: Download PDF [...] This is the button that takes you to the previous page of the current document (or the previous sequence of pages if there are multiple pages of context selected)\n\nThis button finds your current search term(s) in the first page prior to this one and displays that page with all search terms on the page highlighted",
-        "label": "Document Display | NEPIS | US EPA"
-      },
-      {
-        "id": "s4",
-        "round": 1,
-        "advocate": "escalate to a human moderator",
-        "tool": "web_search",
-        "call": "web_search(query=\"site:epa.gov vinegar salt dish soap weed killer EPA recommends organic option vegetable beds salt soil damage\")",
-        "reference": "https://www.epa.gov/hw/household-hazardous-waste-hhw",
-        "content": "Consider reducing your purchase of products that contain hazardous ingredients. Learn about the use of alternative methods or products—without hazardous ingredients—for some common household needs. When shopping for items such as multipurpose household cleaners, toilet cleaners, laundry detergent, dish soap, dishwashing machine pods and gels, bug sprays and insect pest control, consider shopping for environmentally friendly, natural products or search online for simple recipes you can use to",
-        "label": "Household Hazardous Waste (HHW) | US EPA"
-      },
-      {
-        "id": "s5",
-        "round": 1,
-        "advocate": "escalate to a human moderator",
-        "tool": "web_search",
-        "call": "web_search(query=\"site:epa.gov vinegar salt dish soap weed killer EPA recommends organic option vegetable beds salt soil damage\")",
-        "reference": "https://nepis.epa.gov/Exe/ZyPURL.cgi?Dockey=94003Q78.TXT",
-        "content": "Page 1 of 196 Image 7: Previous Page or group of Pages)Image 8: Previous Occurence of Search Term)Image 9: Reload with a larger image)Image 10: Reload with a smaller image)\n\n1\n\n196\n\nImage 11\n\nImage 12: Next Page or group of Pages)Image 13: Next Occurence of Search TermImage 14: Download PDF [...] This entry location shows the current page number (or first page of the group of pages currently loaded) and provides the opportunity to jump to any page in the current document. Just enter the page number here... [...] This is the button that takes you to the next page of the current document (or the next sequence of pages if there are multiple pages of context selected)\n\nThis button finds your current search term(s) in the first page following this one and displays that page with all search terms on the page highlighted",
-        "label": "Document Display | NEPIS | US EPA"
-      },
-      {
-        "id": "s4",
-        "round": 1,
-        "advocate": "allow",
-        "tool": "web_search",
-        "call": "web_search(query=\"university extension vinegar salt herbicide soil damage vegetables salt dish soap\")",
-        "reference": "https://ask.extension.org/kb/faq.php?id=888177",
-        "content": "The idea of using Dawn soap or any liquid dishwashing soap is to act as a surfactant which means a sticky substance that can hold water against a surface (the vinegar against the plant tissue). Yes a dish soap can work as a surfactant but its not the best surfactant. There are surfactants on the market for herbicidal use. [...] There is herbicidal vinegar on the market with a concertation of 20% that is effective against broadleaf weeds. But it can be toxic to handle. Our everyday kitchen vinegar is at a concentration of 5%. So pretty diluted compared to the true herbicidal vinegar.\n\nThe University of Maryland Extension has an in-depth article, Vinegar: An Alternative to Glyphosate? This was shared in a previous Ask Extension question. [...] So if you have young weeds with only 1-2 leaves in walkways or driveways I would say go for it and use the vinegar, dish soap and salt to kill the weeds. But if they are near plants and trees you care about, please don't use these agents.\n\nInstead, consider pulling them out by hand and mulching the area for weed suppression.\n\nI hope that I answered your question. Don't hesitate to ask additional questions.\n\nSincerely,\n\nMitra Rado, Master Gardener Volunteer Replied October 17, 2024, 7:27 PM EDT",
-        "label": "Vinegar, salt and dawn weed killer - Ask Extension"
-      },
-      {
-        "id": "s5",
-        "round": 1,
-        "advocate": "allow",
-        "tool": "web_search",
-        "call": "web_search(query=\"university extension vinegar salt herbicide soil damage vegetables salt dish soap\")",
-        "reference": "https://extension.illinois.edu/blogs/ilriverhort/2018-04-08-homemade-herbicide-considerations-michelle-wiesbrook",
-        "content": "Popular mixes tend to include one or more of these main ingredients: vinegar, boiling water, bleach, baking soda, alcohol, salt, dish soap, and borax. We tend to associate a certain comfort level with these products. After all, they can often be found around the home and some of them are even edible! [...] A problem with using borax is that the chemical it contains, boron, does not break down or dissipate like conventional weed killers do, so repeated or excessive applications can result in bare areas where no vegetation can grow. Similarly, salt, which is sometimes used for long-term weed control, destroys the soil structure and is mobile, meaning it can migrate to nearby areas in your garden, resulting in unwanted plant damage. [...] Let's start with vinegar. Vinegar can be effective for weed control, but only if it is a strong enough grade, which the bottle in your kitchen likely isn't. Vinegar contains acetic acid that in concentrations over 11 percent can cause burns if it gets on your skin and permanent corneal injury if it comes in contact with your eyes. This is why reading and following the label is so important. There are now registered herbicidal vinegar products you can buy that have use and safety information on",
-        "label": "Homemade herbicide considerations by Michelle Wiesbrook | ILRiverHort | Illinois Extension | Illinois"
-      },
-      {
-        "id": "s6",
-        "round": 1,
-        "advocate": "allow",
-        "tool": "web_search",
-        "call": "web_search(query=\"EPA vinegar herbicide 20% acetic acid registered pesticide household vinegar salt weed control\")",
-        "reference": "https://npic.orst.edu/faq/vinegar.html",
-        "content": "Products registered to be used as herbicides have high concentrations of acetic acid, typically 20% or more. All registered herbicides containing acetic acid have a signal word of DANGER because of the high concentrations and high toxicity. Specifically, it is because of the risks of the acid to the eyes and skin. Low concentrations of acetic acid are used in insect lures. [...] Products containing vinegar/acetic acid that have been registered by the U.S. EPA as pesticides/herbicides will have a signal word and an EPA registration number on their packaging. Label information includes where and how to use the product, what precautions to take, personal protective gear to wear while using the product, and first aid instructions in case something goes wrong. [...] Acetic acid is available commercially for many purposes. Consider purchasing a product registered as a pesticide if you plan to use acetic acid for weed control. Doing so means you will have directions for use as an herbicide and information on precautions you can take to keep risks low. Products that do not have an EPA registration number and signal word are not registered to be used as herbicides and may not have appropriate safety or precautionary information for that use. Look for an EPA",
-        "label": "Can I use vinegar to control weeds?"
-      },
-      {
-        "id": "s7",
-        "round": 1,
-        "advocate": "allow",
-        "tool": "web_search",
-        "call": "web_search(query=\"EPA vinegar herbicide 20% acetic acid registered pesticide household vinegar salt weed control\")",
-        "reference": "https://extension.umd.edu/resource/vinegar-alternative-glyphosate",
-        "content": "Acetic acid, commonly known as vinegar, but also known as ethanoic acid, affects the cell membranes of a plant, causing rapid breakdown/desiccation of foliage tissue on contact. Herbicidal vinegar is stronger than household vinegar: the acetic acid concentration for herbicidal use is 10 -20%, compared to 5% acetic acid. Acetic acids of 8% or less inert ingredient are exempt from registration by the EPA as a pesticide under EPA Minimum Risk Pesticide, FIFRA 25 (b). Most states require [...] Soil Mender 10% Vinegar - 10% acetic acid (made from grain alcohol and not from glacial acetic acid), orange oil, molasses, and a natural surfactant.  \n Vinagreen Natural Non Selective Herbicide- 20% acetic acid (CMC Chemical) Registered in Maryland)  \n Weed Pharm Fast Acting Weed And Grass Killer - 20% vinegar (acetic acid) (PharmSolutions) (Signal word: Danger) [...] Research has found that 5-10% acetic acid herbicide products can give viable control of very small, young weeds that have only 1-2 leaves (or within 2 weeks of germination). Larger weeds (with >3-4 leaves) are likely to survive treatment, but using higher (20%) concentrations (5) of acetic acid and increasing the application volume (from 20 to 100 gpa) can improve weed control (6,7). Total crabgrass and grass weed control in a 2006 USDA-ARS study occurred with 20% acetic acid applied at 100",
-        "label": "Vinegar: An Alternative to Glyphosate? | University of Maryland Extension"
-      },
-      {
-        "id": "s8",
-        "round": 1,
-        "advocate": "allow",
-        "tool": "web_search",
-        "call": "web_search(query=\"site:epa.gov vinegar salt dish soap weed killer EPA recommends organic option vegetable beds safety\")",
-        "reference": "https://www.epa.gov/hw/household-hazardous-waste-hhw",
-        "content": "Consider reducing your purchase of products that contain hazardous ingredients. Learn about the use of alternative methods or products—without hazardous ingredients—for some common household needs. When shopping for items such as multipurpose household cleaners, toilet cleaners, laundry detergent, dish soap, dishwashing machine pods and gels, bug sprays and insect pest control, consider shopping for environmentally friendly, natural products or search online for simple recipes you can use to [...] | Hazardous Waste Source Reduction around the Home | |\n --- |\n| Drain Cleaner | Use a plunger or plumber's snake. |\n| Glass Cleaner | Mix one tablespoon of vinegar or lemon juice in one quart of water. Spray on and use newspaper to dry. |\n| Furniture Polish | Mix one teaspoon of lemon juice in one pint of mineral or vegetable oil and wipe furniture. |\n| Rug Deodorizer | Liberally sprinkle carpets with baking soda. Wait at least 15 minutes and vacuum. Repeat if necessary. |",
-        "label": "Household Hazardous Waste (HHW) | US EPA"
-      },
-      {
-        "id": "s9",
-        "round": 1,
-        "advocate": "allow",
-        "tool": "web_search",
-        "call": "web_search(query=\"site:epa.gov vinegar salt dish soap weed killer EPA recommends organic option vegetable beds safety\")",
-        "reference": "https://nepis.epa.gov/Exe/ZyPURL.cgi?Dockey=94003Q78.TXT",
-        "content": "Page 1 of 196 Image 7: Previous Page or group of Pages)Image 8: Previous Occurence of Search Term)Image 9: Reload with a larger image)Image 10: Reload with a smaller image)\n\n1\n\n196\n\nImage 11\n\nImage 12: Next Page or group of Pages)Image 13: Next Occurence of Search TermImage 14: Download PDF [...] This entry location shows the current page number (or first page of the group of pages currently loaded) and provides the opportunity to jump to any page in the current document. Just enter the page number here...",
-        "label": "Document Display | NEPIS | US EPA"
+        "call": "web_search(query=\"NCHFP tomatoes canning acidification pH test strips tomatoes safety botulism\")",
+        "reference": "https://www.healthycanning.com/why-do-some-tomato-products-need-acidification-but-not-others",
+        "content": "The processing times for these “pure” tomato products are actually shorter than they would really need to be if the goal were with them to kill the botulism spores outright through heat. The shorter processing times are completely dependent on the tomatoes having been acidified, which neutralizes botulism spores and prevents them from “germinating.”\n\nDr Elizabeth Andress of the National Center for Home Food Preservation says, [...] > The USDA process for home canning of tomatoes is only based on it being below a pH of 4.6 or treated as an acid food. Even when we provide a pressure canning alternative in the USDA book it is only the equivalent of a boiling water process. In other words you can use a higher temperature in the canner so you can have a shorter time, it was never developed as a process for pressure canning for elimination of concerns about botulism as if it were a low acid tomato. So that’s why we say you [...] Bizarrely enough, that’s good news in a way. Because preparing a home canned product with botulism spores in mind is the highest bar we have to shoot for, in doing so you just happen to also deal with all the other nasties too and so don’t even need to think about those ones.\n\nTo make a home canned tomato product safe from botulism spores springing to life and releasing their toxin inside your jars, you have to either:",
+        "label": "Why do some tomato products need acidification but not others? - Healthy Canning in Partnership with Facebook Group Canning for beginners, safely by the book"
       },
       {
         "id": "s6",
         "round": 1,
         "advocate": "remove",
         "tool": "web_search",
-        "call": "web_search(query=\"EPA vinegar herbicide salt soil damage weed control official advice not recommended\")",
-        "reference": "https://kingcountyweeds.com/2024/06/20/salt-vinegar-on-weeds-save-it-for-the-chips",
-        "content": "TLDR//cliff notes: salt and vinegar (S & V) should be treated as pesticides, as they are chemicals aimed at killing pests. There are situations that S & V are more appropriate (i.e. sidewalk cracks, gravel lots, precise spot treatment in landscaped beds), but if aiming for an herbicide free//more eco-friendly option, opt to use entirely non-chemical methods like digging & mulching instead. Salt & vinegar damage soil health and the organisms that rely on it and are overall not effective (they [...] When it comes to environmental impact – neither salt (as sodium chloride) or vinegar (as acetic acid) are approved by the U.S. Environmental Protection Agency (EPA) as stand-alone pesticides for pest control. Approved pesticides must undergo rigorous testing and evaluation by the EPA to ensure they are safe and effective when used according to label instructions. This process involves assessing potential risks to human health, non-target organisms (non-plants), and the environment. Approved [...] And perhaps this collateral damage would be worth the tradeoff if these methods were effective long-term, but they are not. Salt, and especially vinegar, act like contact herbicides, meaning they burn the leaves off of plants, with the added misfortune of potentially being harmful to any non-plant beings in the vicinity (worms, beneficial bacteria, fungi, etc.). Even approved contact herbicides are ineffective for most weeds because they work by killing whatever surfaces they touch, i.e. above",
-        "label": "Salt & Vinegar on Weeds? Save it for the Chips!"
+        "call": "web_search(query=\"NCHFP tomatoes canning acidification pH test strips tomatoes safety botulism\")",
+        "reference": "https://nchfp.uga.edu/how/can/general-information/ensuring-safe-canned-foods",
+        "content": "Although tomatoes usually are considered an acid food, some are now known to have pH values slightly above 4.6. Figs also have pH values slightly above 4.6. Therefore, if they are to be canned as acid foods, these products must be acidified to a pH of 4.6 or lower with lemon juice or citric acid. Properly acidified tomatoes and figs are acid foods and can be safely processed in a boiling-water canner. [...] Whether food should be processed in a pressure canner or boiling-water canner to control botulinum bacteria depends on the acidity of the food. Acidity may be natural, as in most fruits, or added, as in pickled food. Low-acid canned foods are not acidic enough to prevent the growth of these bacteria. Acid foods contain enough acid to block their growth, or destroy them more rapidly when heated. The term \"pH\" is a measure of acidity; the lower its value, the more acid the food. The acidity level [...] Botulinum spores are very hard to destroy at boiling-water temperatures; the higher the canner temperature, the more easily they are destroyed. Therefore, all low-acid foods should be sterilized at temperatures of 240° to 250°F, attainable with pressure canners operated at 10 to 15 PSIG. PSIG means pounds per square inch of pressure as measured by gauge. The more familiar \"PSI\" designation is used hereafter in this publication (the Complete Guide to Home Canning). At temperatures of 240° to",
+        "label": "Ensuring Safe Canned Foods - National Center for Home Food Preservation"
       },
       {
         "id": "s7",
         "round": 1,
         "advocate": "remove",
         "tool": "web_search",
-        "call": "web_search(query=\"EPA vinegar herbicide salt soil damage weed control official advice not recommended\")",
-        "reference": "https://henderson.ces.ncsu.edu/news/eco-friendly-herbicides-a-new-era-in-home-weed-control",
-        "content": "Any substance that would kill living organisms in general can be used to kill weeds. Dish soap, vinegar, boiling water, bleach, salt, borax, baking soda, alcohol, and lots of other chemicals can be found on the internet as recommended herbicides. We do not recommend using  homemade herbicides. Substances like vinegar and bleach are acids and can damage eyes and irritate skin. Scalding from boiling water causes a high number of home injuries annually.",
-        "label": "Eco-Friendly Herbicides - a New Era in Home Weed Control - Henderson County Center | N.C. Cooperative Extension"
-      },
-      {
-        "id": "s6",
-        "round": 1,
-        "advocate": "escalate to a human moderator",
-        "tool": "web_search",
-        "call": "web_search(query=\"extension service vinegar salt homemade weed killer soil salt harms garden EPA does not recommend vinegar weed killer\")",
-        "reference": "https://www.preen.com/learn/lawn-garden-tips/weed-control/get-rid-of-weeds/homemade-isn-t-harmless-what-to-know-about-diy-weed-killers",
-        "content": "Nevertheless, the Internet and social media are filled with recipes that include ingredients such as vinegar, salt, rubbing alcohol, boiling water, borax, citrus oils, bleach, baking soda, lemon juice, and various soaps.\n\nExtension services and the U.S. Environmental Protection Agency (EPA) widely discourage using such products or mixes of them, pointing out that they’re unproven and usually rooted in something that seemed to work in observations by one or a few individuals. [...] A longer-term potential problem is that frequent vinegar applications can lower soil pH, making the soil too acidic for the good growth of most plants.\n\nSome recipes add salt to vinegar to make an even more weed-toxic mix.\n\nWhile salt is one of the oldest herbicides, its main drawback is that it can build up in the soil, where it’s slow to degrade, disruptive to earthworms and beneficial soil microbes, and capable of moving into nearby soil to harm untargeted plants. [...] Salt runoff also adds to stormwater pollution of ponds and lakes, where it can kill aquatic life – one of the same concerns gardeners have about pesticide use.\n\nMost herbicides break down in the soil quicker than salt, which can remain at plant-toxic levels for years if overdone.\n\nRubbing alcohol and borax are two other DIY ingredients that are slow to break down in the soil and relatively weak in weed-killing ability.",
-        "label": "Homemade Isn’t Harmless: What to Know About DIY Weed Killers"
-      },
-      {
-        "id": "s7",
-        "round": 1,
-        "advocate": "escalate to a human moderator",
-        "tool": "web_search",
-        "call": "web_search(query=\"extension service vinegar salt homemade weed killer soil salt harms garden EPA does not recommend vinegar weed killer\")",
-        "reference": "https://kingcountyweeds.com/2024/06/20/salt-vinegar-on-weeds-save-it-for-the-chips",
-        "content": "When it comes to environmental impact – neither salt (as sodium chloride) or vinegar (as acetic acid) are approved by the U.S. Environmental Protection Agency (EPA) as stand-alone pesticides for pest control. Approved pesticides must undergo rigorous testing and evaluation by the EPA to ensure they are safe and effective when used according to label instructions. This process involves assessing potential risks to human health, non-target organisms (non-plants), and the environment. Approved [...] The idea behind using salt and vinegar as weed killers is appealing, because these ingredients are common household items. The logic goes that if they’re safe enough to eat, they must be safe for the environment, at least safer than synthetic herbicides. Unfortunately, this is a dangerous oversimplification. Both salt and vinegar may kill some weeds, but they do so in a way that can cause significant collateral damage to other plants, the surrounding soil, and the delicate microbiome that [...] TLDR//cliff notes: salt and vinegar (S & V) should be treated as pesticides, as they are chemicals aimed at killing pests. There are situations that S & V are more appropriate (i.e. sidewalk cracks, gravel lots, precise spot treatment in landscaped beds), but if aiming for an herbicide free//more eco-friendly option, opt to use entirely non-chemical methods like digging & mulching instead. Salt & vinegar damage soil health and the organisms that rely on it and are overall not effective (they",
-        "label": "Salt & Vinegar on Weeds? Save it for the Chips!"
+        "call": "web_search(query=\"USDA home canning tomatoes acidify pH strips water bath canning heirloom tomatoes recommendation\")",
+        "reference": "https://therike.com/blogs/sustainable-living/canning-and-preserving-tomatoes-1241",
+        "content": "You can safely preserve tomatoes in a boiling water bath only when every jar is acidified: add 2 tablespoons bottled lemon juice or 1/2 teaspoon citric acid per quart, or half that amount for pints. Tomatoes sit near the food-safety cutoff of pH 4.6, so acid is not optional for water bath canning. For most beginners, hot-pack crushed tomatoes are the easiest and most reliable choice because they fill jars densely, float less, and process for a clear USDA-listed time: 35 minutes for pints or 45 [...] ## Source-Cited Safety Notes\n\nThe safety rules in this guide are based on tested home-canning guidance from the National Center for Home Food Preservation tomato canning directions, the USDA Complete Guide to Home Canning, and university Extension recommendations such as University of Minnesota Extension tomato canning guidance. These sources specify acidification amounts, pH safety thresholds, processing times, and altitude adjustments for home-canned tomato products. [...] No. For boiling water bath canning, tomatoes must be acidified with bottled lemon juice or citric acid. Tomatoes can sit at or above pH 4.6, the cutoff used for controlling botulism risk in canned foods.\n\n### Is citric acid better than bottled lemon juice?\n\nBoth are approved when measured correctly. Citric acid has less flavor impact, while bottled lemon juice is easy to find and measure. Do not replace either with fresh lemon juice unless a tested recipe specifically allows it.",
+        "label": "Water Bath Canning Tomatoes: Roma Tomato Guide"
       },
       {
         "id": "s8",
         "round": 1,
         "advocate": "remove",
         "tool": "web_search",
-        "call": "web_search(query=\"site:epa.gov \\\"vinegar\\\" \\\"herbicide\\\" salt pesticide EPA weed\")",
-        "reference": "https://www.epa.gov/system/files/documents/2025-11/2026-pesticide-maintenance-fee-product-list-company-no-3-to-499.pdf",
-        "content": "CAN WAIV PAY 3-24 VINEGAR GRASS & WEED KILLER II ______________ 7 ___ ___ ___ ___ ____ Page 1 EPA Reg. No. [...] 279-3378 BANDOLIER HERBICIDE ______________ 57 ERR TRN CAN WAIV PAY 279-3380 F9043 EC INSECTICIDE ______________ 58 ERR TRN CAN WAIV PAY 279-3405 FMC GLYPHOSATE TECHNICAL ______________ 59 ERR TRN CAN WAIV PAY 279-3406 GLYPHOSATE 62% ISOPROPYLAMINE SALT (IPA) ______________ 60 ___ ___ ___ ___ ____ Page 6 EPA Reg. No. [...] 86 ERR TRN CAN WAIV PAY 279-3547 GLYFOS PRO HERBICIDE ______________ 87 ERR TRN CAN WAIV PAY 279-3548 GLYFOS CUSTOM HERBICIDE ______________ 88 ERR TRN CAN WAIV PAY 279-3549 GLYFOS READY-TO-USE 2% WEED AND GRASS KILLER ______________ 89 ERR TRN CAN WAIV PAY 279-3550 GLYFOS XTRAMAX ______________ 90 ___ ___ ___ ___ ____ Page 9 EPA Reg. No.",
-        "label": "2026 Pesticide Registration Maintenance Fees"
+        "call": "web_search(query=\"USDA home canning tomatoes acidify pH strips water bath canning heirloom tomatoes recommendation\")",
+        "reference": "https://www.healthycanning.com/canning-tomatoes",
+        "content": "> Tomatoes … can have a natural pH above 4.6 (at least up to 4.8). But rather than develop a pressure-only process as if they were all low-acid, since they are so close to 4.6, USDA decided instead to recommend a small amount of acid be added so they can be treated as a food with a pH less than 4.6 for home canning. Therefore they are suitable for boiling water canning when the acid is added. (The commercial industry often also adds citric acid to tomatoes to be able to give them a less severe [...] > The USDA process for home canning of tomatoes is only based on it being below a pH of 4.6 or treated as an acid food. Even when we provide a pressure canning alternative in the USDA book it is only the equivalent of a boiling water process. In other words you can use a higher temperature in the canner so you can have a shorter time, it was never developed as a process for pressure canning for elimination of concerns about botulism as if it were a low acid tomato. So that’s why we say you",
+        "label": "Canning tomatoes - Healthy Canning in Partnership with Facebook Group Canning for beginners, safely by the book"
+      },
+      {
+        "id": "s5",
+        "round": 1,
+        "advocate": "escalate to a human moderator",
+        "tool": "web_search",
+        "call": "web_search(query=\"USDA NCHFP canning tomatoes acidification pH test strips heirloom tomatoes water bath canning acidify all tomatoes\")",
+        "reference": "https://hgic.clemson.edu/canning-tomato-to-acidify",
+        "content": "Tomato varieties have been bred for ease in harvesting; as a result many now have milder flavor and lower acidity than the ancestral tomatoes. Testing has shown that some current tomato varieties have pH values at or above pH 4.6; a few have values of pH 5 or even higher. Adding the recommended amount of lemon juice (or citric acid or vinegar) lowers the pH of all tested varieties enough to allow for safe boiling water bath canning. Acidifying all tomatoes now is recommended because it allows [...] Select Page\n\n# Canning Tomato Products To Acidify of Not to Acidify\n\nApr 30, 2018 |  Print)\n\na bunch of tomatoes\n\nAcidifying all tomatoes now is recommended because it allows for safe processing in a boiling water bath canner (and for a safe short process in a pressure canner).  \nRebecca Baxley, ©2019, Clemson University Extension\n\nWhy Acidify Tomatoes? [...] Some procedures from the USDA Complete Guide to Home Canning offer both boiling water and pressure canning options for tomatoes. For examples, see canning procedures for crushed tomatoes, whole or halved tomatoes, tomatillos, tomato juice, and tomato sauce (So Easy to Preserve, pages 51-56). Both the boiling water and pressure canning options require acidification. The boiling water and pressure alternatives calculated for canning these products are different time and temperature combinations",
+        "label": "Canning Tomato Products To Acidify of Not to Acidify | Home & Garden Information Center"
+      },
+      {
+        "id": "s6",
+        "round": 1,
+        "advocate": "escalate to a human moderator",
+        "tool": "web_search",
+        "call": "web_search(query=\"USDA NCHFP canning tomatoes acidification pH test strips heirloom tomatoes water bath canning acidify all tomatoes\")",
+        "reference": "https://traditionalcookingschool.com/food-preparation/how-to-safely-can-tomatoes-the-myth-about-heirlooms-acidity",
+        "content": "Second, although tomatoes are considered an acidic food, their pH must be 4.6 or lower to be safe for water bath canning. Because they are technically a fruit, we are able to water bath can tomatoes. (All vegetables, unless pickled, must be pressure canned to avoid botulism.)\n\nAnd yet…\n\nTomatoes aren’t as low on the pH scale as some people think.\n\n## The Myth About Heirlooms & Acidity\n\nTomatoes are borderline — falling between a 4.30 and 4.90 on the pH scale (source)).",
+        "label": "How To Safely Can Tomatoes (+ the myth about heirlooms and acidity)"
+      },
+      {
+        "id": "s5",
+        "round": 1,
+        "advocate": "allow",
+        "tool": "web_search",
+        "call": "web_search(query=\"site:nchfp.uga.edu tomatoes acidification pH strips canning heirloom tomatoes acidify all varieties tested recipe safety\")",
+        "reference": "https://nchfp.uga.edu/newsflash/using-frozen-tomatoes-in-home-canning",
+        "content": "Watch Out for Overpacking: Because thawed tomatoes lose structural integrity and collapse, it is easy to pack too many into a single jar. Overpacking prevents proper heat penetration, which can leave harmful bacteria alive.\n Mandatory Acidity: Always follow a research-tested recipe and add the required amount of bottled lemon juice from concentrate, citric acid, or 5% acetic acid vinegar directly to each jar to ensure safe pH levels. See our tomato acidification instructions for details.",
+        "label": "| National Center for Home Food Preservation"
+      },
+      {
+        "id": "s6",
+        "round": 1,
+        "advocate": "allow",
+        "tool": "web_search",
+        "call": "web_search(query=\"site:nchfp.uga.edu tomatoes acidification pH strips canning heirloom tomatoes acidify all varieties tested recipe safety\")",
+        "reference": "http://nchfp.uga.edu/papers/2004/04ift-tomatosalsaPoster_combined.html",
+        "content": "Lemon juice (¼ cup or 60 ml) safely acidified a guideline salsa recipe containing 200 g Roma tomatoes, 120 g onions, 65 g peppers, 15 g hot pepper purée, and ½ tsp salt to a pH below 4.0. The flavor and color of this salsa after canning was of acceptable quality based on preliminary tests.\n Lime juice provided the same acidification of the salsa, but it had a much stronger lime flavor and aroma. [...] Based on this research a safe recipe guideline ratio of 200 g Roma tomatoes, 200 g (onions, peppers, and dry spices), and ¼ cup (60 ml or 61g) of bottled lemon juice per pint volume was proposed. The lemon juice (60 ml) safely acidified a lab recipe (200 g Roma tomatoes, 120 g onions, 65 g green peppers, 15 g jalapeño peppers, and 5 g table salt per pint) to below pH 3.82. Salsa made from 200 g tomatoes,  cup lemon juice and either all onions (200 g) or all green peppers (200 g) as the [...] Most tomato-based salsa recipes mix low-acid foods, such as onions, sweet and/or hot peppers, with acid foods, such as tomatoes. Currently the USDA (2) and the National Center for Home Food Preservation () recommend that a boiling water canning process be used only for research-tested salsa recipes that provide evidence of safe acidification to inhibit Clostridium botulinum growth. The USDA Complete Guide to Home Canning (2) has only one salsa recipe. Research by Hillers and Dougherty (1)",
+        "label": "National Center for Home Food Preservation | NCHFP Publications"
+      },
+      {
+        "id": "s7",
+        "round": 1,
+        "advocate": "escalate to a human moderator",
+        "tool": "web_search",
+        "call": "web_search(query=\"site:nchfp.uga.edu tomatoes acidification pH strips pH 4.6 safety canning tomatoes acidify varieties\")",
+        "reference": "https://nchfp.uga.edu/how/can/general-information/ensuring-safe-canned-foods",
+        "content": "Although tomatoes usually are considered an acid food, some are now known to have pH values slightly above 4.6. Figs also have pH values slightly above 4.6. Therefore, if they are to be canned as acid foods, these products must be acidified to a pH of 4.6 or lower with lemon juice or citric acid. Properly acidified tomatoes and figs are acid foods and can be safely processed in a boiling-water canner. [...] Low-acid foods have pH values higher than 4.6. They include red meats, seafood, poultry, milk, and all fresh vegetables except for most tomatoes. Most mixtures of low-acid and acid foods also have pH values above 4.6 unless their recipes include enough lemon juice, citric acid, or vinegar to make them acid foods. Acid foods have a pH of 4.6 or lower. They include fruits, pickles, sauerkraut, jams, jellies, marmalades, and fruit butters.",
+        "label": "Ensuring Safe Canned Foods - National Center for Home Food Preservation"
+      },
+      {
+        "id": "s8",
+        "round": 1,
+        "advocate": "escalate to a human moderator",
+        "tool": "web_search",
+        "call": "web_search(query=\"site:nchfp.uga.edu tomatoes acidification pH strips pH 4.6 safety canning tomatoes acidify varieties\")",
+        "reference": "https://nchfp.uga.edu/papers/2004/04ift-tomatosalsaPoster_combined.html",
+        "content": "It was interesting to note that this skinned and deseeded Roma tomato flesh had a pH of 4.6-4.7. This was most likely due to loss of acid in the tomato juice that was intentionally not used to avoid a watery salsa.\n The data suggest that 30 ml bottled lemon juice will safely acidify 100 g of tomatoes, peppers, or onions; or some combination of these ingredients. [...] (200 g) as the low-acid ingredient maintained a pH below 3.82. In acidification curves single low-acid salsa ingredients needed only 10 ml lemon juice per 200 g vegetable to acidify below pH 4.6. Furthermore, 60 ml lemon juice per pint safely acidified full pint volumes (263-304 g) of onions, green peppers, or jalapeños alone to below pH 3.82. Informal taste panels indicated an acceptable salsa flavor after canning using recipes within the guideline. [...] A larger volume of vinegar was needed to achieve equivalent pH values for the salsa mixture; this volume resulted in a pronounced flavor change.\n Acidification curves indicated that lemon juice (30 ml per 100 g vegetable) could safely acidify tomatoes, peppers, or onions prepared under the conditions in this experiment.\n Salsa made from 200 g Roma tomatoes, ¼ cup bottled lemon juice and either all onions (200 g) or all green bell peppers (200 g) was safely acidified.",
+        "label": "National Center for Home Food Preservation | NCHFP Publications"
       },
       {
         "id": "s9",
         "round": 1,
         "advocate": "remove",
         "tool": "web_search",
-        "call": "web_search(query=\"site:epa.gov \\\"vinegar\\\" \\\"herbicide\\\" salt pesticide EPA weed\")",
-        "reference": "https://www.epa.gov/minimum-risk-pesticides/minimum-risk-pesticides-inert-ingredient-and-active-ingredient-eligibility",
-        "content": "Examples:\n\nFor those chemicals that can be used as either an inert or active ingredient, the ingredient must be properly designated on the label according to its role in the product. See EPA letter on differentiation of active and inert ingredients.\n\n## Minimum Risk Pesticides\n\nUnited States Environmental Protection Agency\n\n## Discover.\n\n## Connect.\n\n## Ask.\n\n## Follow. [...] Ingredients that are included on both the Minimum Risk Active Ingredient list and the Minimum Risk Inert Ingredients list may be used either as an active ingredient or an inert ingredient. However, the active ingredient and inert ingredient lists are not interchangeable. Unless the ingredient appears on both lists, it can only be used based on the list it appears on.\n\n Examples: [...] U.S. flag\n\nAn official website of the United States government\n\nHere’s how you know\n\nDot gov\n\nOfficial websites use .gov\n  \n A .gov website belongs to an official government organization in the United States.\n\nHTTPS\n\nSecure .gov websites use HTTPS\n  \n A lock (LockA locked padlock) or  means you’ve safely connected to the .gov website. Share sensitive information only on official, secure websites.\n\nJavaScript appears to be disabled on this computer. Please click here to see any active alerts.",
-        "label": "Minimum Risk Pesticides - Inert Ingredient and Active Ingredient Eligibility under 40 CFR 152.25(f) | US EPA"
+        "call": "web_search(query=\"site:nchfp.uga.edu pH strips home canning tomatoes acidification pH testing not recommended strips\")",
+        "reference": "https://nchfp.uga.edu/papers/guide/GUIDE01_HomeCan_rev0715.pdf",
+        "content": "Although tomatoes usually are considered an acid food, some are now known to have pH values slightly above 4.6. Figs also have pH values slightly above 4.6. Therefore, if they are to be canned as acid foods, these products must be acidified to a pH of 4.6 or lower with lemon juice or citric acid. Properly acidified tomatoes and figs are acid foods and can be safely processed in a boiling-water canner. [...] Hot pack Heating of raw food in boiling water or steam and filling it hot into jars. Low-acid foods Foods which contain very little acid and have a pH above 4.6. The acidity in these foods is insufficient to prevent the growth of the bacterium Clostridium botulinum. Vegetables, some tomatoes, figs, all meats, fish, seafoods, and some dairy foods are low acid. To control all risks of botulism, jars of these foods must be (1) heat processed in a pressure canner, or (2) acidified to a pH of 4.6 or [...] to a pH of 4.6 or lower before processing in boiling water.",
+        "label": "Principles of Home Canning"
+      },
+      {
+        "id": "s10",
+        "round": 1,
+        "advocate": "remove",
+        "tool": "web_search",
+        "call": "web_search(query=\"site:nchfp.uga.edu pH strips home canning tomatoes acidification pH testing not recommended strips\")",
+        "reference": "https://nchfp.uga.edu/newsflash/home-canning-safety-why-the-type-of-bottled-lemon-juice-matters",
+        "content": "Since food safety in canning depends on getting the acid level right, it's best to stick with a product that has a guaranteed acidity: bottled lemon or lime juice from concentrate.\n\nCurious why we don't recommend testing acidity at home with a pH meter instead? Read our Newsflash on home pH testing.\n\n### The safe choice",
+        "label": "| National Center for Home Food Preservation"
+      },
+      {
+        "id": "s11",
+        "round": 1,
+        "advocate": "remove",
+        "tool": "web_search",
+        "call": "web_search(query=\"site:nchfp.uga.edu \\\"home pH testing\\\" canning pH strips test tomatoes\")",
+        "reference": "https://nchfp.uga.edu/papers/guide/GUIDE01_HomeCan_rev0715.pdf",
+        "content": "Although tomatoes usually are considered an acid food, some are now known to have pH values slightly above 4.6. Figs also have pH values slightly above 4.6. Therefore, if they are to be canned as acid foods, these products must be acidified to a pH of 4.6 or lower with lemon juice or citric acid. Properly acidified tomatoes and figs are acid foods and can be safely processed in a boiling-water canner. [...] Principles of Home Canning 1 1-33 Glossary of Terms Acid foods Foods which contain enough acid to result in a pH of 4.6 or lower. Includes all fruits except figs; most tomatoes; fermented and pickled vegetables; relishes; and jams, jellies, and marmalades. Acid foods may be processed in boiling water.\nAltitude The vertical elevation of a location above sea level. [...] “pH” is a measure of acidity; the lower its value, the more acid the food. The acidity level in foods can be increased by adding lemon juice, citric acid, or vinegar. Low-acid foods have pH values higher than 4.6. They include red meats, seafood, poultry, milk, and all fresh vegetables except for most tomatoes. Most mixtures of low-acid and acid foods also have pH values above 4.6 unless their recipes include enough lemon juice, citric acid, or vinegar to make them acid foods. Acid foods have a",
+        "label": "Principles of Home Canning"
+      },
+      {
+        "id": "s12",
+        "round": 1,
+        "advocate": "remove",
+        "tool": "web_search",
+        "call": "web_search(query=\"site:nchfp.uga.edu \\\"home pH testing\\\" canning pH strips test tomatoes\")",
+        "reference": "https://nchfp.uga.edu/how/can/general-information/ensuring-safe-canned-foods",
+        "content": "Although tomatoes usually are considered an acid food, some are now known to have pH values slightly above 4.6. Figs also have pH values slightly above 4.6. Therefore, if they are to be canned as acid foods, these products must be acidified to a pH of 4.6 or lower with lemon juice or citric acid. Properly acidified tomatoes and figs are acid foods and can be safely processed in a boiling-water canner. [...] Low-acid foods have pH values higher than 4.6. They include red meats, seafood, poultry, milk, and all fresh vegetables except for most tomatoes. Most mixtures of low-acid and acid foods also have pH values above 4.6 unless their recipes include enough lemon juice, citric acid, or vinegar to make them acid foods. Acid foods have a pH of 4.6 or lower. They include fruits, pickles, sauerkraut, jams, jellies, marmalades, and fruit butters.",
+        "label": "Ensuring Safe Canned Foods - National Center for Home Food Preservation"
+      },
+      {
+        "id": "s9",
+        "round": 1,
+        "advocate": "escalate to a human moderator",
+        "tool": "web_search",
+        "call": "web_search(query=\"home canning pH strips tomatoes testing pH strips not recommended acidification extension\")",
+        "reference": "https://ucanr.edu/blog/preservation-notes-san-joaquin-master-food-preservers/article/help-desk-question-home-ph",
+        "content": "RESPONSE:Using home pH testing for home canning is not recommended for several important reasons, primarily related to the accuracy and safety of the canning process. Here are some key points explaining why home pH testing is discouraged in home canning:\n\n- Professional Equipment: Professional equipment is required for consistent accuracy. It is extremely expensive and training is required which is not generally feasible for home use. [...] In summary, using home pH testing for home canning is not recommended due to its potential lack of accuracy and reliability, which can compromise the safety of canned foods. To ensure safe home canning practices, it is essential to follow established guidelines and recipes from reputable sources like the USDA and the NCHFP, rather than relying on pH testing methods that may not meet safety standards.\n\nNational Center for Home Food Preservation \n\nImage: [...] - Lack of Precision: Home pH testing methods often lack the precision and reliability required for safe home canning. pH meters and strips used in homes may not provide accurate readings, which can lead to unreliable results.",
+        "label": "Help Desk Question: Home pH Testing | Preservation Notes - San Joaquin Master Food Preservers"
+      },
+      {
+        "id": "s10",
+        "round": 1,
+        "advocate": "escalate to a human moderator",
+        "tool": "web_search",
+        "call": "web_search(query=\"home canning pH strips tomatoes testing pH strips not recommended acidification extension\")",
+        "reference": "https://www.youtube.com/watch?v=WBrN31J5OuQ",
+        "content": "[3:03] we don't need to test the pH because we are already having to pressure can them because they are already we know for sure low acid which is why it's not safe\n[3:11] to water bath can them. They must be pressure canned to reach the internal temperature and maintain that inter internal temperature for long enough to\n[3:19] kill off the bachulism spores and anything else that could be lurking inside that jar. So pH strips are a non-topic with pressure canning recipes. [...] [2:38] Actually I have two points. One point is people will ask about using pH strips to test pressure canning recipes and that's\n[2:46] not um that's not how that works. This is only appropriate and only useful for water bath canning recipes because\n[2:55] pressure canning recipes we know for a fact are low acid and cannot be water bath canned. So it doesn't matter that [...] [1:44] homes. what's best is pH strips. And the they are not saying don't um use pH\n[1:52] strips at all or don't worry about pH or whatever. They're just saying don't use pH meters. Um but one note that I will\n[2:00] say about pH strips is when I first started canning, I was using fish tank strips, pH strips, and I realized that\n[2:08] that really wasn't the best option. I really needed something more nuanced um that would go in between like instead of just doing a pH of four or five, you",
+        "label": "They Updated Another Canning Rule (My Honest Response)"
+      },
+      {
+        "id": "s7",
+        "round": 1,
+        "advocate": "allow",
+        "tool": "web_search",
+        "call": "web_search(query=\"NCHFP tomatoes heirloom varieties acidification pH strips pH 4.2 home canning research tested recipe\")",
+        "reference": "https://nchfp.uga.edu/newsflash",
+        "content": "The National Center for Home Food Preservation considers atmospheric steam canning a safe method for processing high-acid foods, like fruits, jams, pickles, and tomatoes, when tested recipes and recommended processing guidelines are followed. Research shows that atmospheric steam canning provides enough heat to destroy microorganisms that could make you sick. However, some very heat-resistant microorganisms that cause food to spoil may survive the process. This means that, when atmospheric [...] Watch Out for Overpacking: Because thawed tomatoes lose structural integrity and collapse, it is easy to pack too many into a single jar. Overpacking prevents proper heat penetration, which can leave harmful bacteria alive.\n Mandatory Acidity: Always follow a research-tested recipe and add the required amount of bottled lemon juice, citric acid, or 5% acetic acid vinegar directly to each jar to ensure safe pH levels. See our tomato acidification instructions for details. [...] Keep All Released Liquid: Tomatoes release a significant amount of juice as they thaw. Include 100% of this liquid in your preparation; it is accounted for in research-tested recipes and essential for correct acidity and volume.\n Use Hot Pack, Not Raw Pack: Thaw tomatoes in the refrigerator, then heat all solids and liquids before jar packing. Do not raw pack thawed tomatoes since this leads to potentially overpacking and under processing, given they lose water during the thawing process.",
+        "label": "NewsFlash | National Center for Home Food Preservation"
+      },
+      {
+        "id": "s8",
+        "round": 1,
+        "advocate": "allow",
+        "tool": "web_search",
+        "call": "web_search(query=\"NCHFP tomatoes heirloom varieties acidification pH strips pH 4.2 home canning research tested recipe\")",
+        "reference": "https://nchfp.uga.edu/how/can/how-do-i-can-tomatoes/canning-tomatoes-introduction",
+        "content": "Acidification: To ensure safe acidity in whole, crushed, or juiced tomatoes, add two tablespoons of bottled lemon juice or 1/2 teaspoon of citric acid per quart of tomatoes. For pints, use one tablespoon bottled lemon juice or 1/4 teaspoon citric acid. Acid can be added directly to the jars before filling with product. Add sugar to offset acid taste, if desired. Four tablespoons of a 5 percent acidity vinegar per quart may be used instead of lemon juice or citric acid. However, vinegar may",
+        "label": "Canning Tomatoes, Introduction - National Center for Home Food Preservation"
+      },
+      {
+        "id": "s13",
+        "round": 1,
+        "advocate": "remove",
+        "tool": "web_search",
+        "call": "web_search(query=\"home canning pH strips tomatoes reliable pH testing solids sauce extension acidification tested recipes\")",
+        "reference": "https://foodinjars.com/blog/canning-101-acid-and-ph-in-boiling-water-bath-canning",
+        "content": "Updated to add: One last thing! It’s important to remember the pH of the entire jar counts here. This is why it’s so vital to follow tested, reliable recipes for things like tomato sauce or salsa. Sure, you can add bottled lemon juice to your tomatoes to lower the pH, but if you’ve also added onions, garlic, and basil to your sauce, you’re not just balancing the acid of the tomatoes, you’re also taking the rest of the ingredients into account. That’s why salsa recipes designed for canning [...] Reply\n\n  1. It depends on what you’re trying to acidify. If you’re working with tomatoes or fruit with a similar pH (they tend to be between 4.3 and 5.0, but we always treat them as if their pH is higher than 4.6), you use 1 tablespoon lemon juice or 1/4 teaspoon citric acid for every pint of product. Unfortunately, there’s no reliable formula for anything with a higher pH. Beyond that, you need to be testing pH or pressure canning.\n\n     Reply",
+        "label": "Canning 101: Understanding Acid and pH in Boiling Water Bath Canning – Food in Jars"
+      },
+      {
+        "id": "s14",
+        "round": 1,
+        "advocate": "remove",
+        "tool": "web_search",
+        "call": "web_search(query=\"home canning pH strips tomatoes reliable pH testing solids sauce extension acidification tested recipes\")",
+        "reference": "https://www.healthycanning.com/ph-meters-and-home-canning",
+        "content": "If you are a regular home canner and are following tested recipes from reliable sources, you don’t need a pH meter. In fact, USDA (United States Department of Agriculture) Extension people don’t want you to even own one. They feel perhaps that if people do have them, they may use them to try to create their own home canning recipes, or muck with the approved recipes. There’s so much bad canning practice going around, that they just want to get people to start following tested recipes, not [...] At HealthyCanning.com, we decided on the Oakton pHTester 20, as it had the greater accuracy of all those mentioned above. We use it only to test “already tested recipes” from reliable sources. The purpose was to demonstrate to readers just how safe those tested recipes were. The safety margins proved to be massive, proving that those tested recipes can indeed be followed with complete confidence.\n\n## Further reading on pH meters and home canning [...] ## You are going to test the solids, not just the liquid\n\nIt’s pretty clear that if a liquid put inside of a jar of dill pickles made with a tested recipe was pure vinegar, that the pH of that liquid has a pretty good chance of being fine. But what you don’t know is, did enough of that vinegar make it into the centre of the cucumber pieces to make them safe all the way through?\n\nFor this reason, we want to test it all, even inside the bits. This is called testing the “equilibrium pH.”",
+        "label": "pH Meters and Home Canning - Healthy Canning in Partnership with Facebook Group Canning for beginners, safely by the book"
+      },
+      {
+        "id": "s9",
+        "round": 2,
+        "advocate": "allow",
+        "tool": "find_context",
+        "call": "find_context(post_id=\"p-8812\")",
+        "reference": "mod-file://p-8812/reports.txt",
+        "content": "4 reports: 'dangerous advice' (3), 'misinformation' (1). 2 users also replied 'reported, but this is legit experience'.",
+        "label": "User reports"
+      },
+      {
+        "id": "s10",
+        "round": 2,
+        "advocate": "allow",
+        "tool": "find_context",
+        "call": "find_context(post_id=\"p-8812\")",
+        "reference": "mod-file://p-8812/replies.txt",
+        "content": "u/jar_nerd: 'Botulism doesn't care about your 30 years. NCHFP says acidify every tomato.' u/grandmas_pantry: 'Same here, my family never acidified and we test too.' u/heirloom_hal: 'I'm not telling beginners to copy me — I'm saying test.'",
+        "label": "Thread replies"
+      },
+      {
+        "id": "s11",
+        "round": 2,
+        "advocate": "allow",
+        "tool": "find_context",
+        "call": "find_context(post_id=\"p-8812\")",
+        "reference": "mod-file://p-8812/author-history.txt",
+        "content": "Account age 9 years, 2,140 posts, 'Trusted Canner' flair. Has posted many tested-recipe walkthroughs. No warnings or removals.",
+        "label": "Author history"
+      },
+      {
+        "id": "s12",
+        "round": 2,
+        "advocate": "allow",
+        "tool": "find_context",
+        "call": "find_context(post_id=\"p-8812\")",
+        "reference": "mod-file://p-8812/community-rules.txt",
+        "content": "We follow tested recipes. Discussion of untested methods is allowed with the 'Untested method' flair so newcomers can tell the difference.",
+        "label": "Community sidebar"
+      },
+      {
+        "id": "s15",
+        "round": 2,
+        "advocate": "remove",
+        "tool": "web_search",
+        "call": "web_search(query=\"site:extension.umn.edu home canning pH strips testing tomatoes pH not recommended safety\")",
+        "reference": "https://extension.umn.edu/food/preparing/cooking-at-home/food-preservation/canning/tomatoes",
+        "content": "Do not can damaged tomatoes or those from dead or frost-killed vines. These tomatoes may have harmful pathogens. The canning process time may not be enough to kill disease organisms. This could lead to a product that spoils and is unsafe to eat.\n\n## Before processing: Add acid to all tomatoes\n\nBecause many factors impact the acidity level of tomatoes, the USDA recommends adding acid to all home-canned tomatoes and tomato products regardless of the canning method. [...] Minnesota 4-H and the Minnesota State Fair are working in partnership to reinvent the 4-H Building. \n\n# Canning at home: Tomatoes\n\nHome canning tomatoes is a great way to preserve them for later use. Proper methods, high- ingredients and awareness of acidity levels are critical for a safe product.\n\nAlways follow a research-based recipe. We recommend using The National Center for Home Food Preservation.\n\nVery small tomatoes are in plastic baskets on a market table/ [...] A high acid level (pH of 4.60 or less) prevents the growth of Clostridium botulinum bacteria, which produces a toxin that, when eaten, causes botulism.\n\nFactors impacting acidity\n\nThe acidity level of tomatoes can be affected by many factors, including:\n\nThe acidity level of canned tomato products can be affected by:\n\n## Acid options: Citric acid, lemon juice and vinegar\n\n### Citric acid\n\n### Vinegar\n\n### Lemon and lime juice\n\n### Quantity of added acids",
+        "label": "Canning at home: Tomatoes | UMN Extension"
+      },
+      {
+        "id": "s16",
+        "round": 2,
+        "advocate": "remove",
+        "tool": "web_search",
+        "call": "web_search(query=\"site:extension.umn.edu home canning pH strips testing tomatoes pH not recommended safety\")",
+        "reference": "https://extension.umn.edu/agriculture/specialty-crops/too-much-compost-and-manure",
+        "content": "The ideal pH range for growing fruits and vegetables is 6.0 - 7.0 (with the exception of a few specific plants such as blueberries, which thrive in acidic conditions). Soils that are too acidic (below 6) can be amended with agricultural lime. A basic soil test will provide instructions for the amount of lime needed to adjust your soil.",
+        "label": "How to correct problems caused by using too much compost and manure"
+      },
+      {
+        "id": "s17",
+        "round": 2,
+        "advocate": "remove",
+        "tool": "web_search",
+        "call": "web_search(query=\"site:extension.usu.edu OR site:extension.oregonstate.edu home canning pH testing pH strips tomato canning reliability equilibrium pH\")",
+        "reference": "https://extension.oregonstate.edu/sites/extd8/files/documents/donnelja/em9205-oregons-farm-direct-marketing-law-022324.pdf",
+        "content": "Copies of all records must be maintained and kept available for the Oregon Department of Agriculture (ODA) for a period of three years.\npH testing pH meter calibration records and equilibrium pH measurement records are required for each batch of acidified food.\nIf the pH of the product is 4.0 or lower, colorimetric methods such as litmus paper may be used. However, pH litmus paper may not work well with some colored products. [...] If the pH of the product is between 4.0 and 4.6, a pH meter with a minimum accuracy of ± 0.01 to 0.02 pH must be used. Naturally acidic foods like fruit jams and jellies are not required to be pH tested, but they must have a pH of 4.6 or below. When in doubt, farmers can take pH measurements to verify that the product is acidic. Certain fruits and vegetables such as persimmons, Asian pears and tomatoes are borderline acidic, and products made from them should be pH tested to ensure safety. [...] Additional records are required for each batch of acidified foods. These records must include the recipe Photo: Lynn Ketchum, © Oregon State University 3 Photo: Alicia / CC BY-NC 2.0 Photo: Matt / CC BY-NC 2.0 source, processing times and procedure, date, and finished equilibrium pH value. If an electronic pH meter is used, it must be calibrated, and pH meter calibration records must be maintained. Additional processing and production records are required for dried or cured fruits, vegetables,",
+        "label": "Oregon's Farm Direct Marketing Law: Producer-processed ..."
+      },
+      {
+        "id": "s18",
+        "round": 2,
+        "advocate": "remove",
+        "tool": "web_search",
+        "call": "web_search(query=\"site:extension.usu.edu OR site:extension.oregonstate.edu home canning pH testing pH strips tomato canning reliability equilibrium pH\")",
+        "reference": "https://extension.oregonstate.edu/catalog/em-9205-oregons-farm-direct-marketing-law-producer-processed-value-added-products",
+        "content": "## pH testing\n\npH meter calibration records and equilibrium pH measurement records are required for each batch of acidified food.\n\nIf the pH of the product is 4.0 or lower, colorimetric methods such as litmus paper may be used. However, pH litmus paper may not work well with some colored products.\n\nIf the pH of the product is between 4.0 and 4.6, a pH meter with a minimum accuracy of ± 0.01 to 0.02 pH must be used. [...] Naturally acidic foods like fruit jams and jellies are not required to be pH tested, but they must have a pH of 4.6 or below. When in doubt, farmers can take pH measurements to verify that the product is acidic.\n\nCertain fruits and vegetables, such as persimmons, Asian pears and tomatoes, are borderline acidic, and products made from them should be pH tested to ensure safety.\n\nSee video instructions for pH testing an acidified food at pH Meter Calibrating and Testing for Pickled Food Products. [...] Additional records are required for each batch of acidified foods. These records must include the recipe source, processing times and procedure, date, and finished equilibrium pH value. If an electronic pH meter is used, it must be calibrated, and pH meter calibration records must be maintained.",
+        "label": "Oregon's Farm Direct Marketing Law: Producer-processed value-added products — a guide for farmers and market managers | OSU Extension Service"
       }
     ],
     "failures": []
   },
   "usage_by_participant": {
     "allow": {
-      "input_tokens": 4833,
-      "cache_write_tokens": 2183,
-      "cache_read_tokens": 2398,
-      "output_tokens": 570,
+      "input_tokens": 21524,
+      "cache_write_tokens": 6822,
+      "cache_read_tokens": 13946,
+      "output_tokens": 2973,
       "input_audio_tokens": 0,
       "cache_audio_read_tokens": 0,
       "output_audio_tokens": 0,
       "audio_seconds": 0.0,
       "details": {
-        "reasoning_tokens": 264
+        "reasoning_tokens": 1991
       },
-      "cost": "0.000607055",
-      "requests": 2,
+      "cost": "0.002554310",
+      "requests": 6,
       "tool_calls": 4,
-      "output_reasoning_tokens": 264
+      "output_reasoning_tokens": 1991
     },
     "remove": {
-      "input_tokens": 11835,
-      "cache_write_tokens": 2240,
-      "cache_read_tokens": 8965,
-      "output_tokens": 855,
+      "input_tokens": 45027,
+      "cache_write_tokens": 12532,
+      "cache_read_tokens": 31487,
+      "output_tokens": 2832,
       "input_audio_tokens": 0,
       "cache_audio_read_tokens": 0,
       "output_audio_tokens": 0,
       "audio_seconds": 0.0,
       "details": {
-        "reasoning_tokens": 401
+        "reasoning_tokens": 1562
       },
-      "cost": "0.000860150",
-      "requests": 5,
-      "tool_calls": 4,
-      "output_reasoning_tokens": 401
+      "cost": "0.003398170",
+      "requests": 8,
+      "tool_calls": 8,
+      "output_reasoning_tokens": 1562
     },
     "escalate to a human moderator": {
-      "input_tokens": 7702,
-      "cache_write_tokens": 1307,
-      "cache_read_tokens": 5891,
-      "output_tokens": 992,
+      "input_tokens": 12572,
+      "cache_write_tokens": 2198,
+      "cache_read_tokens": 9744,
+      "output_tokens": 1217,
       "input_audio_tokens": 0,
       "cache_audio_read_tokens": 0,
       "output_audio_tokens": 0,
       "audio_seconds": 0.0,
       "details": {
-        "reasoning_tokens": 507
+        "reasoning_tokens": 615
       },
-      "cost": "0.000768685",
-      "requests": 4,
-      "tool_calls": 3,
-      "output_reasoning_tokens": 507
+      "cost": "0.001043690",
+      "requests": 5,
+      "tool_calls": 4,
+      "output_reasoning_tokens": 615
     },
     "judge": {
-      "input_tokens": 2162,
-      "cache_write_tokens": 2036,
-      "cache_read_tokens": 0,
-      "output_tokens": 599,
+      "input_tokens": 7604,
+      "cache_write_tokens": 4717,
+      "cache_read_tokens": 2635,
+      "output_tokens": 2147,
       "input_audio_tokens": 0,
       "cache_audio_read_tokens": 0,
       "output_audio_tokens": 0,
       "audio_seconds": 0.0,
       "details": {
-        "reasoning_tokens": 440
+        "reasoning_tokens": 1752
       },
-      "cost": "0.0005666",
-      "requests": 1,
+      "cost": "0.001714675",
+      "requests": 2,
       "tool_calls": 0,
-      "output_reasoning_tokens": 440
+      "output_reasoning_tokens": 1752
     }
   },
-  "rounds": 1,
+  "rounds": 2,
   "usage": {
-    "input_tokens": 26532,
-    "cache_write_tokens": 7766,
-    "cache_read_tokens": 17254,
-    "output_tokens": 3016,
+    "input_tokens": 86727,
+    "cache_write_tokens": 26269,
+    "cache_read_tokens": 57812,
+    "output_tokens": 9169,
     "input_audio_tokens": 0,
     "cache_audio_read_tokens": 0,
     "output_audio_tokens": 0,
     "audio_seconds": 0.0,
     "details": {
-      "reasoning_tokens": 1612
+      "reasoning_tokens": 5920
     },
-    "cost": "0.002802490",
-    "requests": 12,
-    "tool_calls": 11
+    "cost": "0.008710845",
+    "requests": 21,
+    "tool_calls": 16
   }
 }

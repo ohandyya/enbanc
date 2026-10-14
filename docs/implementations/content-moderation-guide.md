@@ -30,18 +30,31 @@ a custom tool, `render()`, the tool-call listing, both outcomes and a budget.
   reads, so a value can carry its meaning. The loop prints member names, the
   code's handle, because the long value makes an unreadable label.
 
-**The case is built to be argued three ways.** A gardening-forum post says a
-vinegar, salt and dish-soap mix is "100% safe for vegetable beds — the EPA even
-recommends it". The safety and EPA claims are checkable by web search, salt
-damages soil, and home-remedy advice is permitted, so remove, allow and escalate
-each have a footing. In the first live run `ALLOW` conceded, `REMOVE` and
-`ESCALATE` argued from extension guidance they found, and the judge asked two
-rounds of questions before ruling.
+**The case is a genuine gray area, chosen so each side has a real argument.**
+A long-standing, trusted member of a home-canning community says they have
+water-bath canned heirloom tomatoes for thirty years without added acid, testing
+each batch with pH strips, and calls the USDA's "always acidify" rule
+conservative and partly about liability. The policy's three rules pull against
+each other — remove a false safety claim stated as fact where harm would be
+serious; allow experience and criticism of guidance framed as such; escalate when
+a post mixes the two — and the moderation file adds a community norm (an
+"Untested method" flair the post lacks). `REMOVE` argues from food-safety
+guidance (acidify all tomatoes; botulism below pH 4.6), `ALLOW` reads the claim
+as conditional and proposes the flair instead, `ESCALATE` argues the mix itself.
+
+**The first case was too easy, and that is the lesson the guide carries.** It
+was a weed-killer post with a checkable false claim; `ALLOW` conceded in every
+run. With the canning case and a neutral judge — the guidance names what to weigh
+and says escalation is a decision, not a default — `ALLOW` still conceded once in
+two runs, so all three advocates now share one guidance line: argue the
+strongest good-faith reading, concede only if none exists. Across three runs
+after that, every advocate argued and the judge questioned one to three of them
+before ruling.
 
 All three advocates get the same two tools — a `moderation_file` factory over
-the reports, the thread and the author's history, and `web_search` capped at two
-results. Asymmetry is the loan guide's lesson; repeating it would add a line and
-teach nothing.
+the reports, the thread, the author's history and the community rules, and
+`web_search` capped at two results — and the same guidance. Asymmetry is the
+loan guide's lesson; repeating it would add a line and teach nothing.
 
 **This empties [`zero-one-zero.md`](./zero-one-zero.md)'s `e2e` scope.** That
 PR was to run the `hear_stream` loop against a real provider; this guide's test

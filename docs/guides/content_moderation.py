@@ -55,20 +55,26 @@ class ModerationDecision(Verdict):
     ESCALATE = "escalate to a human moderator"
 
 
-# 2. The policy, as written for the moderators.
+# 2. The policy, as written for the moderators. Its rules pull against each other on purpose:
+#    real moderation is weighing them, not looking one up.
 STATUTE = Statute(
-    name="community-safety-v2",
+    name="community-safety-v3",
     text=(
-        "1. Remove a post that presents a false safety claim as established or official fact.\n"
-        "2. Allow opinion, personal experience, and disputed advice, even when it is wrong.\n"
-        "3. Escalate to a human moderator when real harm is plausible but the record cannot "
-        "settle whether rule 1 applies."
+        "1. Remove a post that states a safety claim as established fact when the claim is "
+        "false and following it could cause serious harm.\n"
+        "2. Allow personal experience, opinion, and criticism of official guidance, framed as "
+        "such — even when moderators disagree with it.\n"
+        "3. Escalate to a human moderator when a post mixes the two and the record cannot "
+        "settle which rule governs, or when the harm would be severe but its likelihood is "
+        "genuinely unclear."
     ),
 )
 
 
-# 3. The case: one flagged post. Checkable (does the EPA say this?), harmful-ish (salt
-#    sterilises soil, and this is a vegetable bed), and plausibly just bad home advice.
+# 3. The case: a post with no easy answer. It is personal experience from a trusted member,
+#    it describes a precaution, and it criticises official guidance — all allowed. It also
+#    ends in "it's fine" about a practice the USDA advises against, where the rare failure is
+#    botulism. Each advocate has a real case to make.
 class FlaggedPost(Case):
     post_id: str
     community: str
@@ -78,33 +84,43 @@ class FlaggedPost(Case):
 
 
 POST = FlaggedPost(
-    post_id="p-5531",
-    community="r/VegetableGardening",
-    author="greenthumb_42",
+    post_id="p-8812",
+    community="r/HomeCanning",
+    author="heirloom_hal",
     text=(
-        "Stop buying weed killer! Mix 1 gallon vinegar, 1 cup salt and a squirt of dish soap. "
-        "It's 100% safe for vegetable beds — the EPA even recommends it as the organic option."
+        "For 30 years I've water-bath canned my own heirloom tomatoes without adding lemon "
+        "juice or citric acid. I test every batch with pH strips and only can if it reads "
+        "under 4.2. Never had a bad jar. The USDA's 'always acidify' rule is written for "
+        "low-acid modern hybrids and, honestly, for liability. If you grow acidic heirlooms "
+        "and test, it's fine."
     ),
-    reports=3,
+    reports=4,
 )
 
 # 4. The moderation file: the thread and the author's history. Same factory shape as the loan
 #    guide's tool — any async function returning `Source`s is a tool.
 RECORDS = {
-    "p-5531": {
+    "p-8812": {
         "reports.txt": (
             "User reports",
-            "3 reports: 'misinformation' (2), 'harmful advice' (1).",
+            "4 reports: 'dangerous advice' (3), 'misinformation' (1). "
+            "2 users also replied 'reported, but this is legit experience'.",
         ),
         "replies.txt": (
             "Thread replies",
-            "u/soil_nerd: 'Salt will wreck your bed for years, please don't.' "
-            "u/greenthumb_42: 'Worked for me on my patio cracks, no problems.'",
+            "u/jar_nerd: 'Botulism doesn't care about your 30 years. NCHFP says acidify every "
+            "tomato.' u/grandmas_pantry: 'Same here, my family never acidified and we test "
+            "too.' u/heirloom_hal: 'I'm not telling beginners to copy me — I'm saying test.'",
         ),
         "author-history.txt": (
             "Author history",
-            "Account age 4 years, 610 posts, mostly well-received. One warning (2025) for "
-            "an unsourced pesticide claim, no removals since.",
+            "Account age 9 years, 2,140 posts, 'Trusted Canner' flair. Has posted many "
+            "tested-recipe walkthroughs. No warnings or removals.",
+        ),
+        "community-rules.txt": (
+            "Community sidebar",
+            "We follow tested recipes. Discussion of untested methods is allowed with the "
+            "'Untested method' flair so newcomers can tell the difference.",
         ),
     }
 }
@@ -112,7 +128,7 @@ RECORDS = {
 
 def moderation_file(records: dict[str, dict[str, tuple[str, str]]]):
     async def find_context(post_id: str) -> list[Source]:
-        """Return the reports, the thread replies, and the author's history for a post."""
+        """Return the reports, replies, author history, and community rules for a post."""
         return [
             Source(reference=f"mod-file://{post_id}/{name}", label=label, content=text)
             for name, (label, text) in records.get(post_id, {}).items()
@@ -144,8 +160,20 @@ async def main() -> Hearing[ModerationDecision]:
         verdicts=ModerationDecision,
         statute=STATUTE,
         model=model,
-        judge=Judge(guidance="Remove only on a clear violation; when unsure, escalate."),
-        advocates={verdict: Advocate(tools=tools) for verdict in ModerationDecision},
+        judge=Judge(
+            guidance="Weigh how the post frames its claim, how severe and how likely the harm "
+            "is, and who is likely to read it. Escalation is a decision, not a default."
+        ),
+        # Every advocate gets the same tools and the same instruction: make the best case the
+        # record allows. A gray case is only worth hearing if each side is actually argued.
+        advocates={
+            verdict: Advocate(
+                tools=tools,
+                guidance="Argue the strongest good-faith reading of the statute for your "
+                "verdict. Concede only if no reasonable reading supports it.",
+            )
+            for verdict in ModerationDecision
+        },
         max_rounds=3,
         budget=UsageLimits(cost_limit=Decimal("0.50"), request_limit=None),
         max_concurrency=4,
