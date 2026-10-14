@@ -34,6 +34,7 @@ def retrieval(id: str, advocate: LoanDecision) -> Retrieval[LoanDecision]:
         round=1,
         advocate=advocate,
         tool="find_filings",
+        call='find_filings(applicant="A. Okonkwo")',
         reference=W2,
         content="wages: 131,400",
         label="W-2, 2024",

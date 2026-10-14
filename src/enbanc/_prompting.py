@@ -278,6 +278,7 @@ def render_source(
     reference: str,
     content: str,
     note: str | None = None,
+    via: str | None = None,
 ) -> str:
     """One source, in the three-line shape `docs/design/prompting.md` fixes.
 
@@ -295,7 +296,8 @@ def render_source(
     One helper for three dressings. The exhibits block and `## The ledger` pass a qualified
     `advocate/id`; `_ledgering.py` passes a bare `s1` for what the model sees in a tool
     result. `## The ledger` is the only caller that passes a `note`, which is its computed
-    `cited` / `not cited`. Output is unindented and the caller indents it.
+    `cited` / `not cited`, and the only caller that passes `via` — the call and round that
+    produced the row. Output is unindented and the caller indents it.
     """
     head = f"[{id}] {label}" if label else f"[{id}] {reference}"
     if note is not None:
@@ -303,6 +305,8 @@ def render_source(
     lines = [head]
     if label:
         lines.append(indent(reference, 2))
+    if via is not None:
+        lines.append(indent(f"via {via}", 2))
     lines.append(indent(content, 2))
     return "\n".join(lines)
 
@@ -406,6 +410,8 @@ def _ledger_rows(transcript: "Transcript[Any]") -> str:
             reference=row.reference,
             content=row.content,
             note="cited" if (row.advocate, row.id) in cited else "not cited",
+            # An anonymous source's reference already is the call; the line would repeat it.
+            via=None if row.reference == row.call else f"{row.call} in round {row.round}",
         )
         for row in rows
     )

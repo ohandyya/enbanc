@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-10-10
+updated: 2026-10-14
 ---
 
 # Implementations
@@ -34,8 +34,9 @@ hunt for inbound links.
 | 8 | [`round-loop.md`](./round-loop.md) | 7 | 28 | `current` |
 | 9 | [`failures.md`](./failures.md) | 7, 8 | 29 | `current` |
 | 10 | [`stream-ordering.md`](./stream-ordering.md) | 7, 9 | 30 | `current` |
-| 11 | [`guides.md`](./guides.md) | 9, 10 | | `draft` |
-| 12 | [`zero-one-zero.md`](./zero-one-zero.md) | all | | `draft` |
+| 11 | [`ledger-names-the-call.md`](./ledger-names-the-call.md) | 6 | | `current` |
+| 12 | [`guides.md`](./guides.md) | 9, 10, 11 | | `draft` |
+| 13 | [`zero-one-zero.md`](./zero-one-zero.md) | all | | `draft` |
 
 ## Naming
 

@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-10-10
+updated: 2026-10-14
 ---
 
 # Public API
@@ -578,6 +578,7 @@ class Retrieval(BaseModel, Generic[VerdictT]):
     round: int
     advocate: VerdictT        # whose tool call produced it
     tool: str
+    call: str                 # the call that produced it, as the advocate read it
     reference: str
     content: str              # verbatim, as the tool returned it
     label: str | None = None

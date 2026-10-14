@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-10-10
+updated: 2026-10-14
 ---
 
 # Execution
@@ -860,8 +860,8 @@ async def call_tool(self, name, tool_args, ctx, tool) -> Any:
     sources = as_sources(result, fallback_reference=call)
     base = sum(1 for r in self.ledger if r.advocate == self.advocate)
     rows = [Retrieval(id=f"s{base + n}", round=self.round, advocate=self.advocate,
-                      tool=name, reference=s.reference, content=s.content,
-                      label=s.label)
+                      tool=name, call=call, reference=s.reference,
+                      content=s.content, label=s.label)
             for n, s in enumerate(sources, start=1)]
     self.ledger.extend(rows)
     return render_results(call, rows)           # prompting.md's format, verbatim

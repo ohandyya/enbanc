@@ -60,12 +60,21 @@ class Retrieval(BaseModel, Generic[VerdictT]):
     `content` is verbatim, as the tool returned it. `enbanc` truncates nothing: a truncated
     retrieval could cut the exact sentence an audit turns on. The lever is the tool — return
     the snippet you want the advocate to reason over, not the document it came from.
+
+    **`call` is the call that produced the row**, rendered exactly as the advocate read it at
+    the head of the tool result — `web_search(query="Copperline Logistics layoffs")`. A
+    `Source`'s `reference` points at the document, so without it the record would say what an
+    advocate found and not what it asked for, and a reviewer could not tell a fair search from
+    a leading one. Every row of one call carries the same string. `tool` stays beside it as
+    the field a caller filters on, the same split `ToolFailure` makes between `tool` and
+    `reference`. See `docs/decisions/0042-a-retrieval-names-its-call.md`.
     """
 
     id: str
     round: int
     advocate: VerdictT
     tool: str
+    call: str
     reference: str
     content: str
     label: str | None = None

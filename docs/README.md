@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-10-10
+updated: 2026-10-14
 ---
 
 # Documentation
@@ -108,6 +108,7 @@ and its table for the order they land in.
 | [`decisions/0039-a-response-is-asked-for-its-answer-alone.md`](./decisions/0039-a-response-is-asked-for-its-answer-alone.md) | Why an advocate's round-2+ output is an output function of `answer` and `exhibits` alone, with `advocate` and `answering` filled from the dispatch — handing over `_Response` would let the model author the interrogatory link — and why asking for both and overwriting them was rejected |
 | [`decisions/0040-a-participant-failure-is-an-exception.md`](./decisions/0040-a-participant-failure-is-an-exception.md) | Why the guard around a participant's run catches `Exception` rather than `BaseException` — a Ctrl-C or `SystemExit` is not a participant that could not be heard, and wrapping one would turn a stop signal into an error a caller logs and moves past — why the cancelled-exception re-raise stays though it no longer decides anything, and why listing the exceptions to let through was rejected |
 | [`decisions/0041-the-clerk-files-when-the-consumer-asks.md`](./decisions/0041-the-clerk-files-when-the-consumer-asks.md) | Why the clerk appends an entry only once the consumer has asked for the next one, so a consumer that `await`s in its loop still holds `transcript[-1]` and walking away leaves exactly what was received; why the one gap, an outside cancel inside `__anext__`, is accepted; why the consumer appending on receipt, swapping the append and the send, and a buffered stream were rejected; and where `0010`'s backpressure paragraph was wrong |
+| [`decisions/0042-a-retrieval-names-its-call.md`](./decisions/0042-a-retrieval-names-its-call.md) | Why every ledger row records the call that produced it, as the same rendered string the advocate read, so a reviewer sees what was asked as well as what came back; why the ledger renders it on a line per row; why `p1` was amended rather than bumped before `0.1.0` shipped; and why structured arguments, grouping rows under their call, and logging in the caller's code were rejected |
 
 ### Guides — user-facing how-to
 

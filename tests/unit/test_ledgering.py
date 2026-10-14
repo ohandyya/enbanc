@@ -150,6 +150,33 @@ async def test_every_source_a_tool_returned_is_ledgered() -> None:
     assert [row.content for row in ledger] == ["net profit: 182,000", "wages: 131,400"]
 
 
+async def test_every_row_names_the_call_that_produced_it() -> None:
+    """A `Source`'s reference points at the document, not at what was asked for.
+
+    `call` is what keeps the question in the record — the same string the advocate read at
+    the head of the tool result, on every row that call produced. `0042`.
+    """
+    ledger: list[Retrieval[LoanDecision]] = []
+    toolset = ledgering(LoanDecision.APPROVE, ledger, [], find_filings, dti_for)
+    agent = advocate(
+        scripted(
+            ("find_filings", {"applicant": "A. Okonkwo"}),
+            ("dti_for", {"applicant": "A. Okonkwo"}),
+        ),
+        toolset,
+    )
+
+    result = await agent.run("retrieve")
+
+    assert [row.call for row in ledger] == [
+        'find_filings(applicant="A. Okonkwo")',
+        'find_filings(applicant="A. Okonkwo")',
+        'dti_for(applicant="A. Okonkwo")',
+    ]
+    # The bytes the advocate read and the bytes the record holds are the same call.
+    assert returns(result)[0].startswith(f"{ledger[0].call} returned 2 sources.")
+
+
 async def test_two_sources_from_one_call_get_two_ids() -> None:
     """The bug a single-source test cannot see.
 

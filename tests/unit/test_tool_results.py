@@ -39,6 +39,7 @@ def row(
         round=1,
         advocate=LoanDecision.APPROVE,
         tool=tool,
+        call=f"{tool}(...)",
         reference=reference,
         content=content,
         label=label,

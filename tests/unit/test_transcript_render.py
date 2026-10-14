@@ -102,10 +102,12 @@ the record did not rest on.
 
 [approve/s1] Schedule C, 2024 — cited
   s3://underwriting-docs/okonkwo/schedule-c-2024.pdf
+  via psql(sql="SELECT ...") in round 1
   net profit: 182,000
 
 [approve/s2] W-2, 2024 — cited
   s3://underwriting-docs/okonkwo/w2-2024.pdf
+  via psql(sql="SELECT ...") in round 2
   wages: 131,400
 
 [approve/s3] dti_for(applicant="A. Okonkwo") — not cited
@@ -113,10 +115,12 @@ the record did not rest on.
 
 [deny/s1] W-2, 2024 — cited
   s3://underwriting-docs/okonkwo/w2-2024.pdf
+  via psql(sql="SELECT ...") in round 1
   wages: 131,400
 
 [deny/s2] W-2, 2024 — cited
   s3://underwriting-docs/okonkwo/w2-2024.pdf
+  via psql(sql="SELECT ...") in round 2
   wages: 131,400
 
 ## Failed calls
