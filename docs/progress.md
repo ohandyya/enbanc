@@ -22,26 +22,21 @@ spec: [`design/`](./design/) is.
 
 ## Current state
 
-**Phase:** `0.1.0` is written but not released. Rows 1–14 of the plan are
-merged through [`confidence.md`](./implementations/confidence.md) (#34). Row 15,
-[`zero-one-zero.md`](./implementations/zero-one-zero.md), is committed and
-pushed on `implement-010` (`87befe3`) with **no PR open yet**: the design docs
-lose their draft banners, README drops its pre-release caveats, `CHANGELOG.md`
-has a `0.1.0` entry, and `pyproject.toml` says `0.1.0`. `make check-all` passes
-at 458; the `e2e` tier has not run since #34 added confidence to both guides.
-On PyPI there is still only `0.0.5`, a placeholder — everything usable exists
-only on this branch and `main`.
+**Phase:** **`0.1.0` is released** — on PyPI and tagged `v0.1.0` on `2717e1d`
+(#35). All fifteen rows of the build plan are merged; `main` and PyPI are the
+same code. The live tiers ran green on #35, but the library has had a handful of
+live runs in total, all from this repository — nothing yet from an outside
+user. `__all__` holds twenty-nine names.
 
 Settled and binding across
 [`0001`](./decisions/0001-statute-carries-no-model.md)–[`0043`](./decisions/0043-filings-carry-a-confidence.md).
 
-**Next up:** Open the PR for `implement-010` with `create-pr-summary`, which
-stamps `zero-one-zero.md` `current` and adds its number to the plan table. Run
-the live tiers on it (the `live-tests` label) before merging, since this PR is
-the one that declares the guides and design true. After merge,
-`create-new-release` — but its step 2 (version bump and changelog) is already
-done here, so go straight to checking `uv version --short` on `main` and
-tagging `v0.1.0`.
+**Next up:** There is no plan past `0.1.0`. The next session chooses what to
+build, and the candidates are the unfiled items under *Open questions* below
+plus the round-1 `advocate` field in the list that follows. Each one is a design
+question first: it gets written into the relevant `docs/design/` doc's
+`## Open questions` before any code, then an implementation doc in
+[`implementations/`](./implementations/). A prompt change among them is `p2`.
 
 Things the next session should carry:
 
@@ -105,6 +100,12 @@ Things the next session should carry:
   rulings' confidence is unasked in any design doc.
 
 ## Log
+
+### 2026-10-14 — `0.1.0` released
+
+**Did:** Merged #35 and published `0.1.0` to PyPI through `create-new-release`,
+tagging `v0.1.0` on `2717e1d`. Its release-prep step was skipped, since #35
+already carried the version and the changelog.
 
 ### 2026-10-14 — the `0.1.0` documentation sweep
 
