@@ -6,10 +6,10 @@ a judge cross-examines them until it can rule — with a full audit transcript.
 Built on [PydanticAI](https://ai.pydantic.dev).
 
 > [!WARNING]
-> **Work in progress — not usable yet.**
-> Nothing described below is implemented. The published packages are
-> placeholders; installing `enbanc` today gets you nothing that runs.
-> **The first usable version will be `0.1.0`.**
+> **Work in progress — not released yet.**
+> The code in this repository runs, but nothing usable is on PyPI: the
+> published packages are placeholders, and installing `enbanc` today gets you
+> nothing that runs. **The first usable release will be `0.1.0`.**
 
 ## Why
 
@@ -181,19 +181,21 @@ the loop is built. Every question those documents once carried is closed with an
 ADR in [`docs/decisions/`](./docs/decisions/) saying what was rejected and why.
 If you have opinions, that's the place to aim them.
 
-What is *not* done is the code. Nothing here runs yet.
+What is *not* done is the release. The code runs from a source checkout, and
+the API may still change before `0.1.0`.
 
 How that design gets built is broken into pull requests in
 [`docs/implementations/`](./docs/implementations/) — one document per PR: its
-scope, the design sections it implements, and the tests it brings. Fourteen
-are planned; twelve have merged.
+scope, the design sections it implements, and the tests it brings. Fifteen
+are planned; thirteen have merged, and the fourteenth is open.
 
 ## Status
 
-Pre-alpha, work in progress. Not usable. Current releases are placeholders that
-exist only to reserve the name and exercise the release pipeline.
+Pre-alpha, work in progress. Not usable from PyPI. Current releases are
+placeholders that exist only to reserve the name and exercise the release
+pipeline.
 
-**`0.1.0` is the first version intended to actually run.** The API will keep
+**`0.1.0` is the first release intended to be used.** The API will keep
 changing until then, and likely after.
 
 ## License
