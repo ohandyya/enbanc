@@ -36,7 +36,8 @@ hunt for inbound links.
 | 10 | [`stream-ordering.md`](./stream-ordering.md) | 7, 9 | 30 | `current` |
 | 11 | [`ledger-names-the-call.md`](./ledger-names-the-call.md) | 6 | 32 | `current` |
 | 12 | [`guides.md`](./guides.md) | 9, 10, 11 | 31 | `current` |
-| 13 | [`zero-one-zero.md`](./zero-one-zero.md) | all | | `draft` |
+| 13 | [`content-moderation-guide.md`](./content-moderation-guide.md) | 12 | 33 | `current` |
+| 14 | [`zero-one-zero.md`](./zero-one-zero.md) | all | | `draft` |
 
 ## Naming
 
