@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-09-20
+updated: 2026-10-14
 ---
 
 # Packaging
@@ -318,7 +318,7 @@ release mechanics are the [`create-new-release`](../../.claude/skills/create-new
 skill's, not this document's.
 
 The user-facing half of the surface — how to do a thing, rather than what exists
-— is [`../guides/`](../guides/), which is still empty. This document is the map
+— is [`../guides/`](../guides/): single-file scripts, each run end to end by the `e2e` tier. This document is the map
 of the package; a guide is the map of a task.
 
 ## Open questions

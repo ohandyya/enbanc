@@ -16,6 +16,10 @@ with values in them.
 
 ## Shape
 
+The whole surface on one screen. [`../guides/loan_assessment.py`](../guides/loan_assessment.py)
+is the same example as a program you can run — a real case, a real tool, both outcomes —
+and the two are kept in step by hand.
+
 ```python
 from decimal import Decimal
 

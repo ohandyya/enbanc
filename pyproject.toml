@@ -109,7 +109,7 @@ select = [
 known-first-party = ["enbanc"]
 
 [tool.pyright]
-include = ["src", "tests"]
+include = ["src", "tests", "docs/guides"]
 venvPath = "."
 venv = ".venv"
 # Same reason as ruff's target-version: type-check against the oldest interpreter the package
