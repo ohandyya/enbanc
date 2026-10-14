@@ -37,28 +37,36 @@ core loop, end to end:
 - **A verdict enum, a statute, and a case** — `LoanDecision(Verdict)` with
   `APPROVE` and `DENY`, exactly Shape's two; a `Statute` whose `text` is a short,
   written-out underwriting rule (a debt-to-income ceiling of 0.43, documented
-  income over stated income, a minimum credit score), named `underwriting-v3`;
+  income only — a raise above the last tax return counting only if shown stable —
+  and a minimum credit score), named `underwriting-v3`;
   and a `LoanApplication(Case)` subclass with real fields — applicant, amount
   requested, term, stated annual income, monthly debts, employer.
 - **A custom tool, built the way [`evidence.md` § Adding your own tool](../design/evidence.md#adding-your-own-tool)
   says to.** The applicant's file is a dict of documents defined in the script —
-  a pay stub, a tax return, a credit report — and a factory,
+  a loan quote, a pay stub, a tax return, a credit report — and a factory,
   `loan_file(documents)`, closes over it and returns an inner
-  `async def find_documents(applicant: str) -> list[Source]`, one `Source` per
+  `async def find_documents(applicant_id: str) -> list[Source]`, one `Source` per
   document with a `loan-file://…` reference. That is steps 2 and 3 run for real,
   which is why the custom-tool guide the earlier plan floated collapses into this
   one rather than getting a file of its own.
 - **An asymmetric toolbox.** Both advocates get `find_documents`; only
-  `APPROVE` also gets `web_search`, to look up the employer. That is Shape's
-  asymmetry kept on purpose — the two sides of a real decision do not need the
-  same evidence sources.
-- **A case built to be argued.** Stated income runs above what the tax return
-  documents, and the debt-to-income ratio lands just either side of the ceiling
-  depending on which income is believed. A clean case teaches nothing about an
-  adversarial process; this one gives the `DENY` advocate's guidance —
-  *"Weigh documented income over stated income"* — something to bite on.
-- **The `Ruling` / `Undecided` `match`, both arms printed**, then
-  `hearing.usage` and `hearing.usage_by_participant`.
+  `APPROVE` also gets `web_search`, to show the employer is stable. That is
+  Shape's asymmetry kept on purpose — the two sides of a real decision do not
+  need the same evidence sources. It is capped at `max_results=2`: Tavily's
+  results are recorded verbatim, and at the default of five they were most of
+  the printed transcript.
+- **A case built to be argued.** Both incomes are documented: a pay stub after a
+  seven-month-old raise puts the debt-to-income ratio at about 0.42, and last
+  year's tax return at about 0.47. Whether the raise is *stable* — which the
+  statute makes the test — is what the advocates fight over. A clean case
+  teaches nothing about an adversarial process. The first version let any
+  documented income count, and `DENY` conceded in round 1 with nothing to argue;
+  the loan quote is there because without it the payment itself was
+  undocumented, and the judge denied on that instead of on the dispute.
+- **The record, then the outcome.** `hearing.transcript.render()` — the
+  reviewer's view, with each exhibit beside its reference and the ledger marking
+  what was not cited — then the `Ruling` / `Undecided` `match`, both arms
+  printed, then `hearing.usage` and `hearing.usage_by_participant`.
 
 **The model is a string from the environment, with a default.** The guide
 builds its model with `pydantic_ai.models.infer_model` from `ENBANC_MODEL`,
@@ -175,9 +183,11 @@ guide would show.
 | `pyproject.toml` | `[tool.pyright] include` gains `"docs/guides"`. |
 | `uv.lock` | `pydantic-ai` 2.36.0 → 2.56.0 and `genai-prices` 0.1.4 → 0.1.12. The guide's default, `openai:gpt-6-luna`, is unknown to 2.36.0 and unpriced by 0.1.4, so its `cost_limit` could not be enforced; both are known and priced at these versions. The `pyproject.toml` floor stays at `>=2.36.0` — the library needs nothing newer, only the guide's default does. |
 | `tests/e2e/test_guides.py` | **New.** One test per guide; see Tests. |
+| `tests/conftest.py` | `closed_after` moves here from `tests/integration/test_web_search.py`, which now requests it rather than defining it: the guide's test needs it too. **New `closed_models`** — wraps `pydantic_ai.models.infer_model` and closes every model it built once the test ends. |
+| `tests/integration/test_web_search.py` | Loses the `closed_after` fixture and the imports only it used. |
 | `tests/e2e/test_placeholder.py` | **Deleted.** Its docstring says to replace it once there is an `enbanc` to run, and there now is. The `live_model` skip-or-fail behaviour it exercised is exercised by the new test. |
 | `.env.example` | `ENBANC_TEST_MODEL`'s comment gains a sentence: the guides read `ENBANC_MODEL`, and the `e2e` tier sets it from this variable. |
-| [`zero-one-zero.md`](./zero-one-zero.md) | Scope and open question rewritten: what remains for it is the `hear_stream` loop. |
+| [`zero-one-zero.md`](./zero-one-zero.md) | Scope, Implements and open question rewritten: what remains for it is the `hear_stream` loop. |
 
 ## Tests
 
@@ -190,6 +200,14 @@ guide would show.
   environment with `monkeypatch.setenv` and sets `ENBANC_MODEL` to
   `ENBANC_TEST_MODEL`'s value — so the test runs the guide against the runner's
   provider, not the guide's default, and the tier stays provider-neutral.
+- **Teardown.** Two fixtures close the clients a guide opens and cannot be
+  reached to close: `closed_after` for Tavily, `closed_models` for the model.
+  Both exist because pytest gives each test its own event loop and a client
+  outliving it surfaces as a `ResourceWarning` — which `filterwarnings = ["error"]`
+  turns into a failed session after the test passed. The provider's half was
+  found by building: no live test had made a model request before this one.
+  A reader running the script never sees either; the client dies with the
+  process.
 - **Execution.** `runpy.run_path("docs/guides/loan_assessment.py")` loads the
   file without triggering its `__main__` block, and the test awaits the
   `main()` it defines. The file under test is the file a reader runs, byte for
@@ -198,9 +216,12 @@ guide would show.
   free to rule either way, so the verdict is not asserted:
   - `main()` returned a `Hearing` whose outcome is a `Ruling` or an
     `Undecided`.
-  - The transcript is coherent: round 1 holds one `Argument` per verdict; entry
+  - The transcript is coherent: round 1 hears each verdict's advocate exactly
+    once, as an `Argument` or a `Concession` — a live run conceded, so an
+    argument per verdict is not a promise the procedure makes; entry
     rounds never decrease and none exceeds `hearing.rounds`; every exhibit's
-    `source` resolves to an entry in `transcript.ledger`; and on a `Ruling`, the
+    `source` resolves to a retrieval by the same advocate in
+    `transcript.ledger` (ids are per advocate); and on a `Ruling`, the
     last entry is that ruling.
   - `find_documents` was called — at least one ledger source has a
     `loan-file://` reference. That is what proves the custom tool reached the

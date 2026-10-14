@@ -1,12 +1,35 @@
 ---
 status: current
-updated: 2026-08-29
+updated: 2026-10-14
 ---
 
 # Guides
 
-User-facing how-to: task-oriented, written for someone using `enbanc`, not
-building it. These are the pages that would seed a documentation site.
+**Each guide is one Python file you can run.** Not a page about `enbanc`: the shortest
+program that uses it to make one real decision, with comments explaining why each piece is
+there. Read it top to bottom, then run it.
 
-Empty until there is something that runs. Design intent belongs in
-`../design/`, not here.
+| Guide | The decision | What it teaches | Reads |
+|---|---|---|---|
+| [`loan_assessment.py`](./loan_assessment.py) | Approve or deny a $60,000 personal loan | The core loop: verdicts, statute, case; one advocate per answer with its own tools; writing your own tool that returns citable `Source`s; reading the audit trail; handling `Ruling` and `Undecided`; a cost budget | `OPENAI_API_KEY`, `TAVILY_API_KEY`; optionally `ENBANC_MODEL` |
+
+```sh
+uv run docs/guides/loan_assessment.py
+```
+
+`ENBANC_MODEL` takes any pydantic-ai model string — `anthropic:claude-sonnet-5`,
+`google-gla:gemini-2.5-pro` — with that provider's own key in place of `OPENAI_API_KEY`.
+
+## What a guide is
+
+- **One file, runnable as it stands.** No local imports, no CLI arguments, no helper module
+  beside it. A guide that needs a second file has become an application.
+- **Run by the `e2e` tier, every one, on every live run.** `tests/e2e/test_guides.py` loads
+  each file from this directory and awaits its `main()`, so what a reader runs is what CI
+  proves. A script nothing executes is a snippet, and snippets rot.
+- **A different use, and something new.** Each guide is a different real decision, and each
+  after the first shows at least one part of the surface no earlier guide did — the same
+  three calls with a different noun is a file to maintain for nothing.
+
+Design intent belongs in [`../design/`](../design/), not here. A guide shows how to use
+`enbanc`; the design documents say what it is.

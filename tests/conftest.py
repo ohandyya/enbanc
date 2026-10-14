@@ -10,11 +10,15 @@ See `../docs/design/testing.md` for the strategy this serves.
 
 import os
 import socket
-from collections.abc import Iterator, Mapping
+from collections.abc import AsyncIterator, Iterator, Mapping
 from typing import Any
 
+import pydantic_ai.models
 import pytest
 from pydantic_ai.models import Model, infer_model
+from tavily import AsyncTavilyClient
+
+from enbanc.tools import _web_search
 
 #: The tier directories, which are also the marker names. A directory absent from this tuple
 #: collects no marker — itself the signal that a test was filed somewhere the strategy does
@@ -160,3 +164,66 @@ def tavily_api_key(live_env: Mapping[str, str]) -> str:
     if not key:
         pytest.skip("live tier: TAVILY_API_KEY not set. See .env.example.")
     return key
+
+
+@pytest.fixture
+async def closed_after(monkeypatch: pytest.MonkeyPatch) -> AsyncIterator[None]:
+    """Close every client the factory built, once the test is done with it.
+
+    `web_search` deliberately offers no `close()`: the factory returns a function and
+    nothing else, so there is no object a caller could close and no lifecycle to document.
+    In a program that is right — one pool, alive as long as the process. Under pytest it
+    leaks, because pytest-asyncio gives each test its own event loop and the client outlives
+    it; when the client is finally collected, asyncio's transport and the socket under it
+    each emit a `ResourceWarning`, and `filterwarnings = ["error"]` turns that into a failed
+    session *after* the test has already passed.
+
+    Requested by every live test that runs `web_search` — the integration tier's search, and
+    each guide in `e2e/` that seats it — so the awkwardness lives here, once. It is the seam
+    `docs/design/testing.md` ("Faking Tavily") already sanctions — the module-level client
+    class — used to track rather than to fake: the subclass adds a line to a list and changes
+    nothing else, so a search made under it is a real search against the real service. A
+    `close()` on the tool would be public surface existing for one caller who is not a user,
+    which is the trade that section refuses.
+    """
+    built: list[AsyncTavilyClient] = []
+
+    class _TrackedAsyncTavilyClient(AsyncTavilyClient):
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            super().__init__(*args, **kwargs)
+            built.append(self)
+
+    monkeypatch.setattr(_web_search, "AsyncTavilyClient", _TrackedAsyncTavilyClient)
+    yield
+    for client in built:
+        await client.close()
+
+
+@pytest.fixture
+async def closed_models(monkeypatch: pytest.MonkeyPatch) -> AsyncIterator[None]:
+    """Close every model `pydantic_ai.models.infer_model` built, once the test is done with it.
+
+    `closed_after`'s problem, on the provider's side. A model built by `infer_model` owns an
+    HTTP client that is closed only by leaving `async with model:`, and a guide builds its
+    model inside its own `main()`, where no test can reach it. In a program that is fine — the
+    client dies with the process — but under pytest it outlives the test's event loop and
+    surfaces as a `ResourceWarning` after the test has passed.
+
+    So the module attribute is wrapped, before the guide is loaded: a guide's
+    `from pydantic_ai.models import infer_model` runs at load time and binds the wrapper. The
+    model built is the model `infer_model` returns, unchanged; entering and leaving it
+    afterwards is what closes the client it owns.
+    """
+    built: list[Model] = []
+    real_infer_model = pydantic_ai.models.infer_model
+
+    def _tracked_infer_model(*args: Any, **kwargs: Any) -> Model:
+        model = real_infer_model(*args, **kwargs)
+        built.append(model)
+        return model
+
+    monkeypatch.setattr(pydantic_ai.models, "infer_model", _tracked_infer_model)
+    yield
+    for model in built:
+        async with model:
+            pass
