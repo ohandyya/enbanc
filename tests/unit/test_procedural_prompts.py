@@ -14,9 +14,14 @@ prompt diff in the file under review. See `docs/design/testing.md` ("Pinning the
 surface").
 """
 
+from pathlib import Path
+
+import pytest
 from inline_snapshot import snapshot
 
 from enbanc._prompting import ADVOCATE_PROCEDURE, JUDGE_PROCEDURE, PROCEDURE
+
+PROMPTING_MD = Path(__file__).parents[2] / "docs" / "design" / "prompting.md"
 
 
 def test_the_procedure_this_surface_is_stamped_as() -> None:
@@ -196,3 +201,27 @@ def test_neither_prompt_is_formatted_or_interpolated() -> None:
         assert "{" not in prompt
         assert prompt == prompt.strip()
         assert prompt.endswith("shape of it.")
+
+
+def _fenced_after(heading: str) -> str:
+    """The first ```` ```text ```` block under `heading` in `prompting.md`, without its fences."""
+    doc = PROMPTING_MD.read_text(encoding="utf-8")
+    assert f"\n{heading}\n" in doc, f"prompting.md has no section {heading!r}"
+    section = doc.split(f"\n{heading}\n", 1)[1]
+    return section.split("```text\n", 1)[1].split("\n```", 1)[0]
+
+
+@pytest.mark.parametrize(
+    ("heading", "prompt"),
+    [
+        ("## The advocate's procedural prompt", ADVOCATE_PROCEDURE),
+        ("## The judge's procedural prompt", JUDGE_PROCEDURE),
+    ],
+    ids=["advocate", "judge"],
+)
+def test_the_design_doc_quotes_the_prompt_the_code_sends(heading: str, prompt: str) -> None:
+    """`prompting.md` is the spec for every byte of both prompts, and the goldens above pin
+    only the constants. Without this, an edit made in one place and not the other leaves a
+    `p1` that the design doc and the code describe differently — and the doc is the version
+    a reviewer resolves `Transcript.procedure` against."""
+    assert _fenced_after(heading) == prompt

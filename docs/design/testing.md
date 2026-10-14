@@ -321,6 +321,12 @@ any of that text fails the golden, and the failure is the reminder that the edit
 is three moves in one commit: the text in `prompting.md`, a new row in its version
 table, and the constant `enbanc` stamps.
 
+**The design doc's copy is pinned too.** `prompting.md` quotes both procedural
+prompts in full, and it is the copy a reviewer resolves `Transcript.procedure`
+against, so a test reads each fenced block out of it and asserts it equals the
+constant. A prompt edited in the code and not the doc — or the reverse — fails
+there rather than surviving as two descriptions of one `p1`.
+
 `inline-snapshot` rather than a snapshot directory because the expected text sits
 in the test file, so a prompt change shows up as a prompt diff in the file under
 review rather than in a generated artifact one step away. It is also what
