@@ -22,26 +22,22 @@ spec: [`design/`](./design/) is.
 
 ## Current state
 
-**Phase:** `0.1.0` is written but not released. Rows 1–14 of the plan are
-merged through [`confidence.md`](./implementations/confidence.md) (#34). Row 15,
-[`zero-one-zero.md`](./implementations/zero-one-zero.md), is committed and
-pushed on `implement-010` (`87befe3`) with **no PR open yet**: the design docs
-lose their draft banners, README drops its pre-release caveats, `CHANGELOG.md`
-has a `0.1.0` entry, and `pyproject.toml` says `0.1.0`. `make check-all` passes
-at 458; the `e2e` tier has not run since #34 added confidence to both guides.
-On PyPI there is still only `0.0.5`, a placeholder — everything usable exists
-only on this branch and `main`.
+**Phase:** **`0.1.0` is released** — on PyPI and tagged `v0.1.0` on `2717e1d`
+(#35). All fifteen rows of the build plan are merged; `main` and PyPI are the
+same code. The live tiers ran green on #35, but the library has had a handful of
+live runs in total, all from this repository — nothing yet from an outside
+user. `__all__` holds twenty-nine names.
 
 Settled and binding across
 [`0001`](./decisions/0001-statute-carries-no-model.md)–[`0043`](./decisions/0043-filings-carry-a-confidence.md).
 
-**Next up:** Open the PR for `implement-010` with `create-pr-summary`, which
-stamps `zero-one-zero.md` `current` and adds its number to the plan table. Run
-the live tiers on it (the `live-tests` label) before merging, since this PR is
-the one that declares the guides and design true. After merge,
-`create-new-release` — but its step 2 (version bump and changelog) is already
-done here, so go straight to checking `uv version --short` on `main` and
-tagging `v0.1.0`.
+**Next up:** There is no plan past `0.1.0`; the next session picks from the four
+open questions below. Start with the round-1 `advocate` field in
+[`execution.md`](./design/execution.md#open-questions) — it is the one that can
+put a wrong citation in a released transcript, and so a candidate for `0.1.1`.
+Settling it is CLAUDE.md rule 7 (prose, ADR, bullet removed), then an
+implementation doc in [`implementations/`](./implementations/). A prompt or
+output-schema change is `p2`.
 
 Things the next session should carry:
 
@@ -84,9 +80,6 @@ Things the next session should carry:
   still verified against the floor, and the contract tier passes on both.
 - **A guide's case is checked by running it.** A case change needs a few live
   runs (about $0.01 each) before it is trusted.
-- **Round 1's `Argument` and `Concession` still ask the model to write
-  `advocate`**, so a model could file under a peer's verdict. `0039` covers only
-  the interrogatory link. Not filed anywhere yet.
 - **`max_rounds` stops on `>=`**, and `since` is the last round a participant
   was *shown*, not the last it ran.
 - **The network guard is a tripwire, not a sandbox** — see
@@ -94,17 +87,22 @@ Things the next session should carry:
 
 **Open questions:**
 
-- None in [`design/`](./design/).
-- **Unfiled, found by the guides** — both are design questions, not bugs, and
-  neither is in a design doc yet: a `Ruling` names no evidence, so what the judge
-  relied on is only inferable from its prose; and an exhibit's excerpt is never
-  checked against its ledger row, so a misquote is findable but nothing finds
-  it.
-- **Is a confidence worth measuring?** `0043` states it is uncalibrated and
-  `enbanc` measures nothing against it. Whether to ever record outcomes against
-  rulings' confidence is unasked in any design doc.
+Four, all filed in the design docs — linked, not copied:
+
+- [`execution.md`](./design/execution.md#open-questions) — round 1 asks the
+  model to write its own `advocate`, and `_stamp` trusts it.
+- [`api.md`](./design/api.md#open-questions) — a `Ruling` names no evidence;
+  and whether a confidence is ever measured.
+- [`evidence.md`](./design/evidence.md#open-questions) — an exhibit's excerpt is
+  never checked against its ledger row.
 
 ## Log
+
+### 2026-10-14 — `0.1.0` released
+
+**Did:** Merged #35 and published `0.1.0` to PyPI through `create-new-release`,
+tagging `v0.1.0` on `2717e1d`. Its release-prep step was skipped, since #35
+already carried the version and the changelog.
 
 ### 2026-10-14 — the `0.1.0` documentation sweep
 

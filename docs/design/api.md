@@ -1255,4 +1255,18 @@ list. A question that is only *sharpened* — its options narrowed, nothing
 decided — stays, rewritten in place. See rule 7 in
 [`../../CLAUDE.md`](../../CLAUDE.md).
 
-*None open* — here or in [`tribunal.md`](./tribunal.md#open-questions).
+- **A `Ruling` names no evidence.** It carries a verdict, reasoning and a
+  confidence, and nothing that points into the record. What the judge relied on
+  can only be inferred from its prose, so the defensibility claim — *deny,
+  because of this document* — holds for an advocate's exhibits but not for the
+  judge's decision. The shape is open: exhibit ids the ruling cites, checked
+  like an advocate's citations; filings it cites by position; or leaving
+  reasoning as prose and saying so. Any of them is a prompting change, so `p2`.
+  Found by the guides, not by review.
+- **Is a confidence ever measured?** [`0043`](../decisions/0043-filings-carry-a-confidence.md)
+  states the number is uncalibrated and `enbanc` measures nothing against it.
+  Whether `enbanc` should ever help a caller record outcomes against rulings'
+  confidence — and so find out whether a 0.8 means anything — has not been
+  asked. Early evidence that it matters: in the one live run under `p1`'s
+  final prompts, an advocate rose from 0.55 to 0.97 within a proceeding the
+  judge ruled against it.

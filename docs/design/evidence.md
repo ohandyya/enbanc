@@ -656,5 +656,12 @@ list. A question that is only *sharpened* — its options narrowed, nothing
 decided — stays, rewritten in place. See rule 7 in
 [`../../CLAUDE.md`](../../CLAUDE.md).
 
-*None open.* The proceeding still has two, in
-[`tribunal.md`](./tribunal.md#open-questions).
+- **An exhibit's excerpt is never checked against its ledger row.**
+  [Why `content` is the advocate's excerpt](#why-content-is-the-advocates-excerpt)
+  accepts that an excerpt can misquote, because the citation resolves and a
+  reviewer can *find* the misquote. Nothing finds it, though: the row and the
+  excerpt sit side by side in the transcript, and no check compares them. Open:
+  whether `enbanc` checks — a substring test at filing, which a fair paraphrase
+  fails; a flag on the `Exhibit` that reports without rejecting; or a helper a
+  reviewer runs over a finished transcript — or leaves it to the reader, as
+  now, and says so. Found by the guides, not by review.

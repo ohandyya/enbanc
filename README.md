@@ -166,12 +166,15 @@ The full design lives in [`docs/design/`](./docs/design/):
 - [**Glossary**](./docs/glossary.md) — the courtroom vocabulary. One table, one
   minute.
 
-**The design is complete and carries no open questions.** It is settled down to
-the schemas and the behaviour both: what an advocate sees, how a proceeding
-stops, what every ending looks like, the exact text each agent is sent, and how
-the loop is built. Every question those documents once carried is closed with an
-ADR in [`docs/decisions/`](./docs/decisions/) saying what was rejected and why.
-If you have opinions, that's the place to aim them.
+**The design describes what `0.1.0` does**, down to the schemas and the
+behaviour both: what an advocate sees, how a proceeding stops, what every ending
+looks like, the exact text each agent is sent, and how the loop is built. Every
+question settled on the way there is closed with an ADR in
+[`docs/decisions/`](./docs/decisions/) saying what was rejected and why. The
+questions still open — including one that lets an advocate's citation be
+stamped from the wrong ledger — sit under `Open questions` at the end of the
+design doc that owns each. If you have opinions, those are the places to aim
+them.
 
 How that design gets built is broken into pull requests in
 [`docs/implementations/`](./docs/implementations/) — one document per PR: its
