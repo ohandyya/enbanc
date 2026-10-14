@@ -66,7 +66,11 @@ core loop, end to end:
 - **The record, then the outcome.** `hearing.transcript.render()` — the
   reviewer's view, with each exhibit beside its reference and the ledger marking
   what was not cited — then the `Ruling` / `Undecided` `match`, both arms
-  printed, then `hearing.usage` and `hearing.usage_by_participant`.
+  printed, then every tool call read back from `transcript.ledger` — who, the
+  call with its input, and the sources it returned — then `hearing.usage` and
+  `hearing.usage_by_participant`. The call column is `Retrieval.call`, which
+  [`ledger-names-the-call.md`](./ledger-names-the-call.md) added after this
+  guide showed the record could not answer *what did the advocate search for?*
 
 **The model is a string from the environment, with a default.** The guide
 builds its model with `pydantic_ai.models.infer_model` from `ENBANC_MODEL`,
@@ -172,6 +176,11 @@ no surface, but before it `proceeding.transcript[-1]` ran ahead of the stream fo
 any consumer that `await`s inside its loop, which is the consumer a streaming
 guide would show.
 
+[`ledger-names-the-call.md`](./ledger-names-the-call.md) (#32), merged. Split
+out of this PR when listing the guide's tool calls found the ledger kept no
+input for a `Source`-returning tool; the guide's listing reads the field it
+added.
+
 ## Files
 
 | File | Change |
@@ -226,6 +235,8 @@ guide would show.
   - `find_documents` was called — at least one ledger source has a
     `loan-file://` reference. That is what proves the custom tool reached the
     model, which is the part of the guide no unit test can.
+  - Every ledger row's `call` begins with its own `tool` — the input column the
+    guide prints is there for every row.
   - Usage is non-zero: `hearing.usage.requests > 0`, and every participant in
     `usage_by_participant` made at least one request.
 

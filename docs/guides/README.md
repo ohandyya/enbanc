@@ -11,7 +11,7 @@ there. Read it top to bottom, then run it.
 
 | Guide | The decision | What it teaches | Reads |
 |---|---|---|---|
-| [`loan_assessment.py`](./loan_assessment.py) | Approve or deny a $60,000 personal loan | The core loop: verdicts, statute, case; one advocate per answer with its own tools; writing your own tool that returns citable `Source`s; reading the audit trail; handling `Ruling` and `Undecided`; a cost budget | `OPENAI_API_KEY`, `TAVILY_API_KEY`; optionally `ENBANC_MODEL` |
+| [`loan_assessment.py`](./loan_assessment.py) | Approve or deny a $60,000 personal loan | The core loop: verdicts, statute, case; one advocate per answer with its own tools; writing your own tool that returns citable `Source`s; reading the audit trail, including every tool call with its input; handling `Ruling` and `Undecided`; a cost budget | `OPENAI_API_KEY`, `TAVILY_API_KEY`; optionally `ENBANC_MODEL` |
 
 ```sh
 uv run docs/guides/loan_assessment.py

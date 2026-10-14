@@ -67,6 +67,8 @@ async def test_loan_assessment(
 
     # The custom tool reached the model: nothing else produces a `loan-file://` reference.
     assert any(r.reference.startswith("loan-file://") for r in hearing.transcript.ledger)
+    # Every row names the call that produced it, which the guide prints as its input.
+    assert all(r.call.startswith(f"{r.tool}(") for r in hearing.transcript.ledger)
 
     assert hearing.usage.requests > 0
     assert all(usage.requests > 0 for usage in hearing.usage_by_participant.values())

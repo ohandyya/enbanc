@@ -170,6 +170,17 @@ async def main() -> Hearing[LoanDecision]:
         case Undecided(reason=reason):
             print(f"\nUNDECIDED: the {reason} ran out before a ruling.")
 
+    # Every tool call, read back from the ledger: who called it, with what input, and what it
+    # returned. You logged nothing — the transcript keeps this for audit, so a reviewer sees
+    # what each side searched for, not only what it found. A call's rows sit together.
+    print("\nTOOL CALLS")
+    last = None
+    for row in hearing.transcript.ledger:
+        if (row.round, row.advocate, row.call) != last:
+            last = (row.round, row.advocate, row.call)
+            print(f"  round {row.round}, {row.advocate}: {row.call}")
+        print(f"    -> [{row.id}] {row.label or row.reference}")
+
     # What it cost, in total and per participant. `cost is None` means unpriced, not free.
     usage = hearing.usage
     print(f"\n{hearing.rounds} round(s), {usage.requests} requests, cost ${usage.cost}")
