@@ -31,12 +31,13 @@ user. `__all__` holds twenty-nine names.
 Settled and binding across
 [`0001`](./decisions/0001-statute-carries-no-model.md)–[`0043`](./decisions/0043-filings-carry-a-confidence.md).
 
-**Next up:** There is no plan past `0.1.0`. The next session chooses what to
-build, and the candidates are the unfiled items under *Open questions* below
-plus the round-1 `advocate` field in the list that follows. Each one is a design
-question first: it gets written into the relevant `docs/design/` doc's
-`## Open questions` before any code, then an implementation doc in
-[`implementations/`](./implementations/). A prompt change among them is `p2`.
+**Next up:** There is no plan past `0.1.0`; the next session picks from the four
+open questions below. Start with the round-1 `advocate` field in
+[`execution.md`](./design/execution.md#open-questions) — it is the one that can
+put a wrong citation in a released transcript, and so a candidate for `0.1.1`.
+Settling it is CLAUDE.md rule 7 (prose, ADR, bullet removed), then an
+implementation doc in [`implementations/`](./implementations/). A prompt or
+output-schema change is `p2`.
 
 Things the next session should carry:
 
@@ -79,9 +80,6 @@ Things the next session should carry:
   still verified against the floor, and the contract tier passes on both.
 - **A guide's case is checked by running it.** A case change needs a few live
   runs (about $0.01 each) before it is trusted.
-- **Round 1's `Argument` and `Concession` still ask the model to write
-  `advocate`**, so a model could file under a peer's verdict. `0039` covers only
-  the interrogatory link. Not filed anywhere yet.
 - **`max_rounds` stops on `>=`**, and `since` is the last round a participant
   was *shown*, not the last it ran.
 - **The network guard is a tripwire, not a sandbox** — see
@@ -89,15 +87,14 @@ Things the next session should carry:
 
 **Open questions:**
 
-- None in [`design/`](./design/).
-- **Unfiled, found by the guides** — both are design questions, not bugs, and
-  neither is in a design doc yet: a `Ruling` names no evidence, so what the judge
-  relied on is only inferable from its prose; and an exhibit's excerpt is never
-  checked against its ledger row, so a misquote is findable but nothing finds
-  it.
-- **Is a confidence worth measuring?** `0043` states it is uncalibrated and
-  `enbanc` measures nothing against it. Whether to ever record outcomes against
-  rulings' confidence is unasked in any design doc.
+Four, all filed in the design docs — linked, not copied:
+
+- [`execution.md`](./design/execution.md#open-questions) — round 1 asks the
+  model to write its own `advocate`, and `_stamp` trusts it.
+- [`api.md`](./design/api.md#open-questions) — a `Ruling` names no evidence;
+  and whether a confidence is ever measured.
+- [`evidence.md`](./design/evidence.md#open-questions) — an exhibit's excerpt is
+  never checked against its ledger row.
 
 ## Log
 

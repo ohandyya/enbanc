@@ -1230,4 +1230,15 @@ commit: the answer goes into the prose above, an ADR in
 [`../decisions/`](../decisions/) records why, and then the bullet leaves this
 list. See rule 7 in [`../../CLAUDE.md`](../../CLAUDE.md).
 
-*None open.*
+- **Round 1 asks the model to write its own `advocate`.** `_Argument` and
+  `Concession` carry `advocate: VerdictT`, filled by the model, and the clerk
+  files it as written. [`0039`](../decisions/0039-a-response-is-asked-for-its-answer-alone.md)
+  took the equivalent fields off a round-2 response and left round 1 alone.
+  It is not only cosmetic: the output function accepts only ledger ids issued
+  to the advocate actually running, but `_stamp` then resolves them under
+  whichever advocate the filing names. An advocate that names a peer either
+  stamps that peer's row with the same id — a wrong citation, silently — or
+  reaches the `AssertionError` `_stamp` calls unreachable. Open: drop the field
+  from what round 1 asks for and stamp it from the dispatch, as round 2 does;
+  or keep asking and reject a mismatch as a `ModelRetry`. Dropping it changes
+  the output schema, so `p2`.
