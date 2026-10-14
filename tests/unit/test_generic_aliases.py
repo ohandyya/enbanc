@@ -70,7 +70,9 @@ def test_the_type_alias_type_form_does_not_collapse() -> None:
 
     assert isinstance(
         Works[LoanDecision]
-        .model_validate({"filing": {"kind": "ruling", "verdict": "deny", "reasoning": "r"}})
+        .model_validate(
+            {"filing": {"kind": "ruling", "verdict": "deny", "reasoning": "r", "confidence": 0.8}}
+        )
         .filing,
         Ruling,
     )
@@ -92,7 +94,7 @@ def test_each_exported_alias_parameterizes_and_binds_the_verdict() -> None:
 
     bound = Bound.model_validate(
         {
-            "filing": {"kind": "argument", "advocate": "approve", "claim": "c"},
+            "filing": {"kind": "argument", "advocate": "approve", "claim": "c", "confidence": 0.8},
             "deliberation": {
                 "kind": "continuance",
                 "interrogatories": [{"id": "r1-q1", "to": "deny", "question": "q"}],

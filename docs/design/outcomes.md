@@ -127,6 +127,7 @@ Hearing(
                                     'self-employment income.',
                         ),
                     ],
+                    confidence=0.7,
                 ),
             ),
             Entry(
@@ -145,6 +146,7 @@ Hearing(
                             content='w2_2024: 131400',
                         ),
                     ],
+                    confidence=0.8,
                 ),
             ),
             Entry(
@@ -185,6 +187,7 @@ Hearing(
                     answering='r1-q1',
                     answer='§4.2 permits self-employment income where filed.',
                     exhibits=[],
+                    confidence=0.4,
                 ),
             ),
             Entry(
@@ -204,6 +207,7 @@ Hearing(
                             content='verification_status: none',
                         ),
                     ],
+                    confidence=0.85,
                 ),
             ),
             Entry(
@@ -213,6 +217,7 @@ Hearing(
                     kind='ruling',
                     verdict=<LoanDecision.DENY: 'deny'>,
                     reasoning='Documented income governs. ...',
+                    confidence=0.8,
                 ),
             ),
         ],
@@ -611,6 +616,7 @@ ProceedingFailed(
                             content='schedule_c_2024: 182000',
                         ),
                     ],
+                    confidence=0.7,
                 ),
             ),
         ],

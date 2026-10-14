@@ -285,7 +285,7 @@ async def test_a_concession_and_a_ruling_pass_through_unconverted(
     filing that enters the record is the object the participant emitted."""
     approve = bench_orchestrator.transcript.verdicts[0]
     concession = Concession(advocate=approve, reason="No case.")
-    ruling = Ruling(verdict=approve, reasoning="Documented income governs.")
+    ruling = Ruling(verdict=approve, reasoning="Documented income governs.", confidence=0.8)
 
     sent, _ = await _file_through_the_clerk(bench_orchestrator, concession, ruling)
 
@@ -297,7 +297,7 @@ async def test_an_argument_is_converted_and_its_exhibits_stamped(
     bench_orchestrator: _Orchestrator[Any],
 ) -> None:
     """`_Argument` in, `Argument` out, with `tool`, `reference` and `label` filled from the
-    ledger row the advocate's own tool call wrote."""
+    ledger row the advocate's own tool call wrote, and `confidence` copied unchanged."""
     approve = bench_orchestrator.transcript.verdicts[0]
     bench_orchestrator.transcript.ledger.append(
         Retrieval(
@@ -318,12 +318,14 @@ async def test_an_argument_is_converted_and_its_exhibits_stamped(
             advocate=approve,
             claim="DTI is 0.38.",
             exhibits=[_Exhibit(source="s1", content="wages: 131,400")],
+            confidence=0.35,
         ),
     )
 
     filed = sent[0].filing
     assert isinstance(filed, Argument)
     assert filed.claim == "DTI is 0.38."
+    assert filed.confidence == 0.35
     assert filed.exhibits[0].model_dump() == {
         "source": "s1",
         "tool": "psql",
@@ -358,6 +360,7 @@ async def test_an_exhibit_resolves_against_its_own_advocates_rows(
             advocate=deny,
             claim="Wages govern.",
             exhibits=[_Exhibit(source="s1", content="figure")],
+            confidence=0.8,
         ),
     )
 
@@ -417,6 +420,7 @@ async def test_a_response_is_converted_and_its_exhibits_stamped(
             answering="r1-q2",
             answer="Yes — the ceiling is on documented income.",
             exhibits=[_Exhibit(source="s1", content="figure")],
+            confidence=0.65,
         ),
         round=2,
     )
@@ -425,6 +429,7 @@ async def test_a_response_is_converted_and_its_exhibits_stamped(
     assert isinstance(filed, Response)
     assert (filed.advocate, filed.answering) == (deny, "r1-q2")
     assert filed.answer == "Yes — the ceiling is on documented income."
+    assert filed.confidence == 0.65
     assert [(x.source, x.reference) for x in filed.exhibits] == [("s1", "s3://w2.pdf")]
     assert sent[0].round == 2
 
@@ -448,6 +453,7 @@ async def test_an_unresolvable_id_reaching_the_clerk_is_a_bug_in_enbanc(
                 advocate=approve,
                 claim="DTI is 0.38.",
                 exhibits=[_Exhibit(source="s7", content="invented")],
+                confidence=0.8,
             ),
         )
 

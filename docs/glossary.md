@@ -20,7 +20,7 @@ table is the whole tax.
 | **Guidance** | Optional per-agent steer — "ambiguity favors denial" — added to the procedural prompt `enbanc` writes for that role, as its last part. Human-authored, never a replacement for it, and recorded on the transcript so a steered ruling does not read as an unsteered one. |
 | **Round** | One exchange: the advocates' filings, plus the judge's deliberation that closes it. `max_rounds` counts deliberations. |
 | **Filing** | Anything a participant enters into the record: an argument, a concession, a response, a continuance, or a ruling. |
-| **Argument** | An advocate's round-1 filing: a claim and its supporting exhibits, made blind — no peer's filing is in view. |
+| **Argument** | An advocate's round-1 filing: a claim, its supporting exhibits, and a confidence, made blind — no peer's filing is in view. |
 | **Concession** | An advocate stating no reasonable case exists for its assigned verdict. A first-class outcome, not a failure. The filing itself is a round-1 one, but the advocate stays seated: the judge may still address it, and its response may argue the verdict afresh on evidence filed since ([`0037`](./decisions/0037-a-conceded-advocate-stays-addressable.md)). |
 | **Tool** | A plain async function an advocate may call to gather evidence. Read-only, per-advocate, and PydanticAI's own — `enbanc` defines no tool base class and no tool decorator. |
 | **Source** | One piece of evidence a tool found, together with the reference that locates it. What tools *return*; most never become exhibits. |
@@ -30,8 +30,9 @@ table is the whole tax.
 | **Ledger** | Every retrieval in a proceeding, on `Transcript.ledger`. Where `entries` say what the ruling rests on, the ledger says what was available to rest on. |
 | **Tool failure** | A tool call that returned nothing — it timed out. Recorded on `Transcript.failures` so an advocate blocked from a source is distinguishable from one that never looked. It carries no id, because nothing came back to cite. |
 | **Interrogatory** | A targeted question from the judge to a specific advocate, issued when it cannot yet rule. Carries an id naming the round it was issued in, stamped by the tribunal when the continuance is filed. |
-| **Response** | An advocate's answer to one interrogatory, entering new exhibits as needed and written with the record to date in view. It cites that interrogatory's id, which the tribunal stamps from the dispatch — no participant writes an id. |
-| **Ruling** | The judge's decision: a verdict plus reasoning. Terminal. |
+| **Response** | An advocate's answer to one interrogatory, with a confidence, entering new exhibits as needed and written with the record to date in view. It cites that interrogatory's id, which the tribunal stamps from the dispatch — no participant writes an id. |
+| **Ruling** | The judge's decision: a verdict, reasoning, and a confidence. Terminal. |
+| **Confidence** | A number from 0 to 1 on an argument, a response, or a ruling. An advocate's is how strongly the record supports the verdict it was assigned; the judge's is how likely its verdict is to be correct on the record. Each is its author's own estimate — the judge weighs an advocate's, and a caller weighs the judge's — and none is a calibrated probability. |
 | **Continuance** | The judge's "not yet" — carries the interrogatories for the next round. |
 | **Entry** | One filing plus the tribunal's record of it: which round it belongs to and when it was filed. |
 | **Transcript** | Append-only record of every filing, in order, plus the ledger of everything the advocates' tools returned and the calls that returned nothing, together with the standing record it was decided under — the question, the statute, the case, the bench, the round limit, the guidance each participant was given, and the procedure that ran. This is your audit artifact. |
@@ -52,6 +53,7 @@ class Ruling(BaseModel, Generic[VerdictT]):
     kind: Literal["ruling"] = "ruling"
     verdict: VerdictT
     reasoning: str
+    confidence: float  # 0 to 1, the judge's own estimate
 
 class Continuance(BaseModel, Generic[VerdictT]):
     kind: Literal["continuance"] = "continuance"
@@ -78,10 +80,10 @@ files the continuance. See [`design/api.md`](./design/api.md#where-ids-come-from
 and
 [`decisions/0015-interrogatory-ids-are-stamped-on-filing.md`](./decisions/0015-interrogatory-ids-are-stamped-on-filing.md).
 
-A ruling carries a verdict and reasoning and nothing else, because there is
-nothing else the judge could know. Which round it was issued in, what the
-proceeding cost, and what came before it are the tribunal's facts: they live on
-`Entry` and on `Hearing`.
+A ruling carries a verdict, reasoning and a confidence and nothing else,
+because there is nothing else the judge could know. Which round it was issued
+in, what the proceeding cost, and what came before it are the tribunal's facts:
+they live on `Entry` and on `Hearing`.
 
 That is why `hear()` hands back a `Hearing` rather than a widened `Ruling` —
 see [`design/api.md`](./design/api.md#the-result) and

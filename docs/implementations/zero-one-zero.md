@@ -25,6 +25,18 @@ Then the sweep: `status: draft` → `current` across `api.md`, `evidence.md`,
 *none of this exists yet* banner, `README.md`'s pre-`0.1.0` caveats, a
 `CHANGELOG.md` entry, and the version in `pyproject.toml`.
 
+**The `CHANGELOG.md` entry names two things that landed late.**
+`Argument`, `Response` and `Ruling` carry a required `confidence` in `[0, 1]`
+([`confidence.md`](./confidence.md),
+[`0043`](../decisions/0043-filings-carry-a-confidence.md)), and every ledger row
+carries the `call` that produced it
+([`0042`](../decisions/0042-a-retrieval-names-its-call.md)). Both are required
+fields with no default, so a transcript serialized during development before
+either one does not validate under `0.1.0`. No released version ever produced
+one, so this is a note rather than a migration. The entry should also say that
+the `p1` that ships is `p1` as amended by those two ADRs, and that from this
+release on any change to the prompting surface is a new procedure version.
+
 **Not in this PR.** Tagging and publishing. That is the
 [`create-new-release`](../../.claude/skills/create-new-release/SKILL.md) skill,
 run after this merges. Nor the guides themselves — [`guides.md`](./guides.md)

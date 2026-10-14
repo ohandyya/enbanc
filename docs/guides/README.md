@@ -11,8 +11,8 @@ there. Read it top to bottom, then run it.
 
 | Guide | The decision | What it teaches | Reads |
 |---|---|---|---|
-| [`loan_assessment.py`](./loan_assessment.py) | Approve or deny a $60,000 personal loan | The core loop: verdicts, statute, case; one advocate per answer with its own tools; writing your own tool that returns citable `Source`s; reading the audit trail, including every tool call with its input; handling `Ruling` and `Undecided`; a cost budget | `OPENAI_API_KEY`, `TAVILY_API_KEY`; optionally `ENBANC_MODEL` |
-| [`content_moderation.py`](./content_moderation.py) | Allow, remove, or escalate a flagged forum post | Watching a proceeding live with `hear_stream`; matching on each filing as it arrives — argument, concession, the judge's questions, the answers, the ruling; three verdicts and so three advocates, with a verdict's value carrying its meaning | `OPENAI_API_KEY`, `TAVILY_API_KEY`; optionally `ENBANC_MODEL`, and `ENBANC_HEARING_FILE` to save the hearing as JSON |
+| [`loan_assessment.py`](./loan_assessment.py) | Approve or deny a $60,000 personal loan | The core loop: verdicts, statute, case; one advocate per answer with its own tools; writing your own tool that returns citable `Source`s; reading the audit trail, including every tool call with its input; handling `Ruling` and `Undecided`; acting on a ruling's confidence; a cost budget | `OPENAI_API_KEY`, `TAVILY_API_KEY`; optionally `ENBANC_MODEL` |
+| [`content_moderation.py`](./content_moderation.py) | Allow, remove, or escalate a flagged forum post | Watching a proceeding live with `hear_stream`; matching on each filing as it arrives — argument, concession, the judge's questions, the answers, the ruling, each with its author's confidence; three verdicts and so three advocates, with a verdict's value carrying its meaning | `OPENAI_API_KEY`, `TAVILY_API_KEY`; optionally `ENBANC_MODEL`, and `ENBANC_HEARING_FILE` to save the hearing as JSON |
 
 ```sh
 uv run docs/guides/loan_assessment.py

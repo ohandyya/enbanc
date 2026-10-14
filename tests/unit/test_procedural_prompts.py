@@ -14,9 +14,14 @@ prompt diff in the file under review. See `docs/design/testing.md` ("Pinning the
 surface").
 """
 
+from pathlib import Path
+
+import pytest
 from inline_snapshot import snapshot
 
 from enbanc._prompting import ADVOCATE_PROCEDURE, JUDGE_PROCEDURE, PROCEDURE
+
+PROMPTING_MD = Path(__file__).parents[2] / "docs" / "design" / "prompting.md"
 
 
 def test_the_procedure_this_surface_is_stamped_as() -> None:
@@ -52,6 +57,18 @@ Your job is the strongest honest case for the verdict you were assigned. Argue
 it as well as it can be argued. Do not argue for another verdict and do not
 hedge toward one — the judge hears the other side from the advocate seated for
 it.
+
+The point of a proceeding is the best ruling the record can support, not a win
+for any advocate. You serve it by making the case for your verdict as well as it
+can honestly be made, and by being candid about how strong that case is.
+
+Every argument and every response you file carries a confidence: a number from
+0 to 1 for how strongly the record supports the verdict you were assigned, where
+0 is no support at all and 1 is certainty. It is an estimate, not part of your
+advocacy. Score the case you actually have rather than the one you would like to
+have — a response that finds the record still does not support your verdict
+scores low. An overstated confidence misleads the judge exactly as a
+manufactured case does.
 
 Concede when the facts do not support your verdict. A concession is a finding,
 not a failure: it tells the judge something no weak argument can, and an
@@ -149,6 +166,19 @@ can cite a document its tools did not produce. The excerpt beside them is the
 advocate's own, chosen to make its case, and it can be selective. Weigh the two
 differently.
 
+Every argument and response also carries the advocate's confidence, from 0 to 1,
+in how strongly the record supports the verdict it was assigned. It is the
+advocate's own estimate, made by a party to the case. Read it as how the
+advocate rates its case, and test it against the exhibits rather than adopting
+it.
+
+When you rule, give your own confidence, from 0 to 1, that your verdict is
+correct on this record: 0 is none at all and 1 is certainty. Whoever acts on
+your ruling reads it to decide whether to rely on it, so make it an honest
+estimate of the record rather than an echo of your verdict. A ruling you would
+give a low confidence is one to weigh against a continuance, if there is still
+something to ask.
+
 You are told which deliberation this is and how many the proceeding allows. If
 they run out before you rule, the proceeding ends with no verdict and the record
 says so. That is a real outcome, and it is better than a verdict the record does
@@ -171,3 +201,27 @@ def test_neither_prompt_is_formatted_or_interpolated() -> None:
         assert "{" not in prompt
         assert prompt == prompt.strip()
         assert prompt.endswith("shape of it.")
+
+
+def _fenced_after(heading: str) -> str:
+    """The first ```` ```text ```` block under `heading` in `prompting.md`, without its fences."""
+    doc = PROMPTING_MD.read_text(encoding="utf-8")
+    assert f"\n{heading}\n" in doc, f"prompting.md has no section {heading!r}"
+    section = doc.split(f"\n{heading}\n", 1)[1]
+    return section.split("```text\n", 1)[1].split("\n```", 1)[0]
+
+
+@pytest.mark.parametrize(
+    ("heading", "prompt"),
+    [
+        ("## The advocate's procedural prompt", ADVOCATE_PROCEDURE),
+        ("## The judge's procedural prompt", JUDGE_PROCEDURE),
+    ],
+    ids=["advocate", "judge"],
+)
+def test_the_design_doc_quotes_the_prompt_the_code_sends(heading: str, prompt: str) -> None:
+    """`prompting.md` is the spec for every byte of both prompts, and the goldens above pin
+    only the constants. Without this, an edit made in one place and not the other leaves a
+    `p1` that the design doc and the code describe differently — and the doc is the version
+    a reviewer resolves `Transcript.procedure` against."""
+    assert _fenced_after(heading) == prompt

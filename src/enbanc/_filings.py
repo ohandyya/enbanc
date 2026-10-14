@@ -38,12 +38,19 @@ class Argument(BaseModel, Generic[VerdictT]):
     `Continuance` and `Ruling` are the judge's by construction. A single
     `author: VerdictT | Literal["judge"]` would make a ruling issued by an advocate
     expressible, and that is the kind of state this design keeps unrepresentable.
+
+    **`confidence` is how strongly the record supports the advocate's verdict**, from 0 to 1 —
+    not how sure it is of this filing. That reading is what lets a `Response` that concedes
+    again score low on the same scale, and it is what the judge weighs. It is last so a model
+    writes its case before it scores it. See
+    `docs/decisions/0043-filings-carry-a-confidence.md`.
     """
 
     kind: Literal["argument"] = "argument"
     advocate: VerdictT
     claim: str
     exhibits: list[Exhibit] = []
+    confidence: float = Field(ge=0, le=1)
 
 
 class _Argument(BaseModel, Generic[VerdictT]):
@@ -63,6 +70,7 @@ class _Argument(BaseModel, Generic[VerdictT]):
     advocate: VerdictT
     claim: str
     exhibits: list[_Exhibit] = []
+    confidence: float = Field(ge=0, le=1)
 
 
 class Concession(BaseModel, Generic[VerdictT]):
@@ -123,6 +131,9 @@ class Response(BaseModel, Generic[VerdictT]):
     advocate run per interrogatory, so it knows which question that run answers and fills the
     link from the dispatch rather than from the model. A response citing a question nobody
     asked is not a state the library can reach.
+
+    `confidence` means what it means on an `Argument`: how strongly the record supports this
+    advocate's verdict, as it stands after the answer.
     """
 
     kind: Literal["response"] = "response"
@@ -130,6 +141,7 @@ class Response(BaseModel, Generic[VerdictT]):
     answering: str
     answer: str
     exhibits: list[Exhibit] = []
+    confidence: float = Field(ge=0, le=1)
 
 
 class _Response(BaseModel, Generic[VerdictT]):
@@ -153,19 +165,26 @@ class _Response(BaseModel, Generic[VerdictT]):
     answering: str
     answer: str
     exhibits: list[_Exhibit] = []
+    confidence: float = Field(ge=0, le=1)
 
 
 class Ruling(BaseModel, Generic[VerdictT]):
     """The judge's decision, and the end of the proceeding.
 
-    A verdict and reasoning and nothing else, because there is nothing else the judge could
-    know. The round it was issued in, what it cost, and what came before it are the tribunal's
-    facts, and they live on the `Entry` and the `Hearing` instead.
+    A verdict, reasoning and a confidence and nothing else, because there is nothing else the
+    judge could know. The round it was issued in, what it cost, and what came before it are the
+    tribunal's facts, and they live on the `Entry` and the `Hearing` instead.
+
+    **`confidence` is the judge's own estimate that the verdict is correct on this record**,
+    from 0 to 1, for a caller deciding whether to rely on it. It is a model's self-report and
+    not a calibrated probability; `enbanc` measures nothing against it and sets no threshold.
+    See `docs/decisions/0043-filings-carry-a-confidence.md`.
     """
 
     kind: Literal["ruling"] = "ruling"
     verdict: VerdictT
     reasoning: str
+    confidence: float = Field(ge=0, le=1)
 
 
 class Continuance(BaseModel, Generic[VerdictT]):

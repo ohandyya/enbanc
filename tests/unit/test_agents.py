@@ -11,7 +11,7 @@ read the module's own constants back would assert nothing.
 output-function shape and its consequences are worked out.
 """
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from typing import Any
 
 import pytest
@@ -19,7 +19,7 @@ from pydantic_ai import UsageLimitExceeded
 from pydantic_ai.messages import ModelMessage, ModelRequest, ModelResponse, ToolCallPart
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 
-from enbanc import Advocate, Case, Judge, ProceedingFailed, Tribunal
+from enbanc import Advocate, Case, Judge, ProceedingFailed, Response, Tribunal
 
 Kwargs = Callable[[], dict[str, Any]]
 
@@ -49,7 +49,11 @@ def _recording(seen: list[tuple[str, AgentInfo, list[ModelMessage]]]) -> Functio
         if who == "judge":
             tool = next(t.name for t in info.output_tools or () if "Ruling" in t.name)
             return ModelResponse(
-                parts=[ToolCallPart(tool, {"verdict": "deny", "reasoning": "Documented."})]
+                parts=[
+                    ToolCallPart(
+                        tool, {"verdict": "deny", "reasoning": "Documented.", "confidence": 0.8}
+                    )
+                ]
             )
         tool = next(t.name for t in info.output_tools or () if "Concession" in t.name)
         return ModelResponse(parts=[ToolCallPart(tool, {"advocate": who, "reason": "No case."})])
@@ -289,7 +293,11 @@ async def test_a_callable_toolset_reaches_the_ledger(outcomes_kwargs: Kwargs, ca
         if "Deliberation" in prompt:
             tool = next(t.name for t in info.output_tools or () if "Ruling" in t.name)
             return ModelResponse(
-                parts=[ToolCallPart(tool, {"verdict": "deny", "reasoning": "Documented."})]
+                parts=[
+                    ToolCallPart(
+                        tool, {"verdict": "deny", "reasoning": "Documented.", "confidence": 0.8}
+                    )
+                ]
             )
         who = prompt.split('for "')[1].split('"')[0]
         already_fetched = any(
@@ -307,6 +315,7 @@ async def test_a_callable_toolset_reaches_the_ledger(outcomes_kwargs: Kwargs, ca
                             "advocate": who,
                             "claim": "The archive has it.",
                             "exhibits": [{"source": "s1", "content": "filed 2024-04-01"}],
+                            "confidence": 0.8,
                         },
                     )
                 ]
@@ -326,12 +335,16 @@ async def test_a_callable_toolset_reaches_the_ledger(outcomes_kwargs: Kwargs, ca
     assert len(hearing.transcript.ledger) == 3
 
 
-def _two_rounds(seen: list[tuple[str, AgentInfo, list[ModelMessage]]]) -> FunctionModel:
+def _two_rounds(
+    seen: list[tuple[str, AgentInfo, list[ModelMessage]]], confidences: Sequence[float] = (0.8,)
+) -> FunctionModel:
     """A judge that asks `DENY` one question and then rules; advocates that concede, then answer.
 
     Records only the round-2 advocate request, which is the one whose wire this module has not
-    otherwise seen: a per-run `output_type` on the same agent round 1 used.
+    otherwise seen: a per-run `output_type` on the same agent round 1 used. `confidences` is
+    what that response claims, one per attempt, so a retry can be scripted.
     """
+    attempts = iter(confidences)
 
     def respond(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
         opened, last = _turn(messages), _last_turn(messages)
@@ -342,14 +355,22 @@ def _two_rounds(seen: list[tuple[str, AgentInfo, list[ModelMessage]]]) -> Functi
                 return ModelResponse(parts=[ToolCallPart(tool, ask)])
             tool = next(t.name for t in info.output_tools or () if "Ruling" in t.name)
             return ModelResponse(
-                parts=[ToolCallPart(tool, {"verdict": "deny", "reasoning": "Documented."})]
+                parts=[
+                    ToolCallPart(
+                        tool, {"verdict": "deny", "reasoning": "Documented.", "confidence": 0.8}
+                    )
+                ]
             )
         who = opened.split('for "')[1].split('"')[0]
         if "Answer r1-q1" in last:
             seen.append((who, info, messages))
             (tool,) = list(info.output_tools or ())
             return ModelResponse(
-                parts=[ToolCallPart(tool.name, {"answer": "Yes.", "exhibits": []})]
+                parts=[
+                    ToolCallPart(
+                        tool.name, {"answer": "Yes.", "exhibits": [], "confidence": next(attempts)}
+                    )
+                ]
             )
         tool = next(t.name for t in info.output_tools or () if "Concession" in t.name)
         return ModelResponse(parts=[ToolCallPart(tool, {"advocate": who, "reason": "No case."})])
@@ -369,8 +390,8 @@ def _last_turn(messages: list[ModelMessage]) -> str:
 async def test_a_response_is_asked_for_its_answer_and_nothing_else(
     outcomes_kwargs: Kwargs, case: Case
 ) -> None:
-    """Round 2's wire: one output tool, named `final_result`, whose schema is `answer` and
-    `exhibits` alone.
+    """Round 2's wire: one output tool, named `final_result`, whose schema is `answer`,
+    `exhibits` and `confidence` alone, in that order.
 
     `advocate` and `answering` are not in it — the tribunal fills both from the dispatch, so
     neither end of the link is model-authored
@@ -378,6 +399,10 @@ async def test_a_response_is_asked_for_its_answer_and_nothing_else(
     named `final_result` rather than after a class, which is PydanticAI's naming, not
     `enbanc`'s; the description is PydanticAI's generic sentence, because the output function
     carries no docstring.
+
+    `confidence` carries its bounds and no description: its meaning is in the procedural prompt,
+    where `Transcript.procedure` versions it, and it is last so the answer is written before it
+    is scored (`docs/decisions/0043-filings-carry-a-confidence.md`).
     """
     seen: list[tuple[str, AgentInfo, Any]] = []
     kwargs = outcomes_kwargs()
@@ -390,10 +415,28 @@ async def test_a_response_is_asked_for_its_answer_and_nothing_else(
     (tool,) = list(info.output_tools or ())
     assert tool.name == "final_result"
     schema = tool.parameters_json_schema
-    assert sorted(schema["properties"]) == ["answer", "exhibits"]
-    assert schema["required"] == ["answer"]
+    assert list(schema["properties"]) == ["answer", "exhibits", "confidence"]
+    assert schema["required"] == ["answer", "confidence"]
+    assert schema["properties"]["confidence"] == {"type": "number", "minimum": 0, "maximum": 1}
     assert tool.description is not None
     assert tool.description.endswith("The final response which ends this conversation")
+
+
+async def test_a_response_confidence_out_of_bounds_is_retried_rather_than_filed(
+    outcomes_kwargs: Kwargs, case: Case
+) -> None:
+    """The bounds sit on `respond`'s parameter as well as on `_Response`, because the wire is
+    the signature: a `1.5` fails argument validation and goes back to the model as a retry
+    against the `output` budget, and only the corrected value reaches the record."""
+    seen: list[tuple[str, AgentInfo, Any]] = []
+    kwargs = outcomes_kwargs()
+    tribunal = Tribunal(**{**kwargs, "model": _two_rounds(seen, confidences=(1.5, 0.6))})
+
+    hearing = await tribunal.hear(case)
+
+    assert len(seen) == 2
+    (response,) = [e.filing for e in hearing.transcript.entries if isinstance(e.filing, Response)]
+    assert response.confidence == 0.6
 
 
 async def test_a_response_runs_under_the_same_instructions_as_the_argument(

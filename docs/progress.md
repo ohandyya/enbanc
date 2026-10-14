@@ -11,34 +11,59 @@ at the start of the next one.
 
 Two halves, two different guarantees:
 
-- `## Current state
+- `## Current state` is **current truth**, rewritten in place every session.
+  Anything stale here is a bug.
+- `## Log` is **history**, prepended newest-first and never edited. Entries are
+  true as of their date and go stale by design.
+
+The log says *what* changed and *where it stopped*. It does not say *why* —
+that lives in [`journal/`](./journal/), linked from the entry. Neither half is a
+spec: [`design/`](./design/) is.
+
+## Current state
 
 **Phase:** Design complete; implementation runs end to end against real
-providers. PRs 1–12 of the plan are merged — rows 1–10 through
-[`stream-ordering.md`](./implementations/stream-ordering.md) (#30), then
-[`ledger-names-the-call.md`](./implementations/ledger-names-the-call.md) (#32)
-and [`guides.md`](./implementations/guides.md) (#31). Row 13,
-[`content-moderation-guide.md`](./implementations/content-moderation-guide.md),
-is [PR #33](https://github.com/ohandyya/enbanc/pull/33), **open, not merged**.
-`make test` passes at 443; the `e2e` tier runs both guides live. `__all__` is
-complete at twenty-nine names. The README's WIP banner is still accurate: the
-published `0.0.5` on PyPI reserves the name and nothing more, and `0.1.0` hasn't
-shipped.
+providers from a source checkout. Rows 1–13 of the plan are merged, through
+[`content-moderation-guide.md`](./implementations/content-moderation-guide.md)
+(#33). Row 14, [`confidence.md`](./implementations/confidence.md), is
+[PR #34](https://github.com/ohandyya/enbanc/pull/34), **open as a draft, not
+merged**. `make check-all` passes at 456 on that branch; the `e2e` tier was not
+run against it. `__all__` is unchanged at twenty-nine names. Nothing usable is
+on PyPI: `0.0.5` reserves the name, and `0.1.0` hasn't shipped.
 
 Settled and binding across
-[`0001`](./decisions/0001-statute-carries-no-model.md)–[`0042`](./decisions/0042-a-retrieval-names-its-call.md).
-[`0042`](./decisions/0042-a-retrieval-names-its-call.md) is new: every ledger
-row records the call that produced it, and `p1` was amended rather than bumped.
+[`0001`](./decisions/0001-statute-carries-no-model.md)–[`0043`](./decisions/0043-filings-carry-a-confidence.md).
+[`0043`](./decisions/0043-filings-carry-a-confidence.md) is new: `Argument`,
+`Response` and `Ruling` carry a required `confidence` in `[0, 1]`, its meaning
+lives in the procedural prompts, and `p1` was amended rather than bumped.
 
-**Next up:** Drop `docs/guides/content_moderation.json` from #33 — a committed
-snapshot of the *old* weed-killer case that no longer matches the guide — then
-merge it. Row 14, [`zero-one-zero.md`](./implementations/zero-one-zero.md), is
-now the documentation sweep alone: `draft` → `current` across the design docs,
-the *none of this exists yet* banners, `README.md`'s pre-`0.1.0` caveats,
-`CHANGELOG.md`, and the version. Then `create-new-release`.
+**Next up:** Run `make e2e-tests` on #34 (both guides now print confidence),
+then mark it ready and merge. After it, row 15,
+[`zero-one-zero.md`](./implementations/zero-one-zero.md): `draft` → `current`
+across the design docs and their *none of this exists yet* banners,
+`README.md`'s remaining pre-`0.1.0` caveats, `CHANGELOG.md`, and the version.
+Then `create-new-release`.
 
 Things the next session should carry:
 
+- **`p1` has been amended twice before release** (`0042`, `0043`). From
+  `0.1.0` on, any edit to a prompt, turn template or the render format is
+  `p2` — the exception ends with the release.
+- **An advocate's confidence may inflate.** The one live run under the new
+  prompts (`docs/guides/content_moderation.json`) has `allow` opening at 0.55
+  and answering its interrogatory at 0.97; the judge ruled `escalate` at 0.86
+  anyway. One run settles nothing — watch it across e2e runs before trusting
+  the prompts' restraint.
+- **A round-2 response is asked for by `respond()`'s signature, not by
+  `_Response`** (`0039`). A field added to `_Response` reaches the model only
+  if it is added there too — `confidence` is, keyword-only so it stays last,
+  with its bounds restated on the parameter.
+- **The contract tier's filing classes are its own stand-ins.** A bulk edit to
+  `enbanc`'s filings must not touch `tests/contract/`; it pins `pydantic-ai`,
+  not `enbanc`.
+- **Nothing checks that `prompting.md`'s fenced prompts equal the constants.**
+  The goldens pin the constants alone; the doc was compared by hand this
+  session and matched.
 - **A `ProceedingFailed` may never be raised inside a task group.** anyio groups
   an exception raised in a group's *body* exactly as it groups a child's, so
   the failure is held (`_Orchestrator.failure`) and raised by `proceed()` after
@@ -57,9 +82,8 @@ Things the next session should carry:
 - **The lockfile is at `pydantic-ai` 2.56.0, the floor at 2.36.0.** The guides'
   default `openai:gpt-6-luna` needs the lock; `execution.md`'s findings are
   still verified against the floor, and the contract tier passes on both.
-- **A guide's case is checked by running it.** Both guides' first cases were
-  too easy; see the journal entry below. A case change needs a few live runs
-  (about $0.01 each) before it is trusted.
+- **A guide's case is checked by running it.** A case change needs a few live
+  runs (about $0.01 each) before it is trusted.
 - **Round 1's `Argument` and `Concession` still ask the model to write
   `advocate`**, so a model could file under a peer's verdict. `0039` covers only
   the interrogatory link. Not filed anywhere yet.
@@ -76,11 +100,25 @@ Things the next session should carry:
   relied on is only inferable from its prose; and an exhibit's excerpt is never
   checked against its ledger row, so a misquote is findable but nothing finds
   it.
-- `procedure` `p1` has now run live, but its changelog row in
-  [`prompting.md`](./design/prompting.md#procedure-versions) still has nothing
-  to compare against until `0.1.0` ships and a prompt changes after it.
+- **Is a confidence worth measuring?** `0043` states it is uncalibrated and
+  `enbanc` measures nothing against it. Whether to ever record outcomes against
+  rulings' confidence is unasked in any design doc.
 
 ## Log
+
+### 2026-10-14 — confidence on what is argued and what is ruled
+
+**Did:** Added a required `confidence` in `[0, 1]` to `Argument`, `Response` and
+`Ruling`, defined in both procedural prompts and rendered on each filing's
+header line; the guides print it, and `loan_assessment.py` routes a low one to
+a person. Opened as [PR #34](https://github.com/ohandyya/enbanc/pull/34) (draft).
+Also rewrote the README sample to run as written against `openai:gpt-6-luna`.
+
+**Stopped at:** #34 unmerged, its e2e tier not yet run.
+
+**Why this way:** [`docs/decisions/0043-filings-carry-a-confidence.md`](./decisions/0043-filings-carry-a-confidence.md)
+
+**Commits:** `2be59f9`, `479db05`, `2376d20`, `6f97ff5`
 
 ### 2026-10-14 — the guides, and the ledger that names its call
 

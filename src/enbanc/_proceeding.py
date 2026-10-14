@@ -42,12 +42,12 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from functools import partial
-from typing import TYPE_CHECKING, Final, Generic, TypeVar
+from typing import TYPE_CHECKING, Annotated, Final, Generic, TypeVar
 
 import anyio
 from anyio import CancelScope
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from pydantic_ai import Agent, AgentRetries, AnyConcurrencyLimit
 from pydantic_ai.concurrency import AbstractConcurrencyLimiter, normalize_to_limiter
 from pydantic_ai.exceptions import UsageLimitExceeded
@@ -482,17 +482,20 @@ class _Orchestrator(Generic[VerdictT]):
     ) -> Callable[..., _Response[VerdictT]]:
         """The output type for one round-2+ run: the advocate's answer, and nothing it cannot know.
 
-        **The model is asked for `answer` and `exhibits` alone.** PydanticAI shapes an output
-        function's tool from its *parameters*, so these two are the whole schema the advocate
-        is shown; `advocate` and `answering` are filled from the dispatch. Handing over
-        `_Response` itself would put `answering` in the schema as a required field, and
-        whatever the model wrote there would be what the record kept — a response citing a
-        question nobody asked, which is the state
+        **The model is asked for `answer`, `exhibits` and `confidence` alone.** PydanticAI
+        shapes an output function's tool from its *parameters*, so these three are the whole
+        schema the advocate is shown; `advocate` and `answering` are filled from the dispatch.
+        Handing over `_Response` itself would put `answering` in the schema as a required
+        field, and whatever the model wrote there would be what the record kept — a response
+        citing a question nobody asked, which is the state
         `docs/decisions/0015-interrogatory-ids-are-stamped-on-filing.md` exists to make
         unreachable. See `docs/decisions/0039-a-response-is-asked-for-its-answer-alone.md`.
 
         The cost is that the wire shape is this signature rather than `_Response`, so a field
-        added there reaches the model only if it is added here too.
+        added there reaches the model only if it is added here too — `confidence` is, with its
+        bounds restated on the parameter so a value outside them is caught as the arguments are
+        validated, before `respond` runs. It is keyword-only so that it stays last in the
+        schema, as it is on `_Response`: the model writes its answer before it scores it.
 
         `_Response` is resolved from the tribunal's enum, for the reason `_filing_output`
         gives. The citation check runs on the built response, inside the output function, so a
@@ -503,12 +506,18 @@ class _Orchestrator(Generic[VerdictT]):
 
         # No docstring, deliberately: PydanticAI would send one to the model as the output
         # tool's description, which is prompt text `docs/design/prompting.md` does not own.
-        def respond(answer: str, exhibits: Sequence[_Exhibit] = ()) -> _Response[VerdictT]:
+        def respond(
+            answer: str,
+            exhibits: Sequence[_Exhibit] = (),
+            *,
+            confidence: Annotated[float, Field(ge=0, le=1)],
+        ) -> _Response[VerdictT]:
             response = response_type(
                 advocate=verdict,
                 answering=interrogatory.id,
                 answer=answer,
                 exhibits=list(exhibits),
+                confidence=confidence,
             )
             check(response)
             return response
@@ -677,6 +686,7 @@ class _Orchestrator(Generic[VerdictT]):
                 advocate=filing.advocate,
                 claim=filing.claim,
                 exhibits=self._stamp(filing.advocate, filing.exhibits),
+                confidence=filing.confidence,
             )
         if isinstance(filing, _Response):
             return Response[VerdictT](
@@ -684,6 +694,7 @@ class _Orchestrator(Generic[VerdictT]):
                 answering=filing.answering,
                 answer=filing.answer,
                 exhibits=self._stamp(filing.advocate, filing.exhibits),
+                confidence=filing.confidence,
             )
         if isinstance(filing, _Continuance):
             return Continuance[VerdictT](

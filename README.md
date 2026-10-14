@@ -6,10 +6,10 @@ a judge cross-examines them until it can rule — with a full audit transcript.
 Built on [PydanticAI](https://ai.pydantic.dev).
 
 > [!WARNING]
-> **Work in progress — not usable yet.**
-> Nothing described below is implemented. The published packages are
-> placeholders; installing `enbanc` today gets you nothing that runs.
-> **The first usable version will be `0.1.0`.**
+> **Work in progress — not released yet.**
+> The code in this repository runs, but nothing usable is on PyPI: the
+> published packages are placeholders, and installing `enbanc` today gets you
+> nothing that runs. **The first usable release will be `0.1.0`.**
 
 ## Why
 
@@ -34,19 +34,32 @@ uv add enbanc
 
 ## A taste
 
-*Planned API. None of this works today.*
+*This runs today from a source checkout, with `OPENAI_API_KEY` and
+`TAVILY_API_KEY` set. The published package is still a placeholder until
+`0.1.0`.*
 
 ```python
-from pydantic_ai.models.anthropic import AnthropicModel
+import asyncio
+import os
+
+from pydantic_ai.models import infer_model
 
 from enbanc import (
-    Advocate, Case, Judge, Ruling, Statute, Tribunal, Undecided, Verdict,
+    Advocate, Case, Judge, Ruling, Source, Statute, Tribunal, Undecided, Verdict,
 )
 from enbanc.tools import web_search
 
 class LoanDecision(Verdict):        # the allowed answers, one advocate each
     APPROVE = "approve"
     DENY = "deny"
+
+class LoanApplication(Case):        # the facts of one decision, given a schema
+    applicant: str
+    income: int
+
+async def credit_file(applicant: str) -> list[Source]:
+    """Look up the applicant's credit file."""  # a tool is any async function
+    return [Source(reference=f"bureau://{applicant}", content="Debt-to-income: 0.51")]
 
 tribunal = Tribunal(
     question="Shall the bank loan this applicant $500k?",
@@ -55,26 +68,33 @@ tribunal = Tribunal(
         text="Approve $500k loans only where DTI < 0.43 and ...",
         name="underwriting-v3",
     ),
-    model=AnthropicModel("claude-sonnet-5"),
+    model=infer_model("openai:gpt-6-luna"),  # any pydantic-ai model
     judge=Judge(guidance="Where the record is ambiguous, deny."),
     advocates={
-        LoanDecision.APPROVE: Advocate(tools=[psql, web_search(api_key=...)]),
-        LoanDecision.DENY: Advocate(tools=[psql]),
+        LoanDecision.APPROVE: Advocate(
+            tools=[credit_file, web_search(api_key=os.environ["TAVILY_API_KEY"])]
+        ),
+        LoanDecision.DENY: Advocate(tools=[credit_file]),
     },
     max_rounds=5,
 )
 
-hearing = await tribunal.hear(Case(applicant=..., income=...))
+async def main() -> None:
+    hearing = await tribunal.hear(LoanApplication(applicant="A. Okonkwo", income=182000))
 
-match hearing.outcome:              # a ruling, or no verdict at all
-    case Ruling(verdict=verdict, reasoning=reasoning):
-        verdict                     # LoanDecision.DENY
-    case Undecided():               # rounds or budget spent, no verdict
-        ...
+    match hearing.outcome:          # a ruling, or no verdict at all
+        case Ruling(verdict=verdict, reasoning=reasoning, confidence=confidence):
+            print(verdict)          # deny
+            print(reasoning)        # why, in the judge's words, resting on the record
+            print(confidence)       # 0.8: the judge's own estimate, not a probability
+        case Undecided(reason=reason):  # rounds or budget spent, no verdict
+            print(f"no verdict: the {reason} ran out")
 
-hearing.transcript                  # every filing, in order
-hearing.usage                       # tokens and cost, judge plus advocates
-hearing.usage_by_participant        # the same spend, split by who incurred it
+    hearing.transcript              # every filing, in order
+    hearing.usage                   # tokens and cost, judge plus advocates
+    hearing.usage_by_participant    # the same spend, split by who incurred it
+
+asyncio.run(main())
 ```
 
 The judge has **no tools** — it reasons only over what advocates put into the
@@ -161,19 +181,21 @@ the loop is built. Every question those documents once carried is closed with an
 ADR in [`docs/decisions/`](./docs/decisions/) saying what was rejected and why.
 If you have opinions, that's the place to aim them.
 
-What is *not* done is the code. Nothing here runs yet.
+What is *not* done is the release. The code runs from a source checkout, and
+the API may still change before `0.1.0`.
 
 How that design gets built is broken into pull requests in
 [`docs/implementations/`](./docs/implementations/) — one document per PR: its
-scope, the design sections it implements, and the tests it brings. Fourteen
-are planned; twelve have merged.
+scope, the design sections it implements, and the tests it brings. Fifteen
+are planned; thirteen have merged, and the fourteenth is open.
 
 ## Status
 
-Pre-alpha, work in progress. Not usable. Current releases are placeholders that
-exist only to reserve the name and exercise the release pipeline.
+Pre-alpha, work in progress. Not usable from PyPI. Current releases are
+placeholders that exist only to reserve the name and exercise the release
+pipeline.
 
-**`0.1.0` is the first version intended to actually run.** The API will keep
+**`0.1.0` is the first release intended to be used.** The API will keep
 changing until then, and likely after.
 
 ## License

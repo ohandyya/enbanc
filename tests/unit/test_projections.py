@@ -183,7 +183,7 @@ def test_round_one_does_not_advance_since_so_an_advocate_sees_its_own_filing(
     an excerpt, and what entered the record has the tool and the reference stamped beside them.
     """
     delta = render(_snapshot_of(proceeding, 1, 2, 3, 4), AdvocateView(deny, 0))
-    assert "[round 1] deny argued:" in delta
+    assert "[round 1] deny argued (confidence 0.8):" in delta
     assert "[deny/s1] W-2, 2024" in delta
     assert "s3://underwriting-docs/okonkwo/w2-2024.pdf" in delta
 

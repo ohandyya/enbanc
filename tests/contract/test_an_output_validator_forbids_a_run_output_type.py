@@ -20,10 +20,10 @@ If any of this fails after a `pydantic-ai` bump, the dependency moved and `execu
 wrong. Fix the document, then decide whether the design it forced still makes sense.
 """
 
-from typing import Literal
+from typing import Annotated, Any, Literal
 
 import pytest
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from pydantic_ai import Agent, ModelRetry, UnexpectedModelBehavior, UserError
 from pydantic_ai.agent import AgentRetries
 from pydantic_ai.messages import ModelMessage, ModelResponse, RetryPromptPart, ToolCallPart
@@ -262,6 +262,43 @@ async def test_a_function_of_several_parameters_is_offered_as_an_object_of_them(
     assert tool.parameters_json_schema["required"] == ["answer"]
     assert tool.description is not None
     assert tool.description.endswith("The final response which ends this conversation")
+
+
+async def test_a_keyword_only_parameter_is_offered_in_order_and_its_bounds_checked_first() -> None:
+    """`confidence` is keyword-only so it can follow a defaulted `exhibits` and stay last.
+
+    PydanticAI must offer it like any other parameter, in signature order, carry its
+    `Annotated` bounds into the schema, and validate them before the function body runs — so
+    an out-of-range value is a retry against the `output` budget, never a call.
+    """
+    called: list[float] = []
+
+    def respond(
+        answer: str,
+        exhibits: list[str] = [],  # noqa: B006
+        *,
+        confidence: Annotated[float, Field(ge=0, le=1)],
+    ) -> _Response:
+        called.append(confidence)
+        return _Response(answer=answer)
+
+    claims = iter([1.5, 0.6])
+    schemas: list[dict[str, Any]] = []
+
+    def emit(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        (tool,) = info.output_tools or []
+        schemas.append(tool.parameters_json_schema)
+        return ModelResponse(
+            parts=[ToolCallPart(tool.name, {"answer": "Yes.", "confidence": next(claims)})]
+        )
+
+    await Agent(FunctionModel(emit), output_type=[respond]).run("respond")
+
+    schema = schemas[0]
+    assert list(schema["properties"]) == ["answer", "exhibits", "confidence"]
+    assert schema["required"] == ["answer", "confidence"]
+    assert schema["properties"]["confidence"] == {"type": "number", "minimum": 0, "maximum": 1}
+    assert called == [0.6]
 
 
 @pytest.mark.parametrize(

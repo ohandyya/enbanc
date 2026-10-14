@@ -73,14 +73,14 @@ def test_round_two_advocate_first_run(proceeding: Transcript[Any], deny: Verdict
     ) == snapshot("""\
 ## Filed since you last filed
 
-[round 1] approve argued:
+[round 1] approve argued (confidence 0.7):
   DTI is 0.38 on documented income.
   Exhibits:
     [approve/s1] Schedule C, 2024
       s3://underwriting-docs/okonkwo/schedule-c-2024.pdf
       net profit: 182,000
 
-[round 1] deny argued:
+[round 1] deny argued (confidence 0.8):
   Documented wages put DTI at 0.51.
   Exhibits:
     [deny/s1] W-2, 2024
@@ -120,7 +120,7 @@ def test_round_two_advocate_second_run(proceeding: Transcript[Any], deny: Verdic
     ) == snapshot("""\
 ## Filed since you last filed
 
-[round 2] deny responded to r1-q2:
+[round 2] deny responded to r1-q2 (confidence 0.85):
   Yes — the statute's ceiling is on documented income.
   Exhibits:
     [deny/s2] W-2, 2024
@@ -143,14 +143,14 @@ def test_deliberation_one(proceeding: Transcript[Any]) -> None:
     ) == snapshot("""\
 ## Round 1
 
-[round 1] approve argued:
+[round 1] approve argued (confidence 0.7):
   DTI is 0.38 on documented income.
   Exhibits:
     [approve/s1] Schedule C, 2024
       s3://underwriting-docs/okonkwo/schedule-c-2024.pdf
       net profit: 182,000
 
-[round 1] deny argued:
+[round 1] deny argued (confidence 0.8):
   Documented wages put DTI at 0.51.
   Exhibits:
     [deny/s1] W-2, 2024
@@ -172,21 +172,21 @@ def test_deliberation_two(proceeding: Transcript[Any]) -> None:
     ) == snapshot("""\
 ## Filed since you last deliberated
 
-[round 2] approve responded to r1-q1:
+[round 2] approve responded to r1-q1 (confidence 0.4):
   The Schedule C figure is gross; the W-2 is the reconciled number.
   Exhibits:
     [approve/s2] W-2, 2024
       s3://underwriting-docs/okonkwo/w2-2024.pdf
       wages: 131,400
 
-[round 2] deny responded to r1-q2:
+[round 2] deny responded to r1-q2 (confidence 0.85):
   Yes — the statute's ceiling is on documented income.
   Exhibits:
     [deny/s2] W-2, 2024
       s3://underwriting-docs/okonkwo/w2-2024.pdf
       wages: 131,400
 
-[round 2] deny responded to r1-q3:
+[round 2] deny responded to r1-q3 (confidence 0.85):
   No — a verified return restates the same wages.
 
 Deliberation 2 of 5. Rule, or issue a continuance.\
