@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-10-14
+updated: 2026-10-18
 ---
 
 # Progress
@@ -26,18 +26,20 @@ spec: [`design/`](./design/) is.
 (#35). All fifteen rows of the build plan are merged; `main` and PyPI are the
 same code. The live tiers ran green on #35, but the library has had a handful of
 live runs in total, all from this repository — nothing yet from an outside
-user. `__all__` holds twenty-nine names.
+user. `__all__` holds twenty-nine names. The plan past it exists only as uncommitted
+`draft` docs on the `plan-enhancements` branch; no code has changed since the tag.
 
 Settled and binding across
 [`0001`](./decisions/0001-statute-carries-no-model.md)–[`0043`](./decisions/0043-filings-carry-a-confidence.md).
 
-**Next up:** There is no plan past `0.1.0`; the next session picks from the four
-open questions below. Start with the round-1 `advocate` field in
-[`execution.md`](./design/execution.md#open-questions) — it is the one that can
-put a wrong citation in a released transcript, and so a candidate for `0.1.1`.
-Settling it is CLAUDE.md rule 7 (prose, ADR, bullet removed), then an
-implementation doc in [`implementations/`](./implementations/). A prompt or
-output-schema change is `p2`.
+**Next up:** The plan past `0.1.0` is rows 16–22 of
+[`implementations/`](./implementations/README.md), all `draft`, with nothing
+built. Row 16 is first:
+[`round-one-advocate.md`](./implementations/round-one-advocate.md), the
+round-1 `advocate` fix, which ships alone as `0.1.1`. Settling it is CLAUDE.md
+rule 7 (prose, ADR, bullet removed), and the change is `p2`. Why the plan is
+ordered this way, and what was deferred, is in the
+[2026-10-18 journal entry](./journal/2026-10-18-planning-past-zero-one-zero.md).
 
 Things the next session should carry:
 
@@ -97,6 +99,18 @@ Four, all filed in the design docs — linked, not copied:
   never checked against its ledger row.
 
 ## Log
+
+### 2026-10-18 — the plan past `0.1.0`
+
+**Did:** Brainstormed what follows `0.1.0` and wrote it down as rows 16–22 of
+the build plan, each a `draft` doc with scope only. In order: the round-1 fix
+(`0.1.1`), a docs site, the excerpt check, a benchmark that never ships, then
+`0.2.0`'s ruling citations, local file tool and opt-in images. No code.
+
+**Stopped at:** uncommitted on `plan-enhancements`. Nothing in the plan is
+started.
+
+**Why this way:** [`docs/journal/2026-10-18-planning-past-zero-one-zero.md`](./journal/2026-10-18-planning-past-zero-one-zero.md)
 
 ### 2026-10-14 — `0.1.0` released
 
