@@ -46,9 +46,10 @@ hunt for inbound links.
 | 20 | [`ruling-cites-evidence.md`](./ruling-cites-evidence.md) | 16 | — | `draft` |
 | 21 | [`local-file-tool.md`](./local-file-tool.md) | — | — | `draft` |
 | 22 | [`web-search-images.md`](./web-search-images.md) | — | — | `draft` |
+| 23 | [`sql-tool.md`](./sql-tool.md) | 21 | — | `draft` |
 
 Rows 16 onward are the plan past `0.1.0`: 16 ships alone as `0.1.1`, and 18
-and 20–22 make up `0.2.0`. Why it is in this order, and what was left out, is
+and 20–22 make up `0.2.0`. Row 23 follows, in a release not yet chosen. Why it is in this order, and what was left out, is
 in [the 2026-10-18 journal entry](../journal/2026-10-18-planning-past-zero-one-zero.md).
 
 ## Naming

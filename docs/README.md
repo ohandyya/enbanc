@@ -69,6 +69,7 @@ and its table for the order they land in.
 | [`implementations/ruling-cites-evidence.md`](./implementations/ruling-cites-evidence.md) | `0.2.0`'s headline: a ruling that points into the record it rests on, settling `api.md`'s open question. A new procedure version |
 | [`implementations/local-file-tool.md`](./implementations/local-file-tool.md) | A second tool in `enbanc.tools`: search and read files under a root the caller names, with `path#Lstart-Lend` references |
 | [`implementations/web-search-images.md`](./implementations/web-search-images.md) | Tavily's image results as sources, opt-in, and why: a description is a third party's caption, not the source's own text |
+| [`implementations/sql-tool.md`](./implementations/sql-tool.md) | A relational database tool over SQLAlchemy, behind an extra: the model explores the schema and reads with SQL it writes, and can never change the database — every query runs in a read-only transaction, and a dialect without one is refused |
 
 ### Decisions — ADRs
 

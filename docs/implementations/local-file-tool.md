@@ -40,8 +40,8 @@ argument for making a dependency core does not extend to them.
 **Not in this PR:**
 
 - **Semantic or embedding search.** It needs a vector store.
-- **A database tool.** It was discussed and deferred: see
-  [the 2026-10-18 journal entry](../journal/2026-10-18-planning-past-zero-one-zero.md).
+- **A database tool.** That is [`sql-tool.md`](./sql-tool.md), which follows
+  this one.
 
 ## Implements
 

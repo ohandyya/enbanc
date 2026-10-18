@@ -32,7 +32,7 @@ user. `__all__` holds twenty-nine names. The plan past it exists only as uncommi
 Settled and binding across
 [`0001`](./decisions/0001-statute-carries-no-model.md)–[`0043`](./decisions/0043-filings-carry-a-confidence.md).
 
-**Next up:** The plan past `0.1.0` is rows 16–22 of
+**Next up:** The plan past `0.1.0` is rows 16–23 of
 [`implementations/`](./implementations/README.md), all `draft`, with nothing
 built. Row 16 is first:
 [`round-one-advocate.md`](./implementations/round-one-advocate.md), the
