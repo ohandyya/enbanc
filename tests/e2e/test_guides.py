@@ -26,7 +26,7 @@ GUIDES = Path(__file__).parents[2] / "docs" / "guides"
 
 async def run_guide(
     name: str, live_env: Mapping[str, str], monkeypatch: pytest.MonkeyPatch
-) -> tuple[dict[str, Any], Hearing[Any]]:
+) -> tuple[dict[str, Any], Any]:
     """Load a guide from its own path and await its `main()` against the runner's model.
 
     `live_model` has already put `.env` into the environment and proved the runner's model
@@ -39,9 +39,11 @@ async def run_guide(
     # when the runner's `.env` sets the path — `live_model` has already copied `.env` in.
     monkeypatch.delenv("ENBANC_HEARING_FILE", raising=False)
     guide = runpy.run_path(str(GUIDES / name))
-    hearing = await guide["main"]()
-    assert isinstance(hearing, Hearing)
-    return guide, hearing
+    result = await guide["main"]()
+    # A guide returns its hearing, or one per case when it hears several.
+    hearings = result if isinstance(result, list) else [result]
+    assert hearings and all(isinstance(hearing, Hearing) for hearing in hearings)
+    return guide, result
 
 
 def assert_coherent(hearing: Hearing[Any], verdicts: type[Verdict]) -> None:
@@ -115,3 +117,22 @@ async def test_content_moderation(
     assert printed == [entry.round for entry in hearing.transcript]
 
     assert any(r.reference.startswith("mod-file://") for r in hearing.transcript.ledger)
+
+
+async def test_web_retrieval(
+    live_model: Model,
+    live_env: Mapping[str, str],
+    tavily_api_key: str,
+    closed_after: None,
+    closed_models: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """One tribunal, several cases heard concurrently, web search as the only evidence."""
+    guide, hearings = await run_guide("web_retrieval.py", live_env, monkeypatch)
+    assert len(hearings) == len(guide["BUSINESSES"])
+
+    for business, hearing in zip(guide["BUSINESSES"], hearings, strict=True):
+        assert_coherent(hearing, guide["OffersHookah"])
+        # `gather` keeps order: each hearing is the record of its own case.
+        assert hearing.transcript.case == business
+        assert all(r.tool == "web_search" for r in hearing.transcript.ledger)
