@@ -61,6 +61,18 @@ end to end and only come back if something fails.
 
 Throughout the rest of this document, `X.Y.Z` is the confirmed version.
 
+Before changing anything, check that the number is free:
+
+```bash
+make release-check VERSION=X.Y.Z
+```
+
+This re-runs the preconditions, which should pass now that you are on an up-to-date `main`,
+and also checks that the tag `vX.Y.Z` does not exist and that PyPI does not have `X.Y.Z`.
+If any line says `FAIL`, stop and report it. A version already on PyPI can never be reused,
+so without this check that failure would only surface when `release.yml` uploads, after the
+PR, the tag and the release are all done.
+
 ## Step 2 — Release-prep PR
 
 The version bump goes through a PR so the release has a reviewable trail and

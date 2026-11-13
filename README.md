@@ -16,6 +16,56 @@ That structure is designed for decisions that need to be **defensible** —
 loan underwriting, insurance appetite, eligibility screening — where you need
 the reasoning and the evidence, not just the answer.
 
+## How a hearing runs
+
+There is one advocate per allowed answer, so there can be two, three, or
+twelve. Here the verdicts are `approve`, `deny` and `refer`:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor You
+    participant J as Judge<br/>(no tools)
+    participant A as Advocate<br/>APPROVE
+    participant D as Advocate<br/>DENY
+    participant R as Advocate<br/>REFER
+
+    You->>J: tribunal.hear(case)
+
+    rect rgba(120, 160, 255, 0.12)
+    Note over J,R: Round 1 · Argument: every advocate files at once, blind to its peers
+    Note over A,R: Each advocate gathers evidence with its own read-only tools:<br/>any async function you write, or the bundled Tavily web_search
+    par
+        A->>J: Argument for APPROVE + exhibits
+    and
+        D->>J: Argument for DENY + exhibits
+    and
+        R-->>J: Concession: "the facts don't support REFER"
+    end
+    Note over R: The prompt tells every advocate to<br/>concede when the facts don't support its verdict.<br/>A concession is a finding, not a failure.
+    J->>J: Deliberate over the record
+    J->>A: Continuance: interrogatory r1-q1
+    J->>D: Continuance: interrogatory r1-q2
+    end
+
+    rect rgba(255, 180, 80, 0.12)
+    Note over J,R: Round 2+ · Interrogation: only advocates who were asked answer,<br/>and they can now see what their peers filed
+    A->>J: Response to r1-q1 + new exhibits
+    D->>J: Response to r1-q2 + new exhibits
+    J->>J: Deliberate: rule, or ask again (repeat)
+    end
+
+    alt the judge can rule
+        J->>You: Ruling: verdict · reasoning · confidence
+    else max_rounds or budget runs out
+        J->>You: Undecided: reason = "rounds" or "budget"
+    end
+    Note over You,R: Either way you also get the full transcript and the token/cost usage
+```
+
+The judge never gathers evidence itself. It decides only on what the advocates
+put into the record, and it can keep questioning until the record is enough.
+
 ## Install
 
 ```bash
@@ -24,11 +74,18 @@ uv add enbanc
 
 Requires Python 3.11 or later.
 
-## A taste
+## Basic usage
 
-*This runs as written with `OPENAI_API_KEY` and `TAVILY_API_KEY` set.
-[`docs/guides/`](./docs/guides/) has two complete programs that make a real
-decision each; the live test tier runs both, unchanged.*
+The smallest complete program: define the answers, describe the case, give each
+advocate its tools, and read the outcome. It runs as written with
+`OPENAI_API_KEY` and `TAVILY_API_KEY` set.
+
+For real-world use, see [`docs/guides/`](./docs/guides/). Each guide is one
+runnable program that makes a real decision, such as underwriting a loan,
+moderating a flagged post, or answering a factual question from the web. Each
+one also shows a part of `enbanc` this sample leaves out, such as streaming a
+hearing live, setting a cost budget, or hearing many cases at once. The live
+test tier runs every guide unchanged.
 
 ```python
 import asyncio

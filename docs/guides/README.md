@@ -13,10 +13,12 @@ there. Read it top to bottom, then run it.
 |---|---|---|---|
 | [`loan_assessment.py`](./loan_assessment.py) | Approve or deny a $60,000 personal loan | The core loop: verdicts, statute, case; one advocate per answer with its own tools; writing your own tool that returns citable `Source`s; reading the audit trail, including every tool call with its input; handling `Ruling` and `Undecided`; acting on a ruling's confidence; a cost budget | `OPENAI_API_KEY`, `TAVILY_API_KEY`; optionally `ENBANC_MODEL` |
 | [`content_moderation.py`](./content_moderation.py) | Allow, remove, or escalate a flagged forum post | Watching a proceeding live with `hear_stream`; matching on each filing as it arrives — argument, concession, the judge's questions, the answers, the ruling, each with its author's confidence; three verdicts and so three advocates, with a verdict's value carrying its meaning | `OPENAI_API_KEY`, `TAVILY_API_KEY`; optionally `ENBANC_MODEL`, and `ENBANC_HEARING_FILE` to save the hearing as JSON |
+| [`web_retrieval.py`](./web_retrieval.py) | Does a restaurant offer hookah? | Answering a factual question from the web alone, with `web_search` as the only tool; one tribunal over many cases, heard concurrently with `asyncio.gather`; reading out just the verdict, the reasoning, the confidence, and the pages cited | `OPENAI_API_KEY`, `TAVILY_API_KEY`; optionally `ENBANC_MODEL` |
 
 ```sh
 uv run docs/guides/loan_assessment.py
 uv run docs/guides/content_moderation.py
+uv run docs/guides/web_retrieval.py
 ```
 
 `ENBANC_MODEL` takes any pydantic-ai model string — `anthropic:claude-sonnet-5`,
