@@ -77,7 +77,7 @@ Requires Python 3.11 or later.
 ## A taste
 
 *This runs as written with `OPENAI_API_KEY` and `TAVILY_API_KEY` set.
-[`docs/guides/`](./docs/guides/) has two complete programs that make a real
+[`docs/guides/`](./docs/guides/) has multiple complete programs that make a real
 decision each; the live test tier runs both, unchanged.*
 
 ```python
