@@ -43,62 +43,21 @@ a new procedure version
 
 ## Releasing
 
-Publishing a GitHub release starts
-[`release.yml`](./.github/workflows/release.yml), which checks that the tag
-matches `pyproject.toml`'s version, then builds and publishes to PyPI. Nothing
-is ever published from a laptop.
-
 **1. Check you're ready.** Releases are cut from an up-to-date `main` with a
 clean working tree and `gh` logged in:
 
 ```sh
 git switch main && git pull
-make release-check VERSION=X.Y.Z
+make release-check
 ```
 
-It changes nothing. It checks those preconditions, that there are commits to
-release, and that `vX.Y.Z` is free both as a tag and on PyPI.
+It changes nothing. It checks those preconditions and that there are commits to
+release.
 
-**2. Pick the version.** `enbanc` is pre-1.0: a breaking change to the released
-API bumps the minor (`0.2.0`); fixes and additions bump the patch (`0.1.1`).
-
-**3. Open the release PR, and merge it.**
-
-```sh
-git switch -c release/X.Y.Z
-uv version X.Y.Z            # updates pyproject.toml and uv.lock
-# add a dated entry to CHANGELOG.md, written for users of the library
-git commit -am "Release X.Y.Z"
-git push -u origin release/X.Y.Z
-gh pr create --title "Release X.Y.Z" --body "Version bump and changelog for X.Y.Z."
-gh pr merge --squash --delete-branch
-```
-
-**4. Tag the merge commit.** Pull first. Tagging before the merged bump arrives
-is the usual way a release fails.
-
-```sh
-git switch main && git pull
-uv version --short          # must print X.Y.Z; if not, do not tag
-git tag vX.Y.Z && git push --tags
-```
-
-**5. Publish, and watch it land.**
-
-```sh
-gh release create vX.Y.Z --generate-notes
-gh run watch "$(gh run list --workflow=release.yml --limit 1 --json databaseId -q '.[0].databaseId')" --exit-status
-curl -s https://pypi.org/pypi/enbanc/json | jq -r .info.version   # X.Y.Z, within a minute
-```
-
-**If it goes wrong:**
-
-- **The tag was on the wrong commit.** The version check fails and nothing is
-  published. Delete the release and the tag, both on GitHub and locally (never
-  force-push a tag), pull, then tag and publish again.
-- **The version is already on PyPI.** PyPI never lets a version be reused, and
-  deleting the GitHub release does not remove it. Bump to the next patch and
-  start over.
-
-In Claude Code, asking to "cut a release" runs these steps through the
-[`create-new-release`](./.claude/skills/create-new-release/SKILL.md) skill.
+**2. Run the release.** In Claude Code, run
+[`/create-new-release`](./.claude/skills/create-new-release/SKILL.md). It
+proposes the version and asks you to confirm it, then opens and merges the
+release PR with the changelog, tags the merge, publishes the GitHub release,
+watches [`release.yml`](./.github/workflows/release.yml) publish to PyPI, and
+checks that PyPI has the new version. It also knows how to recover if a step
+fails. Nothing is ever published from a laptop.
