@@ -62,6 +62,14 @@ and its table for the order they land in.
 | [`implementations/stream-ordering.md`](./implementations/stream-ordering.md) | The live handle's promise kept for a consumer that awaits in its loop: `transcript[-1]` never runs ahead of the entry just yielded, and walking away leaves what the consumer had received |
 | [`implementations/guides.md`](./implementations/guides.md) | `docs/guides/` as single-file runnable scripts, one per use case, each executed by the `e2e` tier |
 | [`implementations/zero-one-zero.md`](./implementations/zero-one-zero.md) | The `e2e` tier, the design documents' `draft` → `current` sweep, and the version bump that makes the library true |
+| [`implementations/round-one-advocate.md`](./implementations/round-one-advocate.md) | `0.1.1`: round 1 stops asking the model which advocate it is and stamps it from the dispatch, closing the wrong-citation path. `p2` |
+| [`implementations/docs-site.md`](./implementations/docs-site.md) | A free documentation site — MkDocs Material, mkdocstrings and GitHub Pages — carrying the user-facing docs and a generated reference for `enbanc` and `enbanc.tools` |
+| [`implementations/excerpt-check.md`](./implementations/excerpt-check.md) | A helper a reviewer runs over a finished transcript that compares each exhibit's excerpt with its ledger row and reports, settling `evidence.md`'s open question |
+| [`implementations/benchmark.md`](./implementations/benchmark.md) | A benchmark in a top-level `benchmarks/` that never ships: candidate datasets, the four baselines, the metrics, and the CI guard on what a build contains |
+| [`implementations/ruling-cites-evidence.md`](./implementations/ruling-cites-evidence.md) | `0.2.0`'s headline: a ruling that points into the record it rests on, settling `api.md`'s open question. A new procedure version |
+| [`implementations/local-file-tool.md`](./implementations/local-file-tool.md) | A second tool in `enbanc.tools`: search and read files under a root the caller names, with `path#Lstart-Lend` references |
+| [`implementations/web-search-images.md`](./implementations/web-search-images.md) | Tavily's image results as sources, opt-in, and why: a description is a third party's caption, not the source's own text |
+| [`implementations/sql-tool.md`](./implementations/sql-tool.md) | A relational database tool over SQLAlchemy, behind an extra: the model explores the schema and reads with SQL it writes, and can never change the database — every query runs in a read-only transaction, and a dialect without one is refused |
 
 ### Decisions — ADRs
 
@@ -125,6 +133,7 @@ and its table for the order they land in.
 | [`journal/2026-09-09-building-the-harness-found-three-constraints.md`](./journal/2026-09-09-building-the-harness-found-three-constraints.md) | Why building the test harness found three things designing it had not — that the tier layout dictates pytest's import mode, that the offline guard is a tripwire with a stated edge rather than a sandbox, and that provider-agnosticism reaches the harness too; the fourth instance of the pattern, and the first where the artifact was the thing that checks the other artifacts |
 | [`journal/2026-09-13-tavily-response-shape-found-by-hitting-it.md`](./journal/2026-09-13-tavily-response-shape-found-by-hitting-it.md) | Why the `web_search` integration test, run against the real API rather than the unit tests' canned response, found three things about Tavily's actual response shape the design had assumed rather than observed — a row missing its locator, an asymmetric way of withholding two fields, and a per-request rather than per-document id |
 | [`journal/2026-10-14-running-the-guides-found-the-gaps.md`](./journal/2026-10-14-running-the-guides-found-the-gaps.md) | Why running the first two guides against a real model found what the offline suite had not — a ledger that kept no tool input (split out as `0042`), a provider client that leaked past pytest's event loop, and cases too easy for the procedure to show anything — and the two gaps found but not filed: a ruling that names no evidence, and excerpts nothing checks |
+| [`journal/2026-10-18-planning-past-zero-one-zero.md`](./journal/2026-10-18-planning-past-zero-one-zero.md) | Why the plan past `0.1.0` puts a documentation site and a benchmark ahead of new tools, why images in `web_search` are opt-in, and what was deferred or rejected: re-hearing and a NoSQL tool, with the SQL tool planned last |
 
 ## Adding a doc
 
