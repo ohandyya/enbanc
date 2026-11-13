@@ -1,5 +1,5 @@
 .PHONY: help lint fix format format-check check typecheck typecheck-watch test check-all \
-        hooks unit-tests contract-tests integration-tests e2e-tests
+        hooks unit-tests contract-tests integration-tests e2e-tests release-check
 
 .DEFAULT_GOAL := help
 
@@ -55,3 +55,8 @@ test: ## Run every offline test: the unit and contract tiers
 	uv run pytest -v tests/unit tests/contract
 
 check-all: lint format-check typecheck test ## Run every gate: ruff lint, ruff format, pyright, pytest
+
+# Read-only: checks a release can be cut from here and changes nothing. The steps that
+# follow are in CONTRIBUTING.md, and the create-new-release skill runs them end to end.
+release-check: ## Check the preconditions for a release; add VERSION=X.Y.Z to check that version is free
+	@scripts/release-check.sh $(VERSION)
