@@ -5,6 +5,22 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-11-13
+
+No change to the library: the code in this release is identical to `0.1.0`.
+It refreshes the project description on PyPI, which is built from `README.md`.
+
+### Changed
+- `README.md` now shows how a hearing runs, round by round, as a sequence
+  diagram (rendered on GitHub; PyPI shows its Mermaid source), and its
+  first example is rewritten as "Basic usage" with a pointer to the guides.
+- `README.md` no longer claims the design carries no open questions. The ones
+  still open sit under `Open questions` in the design doc that owns each,
+  including one that lets an advocate's citation be stamped from the wrong
+  ledger.
+- A new guide, `docs/guides/web_retrieval.py`, answers a factual question from
+  the web: whether a restaurant offers hookah.
+
 ## [0.1.0] - 2026-10-14
 
 The first release intended to be used. Everything `docs/design/` describes is
