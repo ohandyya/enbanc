@@ -6,7 +6,7 @@ updated: 2026-10-18
 # Planning past `0.1.0`
 
 `0.1.0` shipped with no plan after it. This session turned a list of
-candidate enhancements into an ordered plan: rows 16–22 of
+candidate enhancements into an ordered plan: rows 16–23 of
 [`implementations/`](../implementations/README.md). The plan's documents say
 what each PR does. This entry records why the order is what it is, and what was
 considered and left out. None of it can be reconstructed from the diff.
@@ -29,6 +29,7 @@ does not show that the library works.
   4. The benchmark.
   5. For `0.2.0`: the ruling cites evidence, the local file tool, and images in
      `web_search`.
+  6. The SQL tool, in a release not yet chosen.
 - **The round-1 fix goes first and ships alone.** It is the only known defect
   that can put a wrong citation in a released transcript, and `progress.md` had
   already named it the `0.1.1` candidate.
@@ -57,15 +58,21 @@ does not show that the library works.
   question [`execution.md`](../design/execution.md#history-is-a-dict-written-after-each-run)
   chose to delete rather than answer. Deferred until an outside user asks. At
   most a guide paragraph showing a re-hearing as a fresh `hear()`.
-- **A SQL tool.** Wanted, but deferred behind the local file tool. If `enbanc`
-  ships a tool that runs model-written SQL,
-  [`0017`](../decisions/0017-read-only-is-a-contract.md)'s read-only contract
-  becomes `enbanc`'s to enforce: a read-only connection or transaction, and
-  parsing that allows only queries. Its driver would go behind an extra.
 - **A NoSQL tool.** Rejected. Mongo, Dynamo, Redis and Elastic share no query
   language, so "NoSQL" would mean owning one driver per store. A guide showing
   a hand-written tool that returns `Source`, plus a pointer to MCP, serves the
   need.
+
+## Planned last, behind the local file tool
+
+- **A SQL tool.** It was first listed as deferred, then planned as row 23
+  ([`sql-tool.md`](../implementations/sql-tool.md)): it follows the local file
+  tool and lands in a release not yet chosen. If `enbanc` ships a tool that
+  runs model-written SQL,
+  [`0017`](../decisions/0017-read-only-is-a-contract.md)'s read-only contract
+  becomes `enbanc`'s to enforce, at the database: every query runs in a
+  read-only transaction, and a dialect without one is refused. Its driver goes
+  behind an extra.
 
 ## Found along the way
 

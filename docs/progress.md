@@ -102,10 +102,11 @@ Four, all filed in the design docs — linked, not copied:
 
 ### 2026-10-18 — the plan past `0.1.0`
 
-**Did:** Brainstormed what follows `0.1.0` and wrote it down as rows 16–22 of
+**Did:** Brainstormed what follows `0.1.0` and wrote it down as rows 16–23 of
 the build plan, each a `draft` doc with scope only. In order: the round-1 fix
 (`0.1.1`), a docs site, the excerpt check, a benchmark that never ships, then
-`0.2.0`'s ruling citations, local file tool and opt-in images. No code.
+`0.2.0`'s ruling citations, local file tool and opt-in images, and last a SQL
+tool in a release not yet chosen. No code.
 
 **Stopped at:** uncommitted on `plan-enhancements`. Nothing in the plan is
 started.
