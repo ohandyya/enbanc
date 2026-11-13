@@ -74,11 +74,18 @@ uv add enbanc
 
 Requires Python 3.11 or later.
 
-## A taste
+## Basic usage
 
-*This runs as written with `OPENAI_API_KEY` and `TAVILY_API_KEY` set.
-[`docs/guides/`](./docs/guides/) has multiple complete programs that make a real
-decision each; the live test tier runs both, unchanged.*
+The smallest complete program: define the answers, describe the case, give each
+advocate its tools, and read the outcome. It runs as written with
+`OPENAI_API_KEY` and `TAVILY_API_KEY` set.
+
+For real-world use, see [`docs/guides/`](./docs/guides/). Each guide is one
+runnable program that makes a real decision, such as underwriting a loan,
+moderating a flagged post, or answering a factual question from the web. Each
+one also shows a part of `enbanc` this sample leaves out, such as streaming a
+hearing live, setting a cost budget, or hearing many cases at once. The live
+test tier runs every guide unchanged.
 
 ```python
 import asyncio

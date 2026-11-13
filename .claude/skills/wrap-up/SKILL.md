@@ -164,7 +164,7 @@ What goes stale, roughly in the order it burns:
 - **The WIP callout and the Status section.** These are load-bearing while the
   package on PyPI is a placeholder. An overclaim here is the worst failure this
   file can have.
-- **The "A taste" code sample.** It is labelled *planned API*. When
+- **The "Basic usage" code sample.** It is labelled *planned API*. When
   `docs/design/api.md` changes, this sample is wrong until it matches.
 - **Links into `docs/design/`.** A renamed or superseded design doc leaves a
   dead link on the public page.
